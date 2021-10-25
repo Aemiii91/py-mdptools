@@ -1,70 +1,127 @@
 # %%
+from typing import Literal, Tuple
 from mdptoolbox import mdp, example
 import numpy as np
 from enum import Enum
-# from scipy.sparse import csr_matrix
+from numpy.core.numeric import indices
+from scipy.sparse import csr_matrix
+import re
 
 
-def isStochastic(matrix):
-    """Check that ``matrix`` is row stochastic.
+def stringify(obj) -> str:
+    return obj.__str__().replace("'", "")
 
-    Returns
-    =======
-    is_stochastic : bool
-        ``True`` if ``matrix`` is row stochastic, ``False`` otherwise.
-
-    """
-    try:
-        absdiff = (np.abs(matrix.sum(axis=1) - np.ones(matrix.shape[0])))
-    except AttributeError:
-        matrix = np.array(matrix)
-        absdiff = (np.abs(matrix.sum(axis=1) - np.ones(matrix.shape[0])))
-    return (absdiff.max() <= 10*np.spacing(np.float64(1)))
 
 # %%
-S, A = (4, 5)
+# MDP
+class MDP:
+    def __init__(self, S: Enum, Act: Enum, P: dict[list[int], any]):
+        self.S = S
+        self.Act = Act
+        self.P = np.array([
+            csr_matrix((len(Act), len(S)), dtype=float)
+            for _ in range(len(S))])
+        for (sas, p) in P.items():
+            self.__set(sas, p)
+        self.valid = self.__validate()
+    
+    def __getitem__(self, indices):
+        if not isinstance(indices, tuple):
+            return self.P[indices.value]
+        i = iter(indices)
+        s, rest = next(i), list(i)
+        return self[s].__getitem__(tuple(x.value for x in rest))
+
+    def __setitem__(self, indices, value):
+        if not isinstance(indices, tuple):
+            return
+        i = iter(indices)
+        s, rest = next(i), list(i)
+        return self[s].__setitem__(tuple(x.value for x in rest), value)
+
+    def __repr__(self):
+        return "\n".join([
+            f"en({s.name}) = {stringify(self.actions(s))}"
+            for s in self.S])
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __set(self, sas, p):
+        s, a, s_prime = [x for x in re.split(r"\s*,\s*", sas)]
+        s, a, s_prime = self.S[s], self.Act[a], self.S[s_prime]
+        self[s, a, s_prime] = p
+
+    def __validate(self):
+        total_errors = []
+        en_s_nonempty, errors = self.__validate_en_s_nonempty()
+        if not en_s_nonempty:
+            for err in errors:
+                total_errors.append(f"Requirement not met: \"forall s in S : en(s) != {{}}\". [{err}]")
+        sum_to_one, errors = self.__validate_sum_to_one()
+        if not sum_to_one:
+            for err in errors:
+                total_errors.append(f"Requirement not met: \"forall s in S, a in en(s) : sum_(s' in S) P(s, a, s') = 1\"'.\n[{err})]")
+        if len(total_errors) != 0:
+            raise Exception("\n".join(total_errors))
+        return True
+
+    def __validate_en_s_nonempty(self):
+        # Requirement: 'forall s in S : en(s) != empty'
+        errors = []
+        for s in self.S:
+            en = self.enabled(s)
+            if len(en) == 0:
+                errors.append(s.name)
+        return (len(errors) == 0, errors)
+
+    def __validate_sum_to_one(self):
+        # Requirement: 'forall s in S, a in en(s) : sum_(s' in S) P(s, a, s') = 1'
+        errors = []
+        for s in self.S:
+            en = self.enabled(s)
+            for a in en:
+                a_sum = sum([self[s, a, s_prime] for s_prime in self.S])
+                if a_sum != 1:
+                    errors.append(f"({s.name}, {a.name}")
+        return (len(errors) == 0, errors)
+
+    def enabled(self, s):
+        enabled = []
+        for a in self.Act:
+            for s_prime in self.S:
+                if (self[s, a, s_prime] > 0 and a not in enabled):
+                    enabled.append(a);
+        return enabled;
+
+    def actions(self, s):
+        return {a.name: self.dist(s, a) for a in self.enabled(s)}
+
+    def dist(self, s, a):
+        d = { s_prime.name: self[s, a, s_prime] for s_prime in self.S if self[s, a, s_prime] > 0}
+        return d if len(d) > 1 else next(iter(d))
+
+
+class S(Enum):
+    s0, s1, s2, s3 = range(4)
 
 class Act(Enum):
-    a = 0
-    b = 1
-    x = 2
-    y = 3
-    z = 4
+    a, b, x, y, z, tau_1 = range(6)
 
-T = np.zeros((A, S, S))
+P = {
+    's0, a, s1': .2,
+    's0, a, s2': .8,
+    's0, b, s2': .7,
+    's0, b, s3': .3,
+    # 's1, tau_1, s1': 1,
+    's2, x, s2': 1,
+    's2, y, s2': 1,
+    's2, z, s2': 1,
+    's3, x, s3': 1,
+    's3, z, s3': 1
+}
 
-for a in Act:
-    for i in range(S):
-        T[a.value, i, i] = 1.0
-
-def set(a, s, s_prime, p):
-    T[a.value, s, s] = 0.0
-    T[a.value, s, s_prime] = p;
-
-T.shape
-
-# %%
-# Transition matrix
-set(Act.a, 0, 1, .2); set(Act.a, 0, 2, .8)
-
-set(Act.b, 0, 2, .7); set(Act.b, 0, 3, .3)
-set(Act.x, 2, 2, 1)
-set(Act.x, 3, 3, 1)
-set(Act.y, 2, 2, 1)
-set(Act.z, 2, 2, 1)
-set(Act.z, 3, 3, 1)
-
-for a in Act:
-    pa = T[a.value]
-    print(a.name, isStochastic(pa))
-    print(pa)
-
-# %%
-M = mdp.MDP(T, np.ones((A, S, S)), None, None, None)
-M.P, M.R
-
-# %%
-P, R = example.forest()
-P, R
+M = MDP(S, Act, P)
+M
 
 # %%
