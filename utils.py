@@ -133,7 +133,7 @@ def prompt_error(error, tip, code):
 def mdp_to_str(mdp: MDP):
     lines = []
     lines += [f"{_c[_c.variable, mdp.name]} -> {_c[_c.typing, 'MDP']} "
-              f"[{_c[_c.ok, 'Valid'] if mdp.valid else _c[_c.fail, 'Invalid']}]:"]
+              f"[{_c[_c.ok, 'Valid'] if mdp.is_valid else _c[_c.fail, 'Invalid']}]:"]
     lines += [f"  {_c[_c.variable, 'S']} := {lit_str(tuple(mdp.S), _c.state)},"
               f" {_c[_c.variable, 's_init']} := {_c[_c.state, mdp.s_init]}"]
     lines += [f"  {_c[_c.variable, 'A']} := {lit_str(tuple(mdp.A), _c.action)}"]

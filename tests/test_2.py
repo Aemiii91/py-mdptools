@@ -27,9 +27,8 @@ def run():
     }, name='Ms||Md')
 
     actual = Ms + Md
-    print('Actual:', actual)
-    print('')
-    print('expected == actual ->', actual == expected)
+    print('Actual:', actual, '\n')
+    print('Assert: expected == actual ->', actual == expected)
 
 
 if __name__ == '__main__':

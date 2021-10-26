@@ -26,7 +26,7 @@ class MDP:
             s_init: str = None,
             name: str = 'M'):
         self._init = False
-        self.valid = False
+        self.is_valid = False
         self.errors = []
         self._validate_on = True
 
@@ -208,14 +208,16 @@ class MDP:
     
     def validate(self) -> bool:
         if self._validate_on:
-            self.valid, self.errors = validate(self, raise_exception=False)
-        return self.valid
+            self.is_valid, self.errors = validate(self, raise_exception=False)
+        return self.is_valid
 
 
-    def rn(self, old: str = '', new: str = '',
+    def rn(self, old: str = '', new: str = '', name: str = None,
                       callback: Callable[[str], str] = None) -> 'MDP':
         clone = self.__copy__()
         clone.__rename_states(callback or (lambda s: s.replace(old, new)))
+        if name != None:
+            clone.name = name
         return clone
 
 

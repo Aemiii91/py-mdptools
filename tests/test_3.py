@@ -18,7 +18,11 @@ def run():
     M2.name = 'M2'
     print(M2, '\n')
 
-    print(M2 + M2.rn('s', 't'))
+    M = M2 + M2.rn('s', 't')
+    print(M, '\n')
+    print('Assert: \'M2||M2\'.is_valid ->', M.is_valid)
+
+
 
 
 if __name__ == '__main__':
