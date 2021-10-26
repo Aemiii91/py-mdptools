@@ -70,13 +70,10 @@ class bcolors_disable:
         LIGHTGREY = ''
 
 
-bc = bcolors
-
 _marks = ['RESET', 'BOLD', 'DISABLE', 'UNDERLINE', 'REVERSE', 'STRIKETHROUGH', 'INVISIBLE']
 
 if __name__ == '__main__':
-    for color in dir(bc):
-        if not color.startswith("_") and isinstance((attr := getattr(bc, color)), str) and color not in _marks:
-            row_format = attr + "{:<14}" + " ".join([attr + getattr(bc, mark) + "{}" + bc.RESET for mark in _marks])
+    for color in dir(bcolors):
+        if not color.startswith("_") and isinstance((attr := getattr(bcolors, color)), str) and color not in _marks:
+            row_format = attr + "{:<14}" + " ".join([attr + getattr(bcolors, mark) + "{}" + bcolors.RESET for mark in _marks])
             print(row_format.format(color, *_marks))
-# %%

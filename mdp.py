@@ -1,19 +1,18 @@
-from typing import Union
-import numpy as np
-from scipy.sparse.lil import lil_matrix
+from typing import Callable, Union as _union
+from scipy.sparse.lil import lil_matrix as _lil_matrix
 
 import utils as _utils
 from validate import validate
+from composition import parallel as _parallel
 
-_c = _utils.color_text
+
 use_colors = _utils.use_colors
 
 
 # Custom types
-StrOrStrList = Union[list[str], str]
-TransitionMap = dict[str, Union[
+TransitionMap = dict[str, _union[
     set[str],
-    dict[str, Union[
+    dict[str, _union[
         dict[str, float],
         float]],
     ]]
@@ -22,100 +21,132 @@ TransitionMap = dict[str, Union[
 class MDP:
     def __init__(self,
             transition_map: TransitionMap,
-            S: StrOrStrList = [],
-            A: StrOrStrList = [],
+            S: _union[list[str], str] = [],
+            A: _union[list[str], str] = [],
             s_init: str = None,
             name: str = 'M'):
+        self._init = False
         self.valid = False
+        self.errors = []
+        self._validate_on = True
+
         self.name = name
-        self.s_init = s_init
-        self.S, self.A = _utils.map_list(S), _utils.map_list(A)
+        self.S, self.A, self.P = _utils.map_list(S), _utils.map_list(A), []
 
         if len(self.S) == 0 or len(self.A) == 0:
             _utils.walk_dict(transition_map, self.__infer_states_and_actions)
+            
+        self.s_init = s_init
         
-        shape = (len(self.A), len(self.S))
-        self.P = np.array([lil_matrix(shape, dtype=float) for _ in self.S])
-        
-        self._validate_on = False
-        _utils.walk_dict(transition_map, self.__setitem__)
+        self.__suspend_validation(lambda: (
+            self.__reset(),
+            _utils.walk_dict(transition_map, self.__setitem__)
+        ))
 
-        self._validate_on = True
-        self.validate()
+        self._init = True
     
 
     def __getitem__(self, indices):
         s, a, s_prime = _utils.parse_sas_str(indices)
         if a == None:
-            return self.P[self.S[s]]
+            return self.actions(s)
         if s_prime == None:
-            s_prime = s
-        return self[s].__getitem__((self.A[a], self.S[s_prime]))
+            return self.dist(s, a)
+        return self.__ref_matrix(s).__getitem__((self.A[a], self.S[s_prime]))
 
 
     def __setitem__(self, indices, value):
         s, a, s_prime = _utils.parse_sas_str(indices)
+
         if a == None:
             if isinstance(value, dict) or isinstance(value, set):
                 self.__set_special([s], value)
                 return
+
         if s_prime == None:
             if isinstance(value, dict):
                 self.__set_special([s, a], value)
                 return
             elif isinstance(value, set):
-                raise Exception(_utils.prompt_error(
-                    "Set is not allowed as a distribution value.",
-                    "Please use a Dictionary instead.",
-                    f"{_c(_utils.bc.LIGHTBLUE, 'Dist')}({_c(_utils.bc.LIGHTGREEN, s)}, {_c(_utils.bc.LIGHTGREEN, a)}) -> {_utils.lit_str(value)}"))
-            s_prime = s
-        self[s].__setitem__((self.A[a], self.S[s_prime]), value)
+                raise Exception(_utils.dist_wrong_value(s, a, value))
+            elif isinstance(value, str):
+                s_prime, value = value, 1.0
+            else:
+                s_prime = s
+
+        if self._init:
+            self.__add_state(s)
+            self.__add_action(a)
+            self.__add_state(s_prime)
+
+        self.__ref_matrix(s).__setitem__((self.A[a], self.S[s_prime]), value)
         self.validate()
 
 
     def __repr__(self):
-        lines = [f"{_c(_utils.bc.LIGHTCYAN, self.name)} ({_c(_utils.bc.LIGHTCYAN, 'MDP')}):"]
-        lines += [f"  {_c(_utils.bc.PURPLE, 'S')} := {_utils.lit_str(tuple(self.S), _utils.bc.LIGHTGREEN)}"]
-        lines += [f"  {_c(_utils.bc.PURPLE, 'A')} := {_utils.lit_str(tuple(self.A), _utils.bc.LIGHTRED)}"]
-        lines += [f"  {_c(_utils.bc.PURPLE, 's_init')} := {_c(_utils.bc.LIGHTGREEN, self.s_init)}"]
-        lines += [f"  {_c(_utils.bc.LIGHTBLUE, 'en')}({_utils.bc.LIGHTGREEN}{s}{_utils.bc.RESET}) -> {_utils.lit_str(self.actions(s), self._color_map)}"
-            for s in self.S]
-        return "\n".join(lines)
+        return _utils.mdp_to_str(self)
 
 
     def __str__(self):
         return self.__repr__()
 
 
-    @property
-    def _color_map(self):
-        if _utils.bc.LIGHTGREEN == '':
-            return {}
-        return {
-            _utils.bc.LIGHTGREEN: list(self.S.keys()),
-            _utils.bc.LIGHTRED: list(self.A.keys())
-        }
+    def __add__(self, m2: 'MDP') -> 'MDP':
+        return self.parallel(m2)
+
+
+    def __eq__(self, m2: 'MDP') -> bool:
+        return self.equals(m2)
+
+
+    def __copy__(self) -> 'MDP':
+        return MDP(self.transition_map, list(self.S), list(self.A), self.s_init, self.name)
+
+
+    def __ref_matrix(self, s: str) -> _lil_matrix:
+        return self.P[self.S[s]]
 
 
     def __set_special(self, path, value):
+        self.__suspend_validation(lambda: (
+            self.__reset(path),
+            _utils.walk_dict(value, self.__setitem__, path)
+        ))
+
+
+    def __suspend_validation(self, callback):
         old, self._validate_on = self._validate_on, False
-        self.__reset(path)
-        _utils.walk_dict(value, self.__setitem__, path)
+        
+        callback()
+
         if old:
             self._validate_on = True
             self.validate()
 
 
-    def __reset(self, path):
+    def __reset(self, path = []):
         s, a, s_prime = _utils.parse_sas_str(path)
-        if a == None:
-            self.P[self.S[s]] = lil_matrix((len(self.A), len(self.S)), dtype=float)
+        shape = self.shape
+
+        if s == None:
+            self.P = [_lil_matrix(shape, dtype=float) for _ in self.S]
+        elif a == None:
+            i = self.S[s]
+            if i >= len(self.P):
+                self.P += [None]
+            self.P[i] = _lil_matrix(shape, dtype=float)
         elif s_prime == None:
-            m = self.P[self.S[s]]
+            ref = self.__ref_matrix(s)
             for s_prime in self.S:
-                m[self.A[a]] = 0.0
+                ref[self.A[a]] = 0.0
         else:
             self[s, a, s_prime] = 0.0
+
+
+    def __resize(self):
+        shape = self.shape
+        for m in self.P:
+            m.resize(shape)
 
 
     def __infer_states_and_actions(self, path, _):
@@ -128,48 +159,76 @@ class MDP:
 
 
     def __add_state(self, s: str):
-        if not self.s_init:
-            self.s_init = s
         if not s in self.S:
             self.S[s] = len(self.S)
+            if self._init:
+                self.__reset(s)
 
 
     def __add_action(self, a: str):
         if not a in self.A:
             self.A[a] = len(self.A)
+            if self._init:
+                self.__resize()
 
 
-    def validate(self) -> bool:
-        if self._validate_on:
-            self.valid = validate(self)
-        return self.valid
+    def __rename_states(self, callback):
+        self.S = { (callback(s) or s): i for s, i in self.S.items() }
+
+
+    @property
+    def s_init(self):
+        return _utils.key_by_value(self.S, self._s_init) or None
+    @s_init.setter
+    def s_init(self, s):
+        self._s_init = self.S[s] if isinstance(s, str) else 0
+
+
+    @property
+    def shape(self):
+        return (len(self.A), len(self.S))
+
+
+    @property
+    def transition_map(self):
+        return { s: self.actions(s) for s in self.S}
 
 
     def enabled(self, s):
-        enabled = []
-        for a in self.A:
-            for s_prime in self.S:
-                if self[s, a, s_prime] > 0 and a not in enabled:
-                    enabled.append(a);
-        return enabled;
+        return { a for a in self.A for s_prime in self.S if self[s, a, s_prime] > 0 }
 
 
     def actions(self, s):
-        return {a: self.dist(s, a) for a in self.enabled(s)}
+        return { a: self.dist(s, a) for a in self.enabled(s) }
 
 
     def dist(self, s, a):
-        d = { s_prime: self[s, a, s_prime] for s_prime in self.S if self[s, a, s_prime] > 0}
-        return d if len(d) > 1 else next(iter(d))
+        return { s_prime: self[s, a, s_prime] for s_prime in self.S if self[s, a, s_prime] > 0}
+
+    
+    def validate(self) -> bool:
+        if self._validate_on:
+            self.valid, self.errors = validate(self, raise_exception=False)
+        return self.valid
+
+
+    def rn(self, old: str = '', new: str = '',
+                      callback: Callable[[str], str] = None) -> 'MDP':
+        clone = self.__copy__()
+        clone.__rename_states(callback or (lambda s: s.replace(old, new)))
+        return clone
+
+
+    def equals(self, m2: 'MDP') -> bool:
+        return self.transition_map == m2.transition_map and self.s_init == m2.s_init
+
+
+    def parallel(self, m2: 'MDP', name: str = None) -> 'MDP':
+        return parallel(self, m2, name)
 
 
 
 
-if __name__ == '__main__':
-    M1 = MDP({
-        's0': { 'a': { 's1': .2, 's2': .8 }, 'b': { 's2': .7, 's3': .3 } },
-        's1': { 'tau_1' },
-        's2': { 'x', 'y', 'z' },
-        's3': { 'x', 'z' }
-    }, S='s0,s1,s2,s3', A='a,b,x,y,z,tau_1', name='M1')
-    print(M1)
+def parallel(m1: MDP, m2: MDP, name: str = None) -> MDP:
+    return _parallel(MDP, m1, m2, name)
+
