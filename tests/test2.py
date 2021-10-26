@@ -1,4 +1,5 @@
-import mdp
+try: import mdp
+except: from helper import mdp
 
 
 def run():
