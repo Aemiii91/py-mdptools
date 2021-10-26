@@ -16,15 +16,30 @@ def color_text(color, text: str) -> str:
 _c = color_text
 
 
-_str_re = r"\"([^\"\n]*?)\"|'([^'\n]*?)'"
-_float_re = r"([^\w\\])(?:(?:(?:(0*[1-9][0-9]+)|(0+))(\.[0-9]*)?)|(\.[0-9]+))([^\w\\])"
+def format_strings(s: str, color_map: dict[str,list[str]] = {}) -> str:
+    str_re = r"\"([^\"\n]*?)\"|'([^'\n]*?)'"
+    return re.sub(str_re, lambda x: (
+        word := f"{x[1] or ''}{x[2] or ''}",
+        color := word_color(word, color_map),
+        color + word + bc.RESET)[-1], s)
 
 
-def lit_str(obj) -> str:
-    res = obj.__str__()
-    res = re.sub(_str_re, bc.LIGHTGREEN + r"\1\2" + bc.RESET, res)
-    res = re.sub(_float_re, r"\1" + bc.ORANGE + r"\2\4\5" + bc.RESET + r"\6", res)
-    return res
+def word_color(word: str, color_map: dict[str,list[str]] = {}):
+    if isinstance(color_map, str):
+        return color_map
+    for new_color, words in color_map.items():
+        if word in words:
+            return new_color
+    return bc.LIGHTGREEN
+
+
+def format_floats(s: str) -> str:
+    float_re = r"([^\w\\'])(?:(?:(?:(0*[1-9][0-9]*)|0+)(?:\.?0+|(\.?0*[1-9][0-9]*)))|(\.[0-9]+))([^\w\\'])"
+    return re.sub(float_re, r"\1" + bc.ORANGE + r"\2\3\4" + bc.RESET + r"\5", s)
+
+
+def lit_str(obj, color_map: dict[str,list[str]] = {}) -> str:
+    return format_strings(format_floats(obj.__str__()), color_map)
 
 
 def map_list(lst: list[str]) -> dict[str, int]:

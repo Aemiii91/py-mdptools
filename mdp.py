@@ -2,12 +2,11 @@ from typing import Union
 import numpy as np
 from scipy.sparse.lil import lil_matrix
 
-import utils
-from utils import lit_str, map_list, parse_sas_str, prompt_error, walk_dict, color_text, use_colors
+import utils as _utils
 from validate import validate
 
-_c = color_text
-use_colors = use_colors
+_c = _utils.color_text
+use_colors = _utils.use_colors
 
 
 # Custom types
@@ -25,29 +24,37 @@ class MDP:
             transition_map: TransitionMap,
             S: StrOrStrList = [],
             A: StrOrStrList = [],
+            s_init: str = None,
             name: str = 'M'):
-
-        self._validate_on_set = False
+        self.valid = False
         self.name = name
-        self.S, self.A = map_list(S), map_list(A)
+        self.s_init = s_init
+        self.S, self.A = _utils.map_list(S), _utils.map_list(A)
+
         if len(self.S) == 0 or len(self.A) == 0:
-            walk_dict(transition_map, self.__infer_states_and_actions)
+            _utils.walk_dict(transition_map, self.__infer_states_and_actions)
+        
         shape = (len(self.A), len(self.S))
         self.P = np.array([lil_matrix(shape, dtype=float) for _ in self.S])
-        walk_dict(transition_map, self.__setitem__)
-        self.valid = validate(self)
-        self._validate_on_set = True
+        
+        self._validate_on = False
+        _utils.walk_dict(transition_map, self.__setitem__)
+
+        self._validate_on = True
+        self.validate()
     
+
     def __getitem__(self, indices):
-        s, a, s_prime = parse_sas_str(indices)
+        s, a, s_prime = _utils.parse_sas_str(indices)
         if a == None:
             return self.P[self.S[s]]
         if s_prime == None:
             s_prime = s
         return self[s].__getitem__((self.A[a], self.S[s_prime]))
 
+
     def __setitem__(self, indices, value):
-        s, a, s_prime = parse_sas_str(indices)
+        s, a, s_prime = _utils.parse_sas_str(indices)
         if a == None:
             if isinstance(value, dict) or isinstance(value, set):
                 self.__set_special([s], value)
@@ -57,36 +64,50 @@ class MDP:
                 self.__set_special([s, a], value)
                 return
             elif isinstance(value, set):
-                raise Exception(prompt_error(
+                raise Exception(_utils.prompt_error(
                     "Set is not allowed as a distribution value.",
                     "Please use a Dictionary instead.",
-                    f"{_c(utils.bc.LIGHTBLUE, 'Dist')}({_c(utils.bc.LIGHTGREEN, s)}, {_c(utils.bc.LIGHTGREEN, a)}) -> {lit_str(value)}"))
+                    f"{_c(_utils.bc.LIGHTBLUE, 'Dist')}({_c(_utils.bc.LIGHTGREEN, s)}, {_c(_utils.bc.LIGHTGREEN, a)}) -> {_utils.lit_str(value)}"))
             s_prime = s
         self[s].__setitem__((self.A[a], self.S[s_prime]), value)
-        if self._validate_on_set:
-            self.valid = validate(self)
+        self.validate()
+
 
     def __repr__(self):
-        lines = [f"{utils.bc.LIGHTCYAN}{self.name}: MDP{utils.bc.RESET}"]
-        lines += [f"  {_c(utils.bc.PURPLE, 'S')} := {lit_str(tuple(self.S))}"]
-        lines += [f"  {_c(utils.bc.PURPLE, 'A')} := {lit_str(tuple(self.A))}"]
-        lines += [f"  {_c(utils.bc.LIGHTBLUE, 'en')}({utils.bc.LIGHTGREEN}{s}{utils.bc.RESET}) -> {lit_str(self.actions(s))}"
+        lines = [f"{_c(_utils.bc.LIGHTCYAN, self.name)} ({_c(_utils.bc.LIGHTCYAN, 'MDP')}):"]
+        lines += [f"  {_c(_utils.bc.PURPLE, 'S')} := {_utils.lit_str(tuple(self.S), _utils.bc.LIGHTGREEN)}"]
+        lines += [f"  {_c(_utils.bc.PURPLE, 'A')} := {_utils.lit_str(tuple(self.A), _utils.bc.LIGHTRED)}"]
+        lines += [f"  {_c(_utils.bc.PURPLE, 's_init')} := {_c(_utils.bc.LIGHTGREEN, self.s_init)}"]
+        lines += [f"  {_c(_utils.bc.LIGHTBLUE, 'en')}({_utils.bc.LIGHTGREEN}{s}{_utils.bc.RESET}) -> {_utils.lit_str(self.actions(s), self._color_map)}"
             for s in self.S]
         return "\n".join(lines)
+
 
     def __str__(self):
         return self.__repr__()
 
+
+    @property
+    def _color_map(self):
+        if _utils.bc.LIGHTGREEN == '':
+            return {}
+        return {
+            _utils.bc.LIGHTGREEN: list(self.S.keys()),
+            _utils.bc.LIGHTRED: list(self.A.keys())
+        }
+
+
     def __set_special(self, path, value):
-        old, self._validate_on_set = self._validate_on_set, False
+        old, self._validate_on = self._validate_on, False
         self.__reset(path)
-        walk_dict(value, self.__setitem__, path)
+        _utils.walk_dict(value, self.__setitem__, path)
         if old:
-            self.valid = validate(self)
-            self._validate_on_set = True
+            self._validate_on = True
+            self.validate()
+
 
     def __reset(self, path):
-        s, a, s_prime = parse_sas_str(path)
+        s, a, s_prime = _utils.parse_sas_str(path)
         if a == None:
             self.P[self.S[s]] = lil_matrix((len(self.A), len(self.S)), dtype=float)
         elif s_prime == None:
@@ -96,14 +117,33 @@ class MDP:
         else:
             self[s, a, s_prime] = 0.0
 
+
     def __infer_states_and_actions(self, path, _):
-        s, a, s_prime = parse_sas_str(path)
+        s, a, s_prime = _utils.parse_sas_str(path)
+        self.__add_state(s)
+        if a != None:
+            self.__add_action(a)
+        if s_prime != None:
+            self.__add_state(s_prime)
+
+
+    def __add_state(self, s: str):
+        if not self.s_init:
+            self.s_init = s
         if not s in self.S:
             self.S[s] = len(self.S)
-        if a != None and not a in self.A:
+
+
+    def __add_action(self, a: str):
+        if not a in self.A:
             self.A[a] = len(self.A)
-        if s_prime != None and not s_prime in self.S:
-            self.S[s_prime] = len(self.S)
+
+
+    def validate(self) -> bool:
+        if self._validate_on:
+            self.valid = validate(self)
+        return self.valid
+
 
     def enabled(self, s):
         enabled = []
@@ -113,12 +153,16 @@ class MDP:
                     enabled.append(a);
         return enabled;
 
+
     def actions(self, s):
         return {a: self.dist(s, a) for a in self.enabled(s)}
+
 
     def dist(self, s, a):
         d = { s_prime: self[s, a, s_prime] for s_prime in self.S if self[s, a, s_prime] > 0}
         return d if len(d) > 1 else next(iter(d))
+
+
 
 
 if __name__ == '__main__':
