@@ -1,0 +1,57 @@
+digraph {
+	s0_r0_w0_v0
+	s0_r0_w0_v0 -> s1_r0_w0_v0 [label="a [0.2]"]
+	s0_r0_w0_v0 -> s2_r0_w0_v0 [label="a [0.8]"]
+	s0_r0_w0_v0 -> s2_r0_w0_v0 [label="b [0.7]"]
+	s0_r0_w0_v0 -> s3_r0_w0_v0 [label="b [0.3]"]
+	s0_r0_w0_v0 -> s0_r0_w1_v0 [label=c]
+	s1_r0_w0_v0
+	s1_r0_w0_v0 -> s1_r0_w1_v0 [label=c]
+	s1_r0_w0_v0 -> s1_r0_w0_v0 [label=tau_1]
+	s2_r0_w0_v0
+	s2_r0_w0_v0 -> s2_r0_w1_v0 [label=c]
+	s2_r0_w0_v0 -> s2_r1_w0_v0 [label=x]
+	s3_r0_w0_v0
+	s3_r0_w0_v0 -> s3_r0_w1_v0 [label=c]
+	s3_r0_w0_v0 -> s3_r1_w0_v0 [label=x]
+	s0_r0_w1_v0
+	s0_r0_w1_v0 -> s1_r0_w1_v0 [label="a [0.2]"]
+	s0_r0_w1_v0 -> s2_r0_w1_v0 [label="a [0.8]"]
+	s0_r0_w1_v0 -> s2_r0_w1_v0 [label="b [0.7]"]
+	s0_r0_w1_v0 -> s3_r0_w1_v0 [label="b [0.3]"]
+	s0_r0_w1_v0 -> s0_r0_w1_v0 [label=tau_2]
+	s1_r0_w1_v0
+	s1_r0_w1_v0 -> s1_r0_w1_v0 [label=tau_2]
+	s1_r0_w1_v0 -> s1_r0_w1_v0 [label=tau_1]
+	s2_r0_w1_v0
+	s2_r0_w1_v0 -> s2_r0_w1_v0 [label=tau_2]
+	s2_r0_w1_v0 -> s2_r1_w1_v0 [label=x]
+	s2_r1_w0_v0
+	s2_r1_w0_v0 -> s2_r1_w0_v1 [label=z]
+	s2_r1_w0_v0 -> s2_r1_w1_v0 [label=c]
+	s2_r1_w0_v0 -> s2_r0_w0_v0 [label=y]
+	s2_r1_w1_v0
+	s2_r1_w1_v0 -> s2_r1_w1_v1 [label=z]
+	s2_r1_w1_v0 -> s2_r1_w1_v0 [label=tau_2]
+	s2_r1_w1_v1
+	s2_r1_w1_v1 -> s2_r1_w1_v1 [label=z]
+	s2_r1_w1_v1 -> s2_r1_w1_v1 [label=tau_2]
+	s2_r1_w0_v1
+	s2_r1_w0_v1 -> s2_r1_w0_v1 [label=z]
+	s2_r1_w0_v1 -> s2_r1_w1_v1 [label=c]
+	s3_r0_w1_v0
+	s3_r0_w1_v0 -> s3_r0_w1_v0 [label=tau_2]
+	s3_r0_w1_v0 -> s3_r1_w1_v0 [label=x]
+	s3_r1_w0_v0
+	s3_r1_w0_v0 -> s3_r1_w0_v1 [label=z]
+	s3_r1_w0_v0 -> s3_r1_w1_v0 [label=c]
+	s3_r1_w1_v0
+	s3_r1_w1_v0 -> s3_r1_w1_v1 [label=z]
+	s3_r1_w1_v0 -> s3_r1_w1_v0 [label=tau_2]
+	s3_r1_w1_v1
+	s3_r1_w1_v1 -> s3_r1_w1_v1 [label=z]
+	s3_r1_w1_v1 -> s3_r1_w1_v1 [label=tau_2]
+	s3_r1_w0_v1
+	s3_r1_w0_v1 -> s3_r1_w0_v1 [label=z]
+	s3_r1_w0_v1 -> s3_r1_w1_v1 [label=c]
+}

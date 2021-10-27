@@ -132,13 +132,21 @@ def prompt_error(error, tip, code):
 
 def mdp_to_str(mdp: MDP):
     lines = []
+    # Name and validity
     lines += [f"{_c[_c.variable, mdp.name]} -> {_c[_c.typing, 'MDP']} "
               f"[{_c[_c.ok, 'Valid'] if mdp.is_valid else _c[_c.fail, 'Invalid']}]:"]
+    # States and start state
     lines += [f"  {_c[_c.variable, 'S']} := {lit_str(tuple(mdp.S), _c.state)},"
-              f" {_c[_c.variable, 's_init']} := {_c[_c.state, mdp.s_init]}"]
-    lines += [f"  {_c[_c.variable, 'A']} := {lit_str(tuple(mdp.A), _c.action)}"]
-    lines += [f"  {_c[_c.function, 'en']}({_c[_c.state, s]}) ->"
-              f" {lit_str(mdp[s], mdp_color_map(mdp))}" for s in mdp.S]
+              f" {_c[_c.variable, 's_init']} := {_c[_c.state, mdp.s_init]}"
+             + _c[_c.comment, f"// {len(mdp.S)}"]]
+    # Actions
+    lines += [f"  {_c[_c.variable, 'A']} := {lit_str(tuple(mdp.A), _c.action)} "
+             + _c[_c.comment, f"// {len(mdp.A)}"]]
+    # Enabled transitions
+    lines += [(en_s := mdp[s], f"  {_c[_c.function, 'en']}({_c[_c.state, s]}) ->"
+              f" {lit_str(en_s, mdp_color_map(mdp))} " + _c[_c.comment, f"// {len(en_s)}"])[-1]
+              for s in mdp.S]
+    # Errors
     lines += mdp.errors
     return "\n".join(lines)
 
