@@ -3,7 +3,7 @@ from scipy.sparse.lil import lil_matrix as _lil_matrix
 
 import utils as _utils
 from validate import validate
-from composition import parallel as _parallel
+from parallel import parallel as _parallel
 
 
 use_colors = _utils.use_colors
@@ -229,8 +229,10 @@ class MDP:
         return parallel(self, m2, name)
 
 
-
-
 def parallel(m1: MDP, m2: MDP, name: str = None) -> MDP:
     return _parallel(MDP, m1, m2, name)
+
+
+def set_parallel_separator(sep: str = '_'):
+    _parallel.separator = sep
 

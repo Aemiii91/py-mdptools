@@ -49,7 +49,11 @@ def parallel(MDP: 'MDP', m1: MDP, m2: MDP, name: str = None) -> 'MDP':
         name=name or __c_names(m1.name, m2.name, '||'));
 
 
-def __c_names(n1: str, n2: str, sep: str = '_', left: bool = True) -> str:
+parallel.separator = '_'
+
+
+def __c_names(n1: str, n2: str, sep: str = None, left: bool = True) -> str:
+    sep = sep or parallel.separator
     return n1 + sep + n2 if left else n2 + sep + n1
 
 
