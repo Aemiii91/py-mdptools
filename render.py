@@ -4,7 +4,9 @@ from IPython.display import Image, SVG, display
 
 def show(path: str, format: str):
     image_path = f"{path}.{format}"
-    if format == 'svg':
+    if format == 'pdf':
+        print(image_path)
+    elif format == 'svg':
         display(SVG(filename=image_path))
     else:
         display(Image(filename=image_path))
