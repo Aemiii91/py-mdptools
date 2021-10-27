@@ -1,9 +1,12 @@
-from typing import Callable, Union as _union
+from typing import Callable, Union as _union, TYPE_CHECKING
 from scipy.sparse.lil import lil_matrix as _lil_matrix
 
 import utils as _utils
 from validate import validate
-from parallel import parallel as _parallel
+
+
+if TYPE_CHECKING:
+    from render import Digraph
 
 
 use_colors = _utils.use_colors
@@ -230,9 +233,21 @@ class MDP:
 
 
 def parallel(m1: MDP, m2: MDP, name: str = None) -> MDP:
-    return _parallel(MDP, m1, m2, name)
+    from parallel import parallel as _parallel
+    return _parallel(m1, m2, name)
 
 
 def set_parallel_separator(sep: str = '_'):
+    from parallel import parallel as _parallel
     _parallel.separator = sep
+
+def get_parallel_separator() -> str:
+    from parallel import parallel as _parallel
+    return _parallel.separator
+
+
+def graph(mdp: _union[MDP, list[MDP]], file_path: str,
+    file_format: str = 'svg') -> 'Digraph':
+    from render import graph
+    return graph(mdp, file_path, file_format)
 

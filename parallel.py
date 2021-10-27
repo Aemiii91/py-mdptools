@@ -1,17 +1,8 @@
-from typing import TYPE_CHECKING
-import sys
+import mdp
 
 
-MDP = any
-
-if TYPE_CHECKING:
-    from mdp import MDP
-
-
-sys.tracebacklimit = 10
-
-
-def parallel(MDP: 'MDP', m1: MDP, m2: MDP, name: str = None) -> 'MDP':
+def parallel(m1: mdp.MDP, m2: mdp.MDP,
+    name: str = None) -> mdp.MDP:
     act_intersect = set(m1.A).intersection(set(m2.A))
     transition_map = {}
 
@@ -44,12 +35,12 @@ def parallel(MDP: 'MDP', m1: MDP, m2: MDP, name: str = None) -> 'MDP':
         return __c_actions(dist_s, dist_t, left)
 
     compose(m1.s_init, m2.s_init)
-    return MDP(transition_map,
+    return mdp.MDP(transition_map,
         s_init=__c_names(m1.s_init, m2.s_init),
         name=name or __c_names(m1.name, m2.name, '||'));
 
 
-parallel.separator = '_'
+parallel.separator = '|'
 
 
 def __c_names(n1: str, n2: str, sep: str = None, left: bool = True) -> str:

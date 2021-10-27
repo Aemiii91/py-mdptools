@@ -1,60 +1,103 @@
-# %%
+import re
+from typing import Union
 from graphviz import Digraph
-from IPython.display import Image, SVG, display
-
-def show(path: str, format: str):
-    image_path = f"{path}.{format}"
-    if format == 'pdf':
-        print(image_path)
-    elif format == 'svg':
-        display(SVG(filename=image_path))
-    else:
-        display(Image(filename=image_path))
-
 
 import mdp
 
-mdp.use_colors()
-mdp.set_parallel_separator('')
 
-# %%
-# Parallel composition of 4 MDPs
+def graph(mdp: mdp.MDP, file_path: str,
+    file_format: str = 'svg',
+    engine: str = 'dot',
+    rankdir: str = 'TB',
+    size: float = 8.5) -> Digraph:
+    """ Renders a graph of a given MDP and saves it to `file_path`.
+    """
+    set_fontsize = { 'fontsize': f'{graph.point_size}' }
+    dot = Digraph(filename=file_path, format=file_format, engine=engine, node_attr=set_fontsize, edge_attr=set_fontsize)
+    dot.attr(rankdir=rankdir, size=f'{size}', ranksep='0.25')
 
-M1 = mdp.MDP({
-    's₀': { 'a': { 's₁': .2, 's₂': .8 }, 'b': { 's₂': .7, 's₃': .3 } },
-    's₁': 'τ₁',
-    's₂': { 'x', 'y', 'z' },
-    's₃': { 'x', 'z' }
-}, name='M1')
-M2 = mdp.MDP({
-    'r₀': { 'x': 'r₁' },
-    'r₁': { 'y': 'r₀', 'z': 'r₁' }
-}, name='M2')
-M3 = mdp.MDP({
-    'w₀': { 'c': 'w₁', 'y': 'w₀' },
-    'w₁': 'τ₂'
-}, name='M3')
-M4 = mdp.MDP({
-    'v₀': { 'z': 'v₁', 'y': 'v₀' },
-    'v₁': 'z'
-}, name='M4')
+    if isinstance(mdp, list):
+        for idx, M in enumerate(mdp):
+            with dot.subgraph() as subgraph:
+                __render_mdp(subgraph, M, idx)
+    else:
+        __render_mdp(dot, mdp, mdp.name)
 
-M = M1 + M2 + M3 + M4
-M
+    dot.render()
+    return dot
 
-# %%
-# Draft/rough render of the composed MDP
-path = 'renders/graph_test.gv'
-dot = Digraph()
 
-for s, act in M.transition_map.items():
-    dot.node(s)
-    for a, dist in act.items():
-        for s_prime, p in dist.items():
-            dot.edge(s, s_prime, a if p == 1 else f"{a} [{p}]")
+graph.re_sep = '|'
+graph.point_size = 18
+graph.p_color = None
+graph.label_padding = 2
 
-dot.format = 'png'
-dot.render(path)
-show(path, dot.format)
 
-# %%
+def __render_mdp(dot: Digraph, mdp: mdp.MDP, name: Union[str, int]):
+    # Add arrow pointing to the start state
+    init_name = f'mdp_{name}_start'
+    init_label = f'<<b>{mdp.name}</b>>'
+    dot.node(init_name, label=init_label, shape='none', fontsize=f'{graph.point_size * 1.2}')
+    dot.edge(init_name, __pf_s(mdp.s_init))
+
+    for s, act in mdp.transition_map.items():
+        # Add a state node to the graph
+        dot.node(__pf_s(s), __label_html(s))
+        for a, dist in act.items():
+            # p_point is used to create a common point for probabilistic actions
+            p_point = None
+            for s_prime, p in dist.items():
+                if p == 1:
+                    # Add a transition arrow between two states (non-deterministic)
+                    dot.edge(__pf_s(s), __pf_s(s_prime), __label_html(a), minlen='2')
+                else:
+                    if p_point == None:
+                        # Create a common point for the probabilistic outcome of action `a`
+                        p_point = __create_p_point(dot, s, a)
+                    # Add a transition arrow between the common point and the next state
+                    dot.edge(p_point, __pf_s(s_prime), __label_html(p, color=graph.p_color))
+
+
+def __pf_s(s: str) -> str: return f"state_{s}"
+
+
+def __create_p_point(dot: Digraph, s: str, a: str) -> str:
+    p_point = f"p_point_{s}_{a}"
+    dot.node(p_point, '', shape='point')
+    dot.edge(__pf_s(s), p_point, __label_html(a), arrowhead='none')
+    return p_point
+
+
+def __label_html(label: str, color: str = None) -> str:
+    if isinstance(label, float):
+        label = __float_str(label)
+    label = __subscript_numerals(label, graph.point_size * .5)
+    label = __greek_letters(label)
+    label = __remove_separators(label, graph.re_sep)
+    if color != None:
+        label = f'<font color="{color}">{label}</font>'
+    label = __html_padding(label, graph.label_padding)
+    return f'<<i>{label}</i>>'
+
+
+def __html_padding(label: str, padding: int):
+    if padding == 0:
+        return label
+    return f'<table cellpadding="{padding}" border="0" cellborder="0"><tr><td>{label}</td></tr></table>'
+
+
+def __float_str(n: float) -> str:
+    return re.sub(r"^0+(\.[0-9]+)$", r"\1", f"{n}")
+
+
+_re_greek = r"\b(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|omicron|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega)(?![a-z])"
+def __greek_letters(label: str) -> str:
+    return re.sub(_re_greek, r'&\1;', label)
+
+
+def __subscript_numerals(label: str, size: int) -> str:
+    return re.sub(r"\B_?([0-9]+)", f'<sub><font point-size="{size}">' r"\1" '</font></sub>', label)
+
+
+def __remove_separators(label: str, sep: str) -> str:
+    return label.replace(sep, '&#8201;')
