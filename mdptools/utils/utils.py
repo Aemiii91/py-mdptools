@@ -27,13 +27,15 @@ def parse_sas_str(sas: any) -> tuple[str, str, str]:
         sas = "->".join(sas)
 
     for idx, value in enumerate(re.split(r"\s*->\s*", f"{sas}")):
-        if idx < len(res) and value != '':
+        if idx < len(res) and value != "":
             res[idx] = value
 
     return res
 
 
-def walk_dict(obj, callback, path: list[str] = None, default_value: float = 1.0):
+def walk_dict(
+    obj, callback, path: list[str] = None, default_value: float = 1.0
+):
     if path is None:
         path = []
     if isinstance(obj, dict):
@@ -50,15 +52,23 @@ def walk_dict(obj, callback, path: list[str] = None, default_value: float = 1.0)
 
 def rename_map(obj: dict, rename: RenameFunction) -> dict[str, str]:
     rename = ensure_rename_function(rename)
-    return { s: rename(s) for s in obj }
+    return {s: rename(s) for s in obj}
 
 
-def rename_transition_map(old_map: StrongTransitionMap, states_map: dict[str, str],
-        actions_map: dict[str, str]) -> StrongTransitionMap:
-    return { states_map[s]: { actions_map[a]: { states_map[s_prime]: p
-                for s_prime, p in dist_a.items() }
-            for a, dist_a in act_s.items() }
-        for s, act_s in old_map.items() }
+def rename_transition_map(
+    old_map: StrongTransitionMap,
+    states_map: dict[str, str],
+    actions_map: dict[str, str],
+) -> StrongTransitionMap:
+    return {
+        states_map[s]: {
+            actions_map[a]: {
+                states_map[s_prime]: p for s_prime, p in dist_a.items()
+            }
+            for a, dist_a in act_s.items()
+        }
+        for s, act_s in old_map.items()
+    }
 
 
 def ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:

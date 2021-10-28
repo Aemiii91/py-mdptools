@@ -1,7 +1,8 @@
-graphviz
-ipython
 numpy
 scipy
+graphviz
+ipython
 setuptools
 pytest
 pytest-cov
+black

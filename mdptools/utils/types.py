@@ -9,20 +9,19 @@ if TYPE_CHECKING:
     from ..mdp import MarkovDecisionProcess
 
 RenameFunction = Union[
-    tuple[str, str],
-    list[str],
-    dict[str, str],
-    Callable[[str], str]]
+    tuple[str, str], list[str], dict[str, str], Callable[[str], str]
+]
 
 StrongTransitionMap = dict[str, dict[str, dict[str, float]]]
 
-LooseTransitionMap = dict[str, Union[
-    set[str],
-    dict[str, Union[
-        dict[str, float],
-        float]],
-    ]]
+LooseTransitionMap = dict[
+    str,
+    Union[
+        set[str],
+        dict[str, Union[dict[str, float], float]],
+    ],
+]
 
 ErrorCode = tuple[int, str]
 
-ColorMap = dict[str,list[str]]
+ColorMap = dict[str, list[str]]

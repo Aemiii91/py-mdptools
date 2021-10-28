@@ -2,7 +2,9 @@ from .highlight import highlight as _h
 
 
 def fail(message, code) -> str:
-    return f"[{_h[_h.fail, 'Failed']}] {_h[_h.note, message]}\n{' '*9}>> {code}"
+    return (
+        f"[{_h[_h.fail, 'Failed']}] {_h[_h.note, message]}\n{' '*9}>> {code}"
+    )
 
 
 def error(error_message, tip, code) -> str:
@@ -11,7 +13,9 @@ def error(error_message, tip, code) -> str:
 
 def dist_wrong_value(s, a, value):
     from .stringify import lit_str
+
     return error(
         "Set is not allowed as a distribution value.",
         "Please use a Dictionary instead.",
-        f"{_h[_h.function, 'Dist']}({_h[_h.state, s]}, {_h[_h.action, a]}) -> {lit_str(value)}")
+        f"{_h[_h.function, 'Dist']}({_h[_h.state, s]}, {_h[_h.action, a]}) -> {lit_str(value)}",
+    )
