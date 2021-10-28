@@ -1,68 +1,16 @@
 import re
 from typing import TYPE_CHECKING, Callable, Union
 
-from . import bcolors
-
-
 if TYPE_CHECKING:
     from ..mdp import MDP
+    from ..graph import Digraph
+
+from .highlight import Highlight
+from .types import StrongTransitionMap, RenameFunction
 
 
-class color_text:
-    def __init__(self):
-        self.bc = bcolors.disabled
-    def __getitem__(self, indices) -> str:
-        color, text = indices
-        return color + text + self.bc.RESET
-    @property
-    def state(self):
-        return self.bc.LIGHTCYAN
-    @property
-    def action(self):
-        return self.bc.LIGHTGREEN
-    @property
-    def function(self):
-        return self.bc.LIGHTBLUE
-    @property
-    def variable(self):
-        return self.bc.PINK
-    @property
-    def string(self):
-        return self.bc.YELLOW
-    @property
-    def comment(self):
-        return self.bc.LIGHTGREY
-    @property
-    def ok(self):
-        return self.bc.LIGHTGREEN
-    @property
-    def fail(self):
-        return self.bc.LIGHTRED
-    @property
-    def error(self):
-        return self.bc.RED
-    @property
-    def numeral(self):
-        return self.bc.ORANGE
-    @property
-    def typing(self):
-        return self.bc.GREEN
-    @property
-    def note(self):
-        return self.bc.PURPLE
-    @property
-    def reset(self):
-        return self.bc.RESET
-
-
-bc = _c = color_text()
-
-
-def use_colors(value: bool = True):
-    if value:
-        _c.bc = bcolors.enabled
-    else:
-        _c.bc = bcolors.disabled
+highlight = _c = Highlight()
+use_colors = highlight.use_colors
 
 
 def word_color(word: str, color_map: dict[str,list[str]] = None):
@@ -121,16 +69,16 @@ def parse_sas_str(sas: any) -> tuple[str, str, str]:
         return res
 
     if not isinstance(sas, str):
-        sas = ",".join(sas)
+        sas = "->".join(sas)
 
-    for idx, value in enumerate(re.split(r"\s*,\s*", f"{sas}")):
+    for idx, value in enumerate(re.split(r"\s*->\s*", f"{sas}")):
         if idx < len(res) and value != '':
             res[idx] = value
 
     return res
 
 
-def walk_dict(obj, callback, path: list[str] = None):
+def walk_dict(obj, callback, path: list[str] = None, default_value: float = 1.0):
     if path is None:
         path = []
     if isinstance(obj, dict):
@@ -138,9 +86,9 @@ def walk_dict(obj, callback, path: list[str] = None):
             walk_dict(value, callback, path + [key])
     elif isinstance(obj, set):
         for key in obj:
-            callback(path + [key], 1.0)
+            callback(path + [key], default_value)
     elif isinstance(obj, str):
-        callback(path + [obj], 1.0)
+        callback(path + [obj], default_value)
     else:
         callback(path, obj)
 
@@ -170,7 +118,7 @@ def mdp_to_str(mdp: 'MDP'):
               f" {lit_str(en_s, mdp_color_map(mdp))} " + _c[_c.comment, f"// {len(en_s)}"])[-1]
               for s in mdp.S]
     # Errors
-    lines += mdp.errors
+    lines += [prompt_fail(msg, code) for (_, msg), code in mdp.errors]
     return "\n".join(lines)
 
 
@@ -190,13 +138,13 @@ def dist_wrong_value(s, a, value):
         f"{_c[_c.function, 'Dist']}({_c[_c.state, s]}, {_c[_c.action, a]}) -> {lit_str(value)}")
 
 
-RenameFunction = Union[tuple[str, str], list[str], dict[str, str], Callable[[str], str]]
+
 
 def rename_map(obj: dict, rename: RenameFunction) -> dict[str, str]:
     rename = ensure_rename_function(rename)
     return { s: rename(s) for s in obj }
 
-StrongTransitionMap = dict[str, dict[str, dict[str, float]]]
+
 
 def rename_transition_map(old_map: StrongTransitionMap, states_map: dict[str, str],
         actions_map: dict[str, str]) -> StrongTransitionMap:
@@ -218,3 +166,14 @@ def ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     elif rename is None or not isinstance(rename, Callable):
         return lambda s: s
     return rename
+
+
+def lazy_parallel(m1: 'MDP', m2: 'MDP', name: str = None) -> 'MDP':
+    from ..parallel import parallel as _parallel
+    return _parallel(m1, m2, name)
+
+
+def lazy_graph(mdp: Union['MDP', list['MDP']], file_path: str,
+    file_format: str = 'svg', engine: str = 'dot', rankdir: str = 'TB') -> 'Digraph':
+    from ..graph import graph as _graph
+    return _graph(mdp, file_path, file_format, engine, rankdir)

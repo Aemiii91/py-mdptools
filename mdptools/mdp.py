@@ -1,31 +1,20 @@
 from typing import Callable, Union, TYPE_CHECKING
 from scipy.sparse.lil import lil_matrix as _lil_matrix
 
-from .utils import utils as _utils
 from .validate import validate
+from .utils import utils as _utils
+from .utils.types import ErrorCode, LooseTransitionMap, StrongTransitionMap
 
 
 if TYPE_CHECKING:
-    from render import Digraph
-
-
-use_colors = _utils.use_colors
-
-
-# Custom types
-TransitionMap = dict[str, Union[
-    set[str],
-    dict[str, Union[
-        dict[str, float],
-        float]],
-    ]]
+    from .graph import Digraph
 
 
 class MDP:
-    """The Markov Decision Process (MDP) class.
+    """The Markov Decision Process class.
     """
     def __init__(self,
-            transition_map: TransitionMap,
+            transition_map: LooseTransitionMap,
             S: Union[list[str], str] = None,
             A: Union[list[str], str] = None,
             s_init: str = None,
@@ -33,7 +22,7 @@ class MDP:
         self._did_init = False
         self._validate_on = True
         self.is_valid = False
-        self.errors = []
+        self.errors: list[tuple[ErrorCode, str]] = []
         self.name = name
         self.S, self.A, self.P = _utils.map_list(S), _utils.map_list(A), []
         if len(self.S) == 0 or len(self.A) == 0:
@@ -58,20 +47,29 @@ class MDP:
         s, a, s_prime = _utils.parse_sas_str(indices)
 
         if a is None:
-            if isinstance(value, dict, set):
+            # Set the enabled actions of `s`
+            # Note: If a `set` is given, the target will be `s` with probability 1.
+            if isinstance(value, (dict, set)):
                 self.__set_special([s], value)
+                return
+            if isinstance(value, str):
+                # String is given, which is short for a transition to self
+                self.__set_special([s, value], s)
                 return
 
         if s_prime is None:
-            if isinstance(value, dict):
+            # Set the `dist(s, a)`
+            if isinstance(value, (dict, str)):
+                # A `dict` describes the map of s' -> p.
+                # If a string is given, is must describe `s_prime`
                 self.__set_special([s, a], value)
                 return
             if isinstance(value, set):
+                # We do not allow an action to have more than one non-probabilistic
+                # transition (multi-threading)
                 raise Exception(_utils.dist_wrong_value(s, a, value))
-            if isinstance(value, str):
-                s_prime, value = value, 1.0
-            else:
-                s_prime = s
+            # A `p` value is given, representing the probability of transitioning to self
+            s_prime = s
 
         if self._did_init:
             self.__add_state(s)
@@ -98,7 +96,7 @@ class MDP:
 
     # Public properties
     @property
-    def s_init(self):
+    def s_init(self) -> str:
         return _utils.key_by_value(self.S, self._s_init) or None
     @s_init.setter
     def s_init(self, s):
@@ -109,7 +107,7 @@ class MDP:
         return (len(self.A), len(self.S))
 
     @property
-    def transition_map(self) -> dict[str, dict[str, dict[str, float]]]:
+    def transition_map(self) -> StrongTransitionMap:
         return { s: self.actions(s) for s in self.S}
 
     # Public methods
@@ -127,7 +125,7 @@ class MDP:
 
     def validate(self) -> bool:
         if self._validate_on:
-            self.is_valid, self.errors = validate(self, raise_exception=False)
+            self.is_valid = validate(self, raise_exception=False)
         return self.is_valid
 
     def remake(self, rename_states: _utils.RenameFunction = None,
@@ -141,11 +139,10 @@ class MDP:
         return MDP(tm, S, A, S_map[self.s_init], name or self.name)
 
     def parallel(self, m2: 'MDP', name: str = None) -> 'MDP':
-        return parallel(self, m2, name)
+        return _utils.lazy_parallel(self, m2, name)
 
     def graph(self, file_path: str, file_format: str = 'svg') -> 'Digraph':
-        from .render import graph as _graph
-        return _graph(self, file_path, file_format)
+        return _utils.lazy_graph(self, file_path, file_format)
 
     # Private methods
     def __ref_matrix(self, s: str) -> _lil_matrix:
@@ -205,24 +202,3 @@ class MDP:
         shape = self.shape
         for m in self.P:
             m.resize(shape)
-
-
-
-
-def parallel(m1: MDP, m2: MDP, name: str = None) -> MDP:
-    from .parallel import parallel as _parallel
-    return _parallel(m1, m2, name)
-
-def set_parallel_separator(sep: str = '_'):
-    from .parallel import parallel as _parallel
-    _parallel.separator = sep
-
-def get_parallel_separator() -> str:
-    from .parallel import parallel as _parallel
-    return _parallel.separator
-
-
-def graph(mdp: Union[MDP, list[MDP]], file_path: str,
-    file_format: str = 'svg', engine: str = 'dot', rankdir: str = 'TB') -> 'Digraph':
-    from .render import graph as _graph
-    return _graph(mdp, file_path, file_format, engine, rankdir)

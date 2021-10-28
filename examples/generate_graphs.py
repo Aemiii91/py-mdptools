@@ -1,14 +1,22 @@
 # %%
-import sys
-sys.path.append('..')
+import context as _
 from IPython.display import Image, SVG, display
-from mdptools import MDP, mdp
 
-def display_graph(graph):
-    image_path = f"{graph.filename}.{graph.format}"
-    if graph.format == 'pdf':
+from mdptools import MDP, graph, use_colors
+
+use_colors()
+
+# pylint: disable=pointless-statement
+
+def root_path(filename: str) -> str:
+    from os.path import join, dirname
+    return join(dirname(__file__), '..', filename)
+
+def display_graph(dot):
+    image_path = f"{dot.filename}.{dot.format}"
+    if dot.format == 'pdf':
         print(image_path)
-    elif graph.format == 'svg':
+    elif dot.format == 'svg':
         display(SVG(filename=image_path))
     else:
         display(Image(filename=image_path))
@@ -22,7 +30,10 @@ Ms = MDP({
 
 Mt = Ms.remake((r'[a-z]([0-9])', r't\1'), ['x', 'y', 'z'], 'Mt')
 
-display_graph(mdp.graph([Ms + Mt, Mt, Ms], 'graphs/graph_simple_composition.gv', rankdir='LR'))
+(M_collection := [Ms + Mt, Mt, Ms])
+
+# %%
+display_graph(graph(M_collection, root_path('graphs/graph_simple_composition.gv'), rankdir='LR'))
 
 # %%
 # The 4 MDPs from fig 1 in Hansen2011
@@ -45,10 +56,10 @@ M4 = MDP({
     'v1': 'z'
 }, name='M4')
 
-display_graph(mdp.graph([M1, M2, M3, M4], 'graphs/multiple_graphs_test.gv'))
+display_graph(graph([M1, M2, M3, M4], root_path('graphs/multiple_graphs_test.gv')))
 
 # %%
 # Parallel composition of 4 MDPs
-display_graph(mdp.graph(M1 + M2 + M3 + M4, 'graphs/graph_test.gv'))
+display_graph(graph(M1 + M2 + M3 + M4, root_path('graphs/graph_test.gv')))
 
 # %%

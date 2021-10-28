@@ -1,36 +1,46 @@
 from typing import TYPE_CHECKING
 import sys
 import numpy as _np
-from .utils.utils import prompt_fail, _c, lit_str
-
 
 if TYPE_CHECKING:
-    from mdp import MDP
+    from .mdp import MDP
+
+from .utils.types import ErrorCode
+from .utils.utils import prompt_fail, highlight as _c, lit_str
 
 
-MDP_REQ_EN_S_NONEMPTY = "forall s in S : en(s) != {}"
-MDP_REQ_SUM_TO_ONE = "forall s in S, a in en(s) : sum_(s' in S) P(s, a, s') = 1"
+MDP_REQ_EN_S_NONEMPTY: ErrorCode = (0, "forall s in S : en(s) != {}")
+MDP_REQ_SUM_TO_ONE: ErrorCode = (1, "forall s in S, a in en(s) : sum_(s' in S) P(s, a, s') = 1")
 
 
-def validate(mdp: 'MDP', raise_exception: bool = True) -> tuple[bool, list[str]]:
+def validate(mdp: 'MDP', raise_exception: bool = True) -> bool:
+    mdp.errors = []
     buffer = []
-    en_s_nonempty, errors = validate_enabled_nonempty(mdp)
+
+    def add_err(err_code: ErrorCode, err: str):
+        mdp.errors += [(err_code, err)]
+        return [prompt_fail(err_code[1], err)]
+
+    en_s_nonempty, errors = __validate_enabled_nonempty(mdp)
     if not en_s_nonempty:
         for err in errors:
-            buffer += [prompt_fail(MDP_REQ_EN_S_NONEMPTY, err)]
-    sum_to_one, errors = validate_sum_to_one(mdp)
+            buffer += add_err(MDP_REQ_EN_S_NONEMPTY, err)
+
+    sum_to_one, errors = __validate_sum_to_one(mdp)
     if not sum_to_one:
         for err in errors:
-            buffer += [prompt_fail(MDP_REQ_SUM_TO_ONE, err)]
+            buffer += add_err(MDP_REQ_SUM_TO_ONE, err)
+
     if len(buffer) != 0:
         message = _c[_c.error, f"Not a valid MDP [{mdp.name}]:\n"] + "\n".join(buffer)
         if raise_exception:
             sys.tracebacklimit = 0
             raise Exception(message)
-    return (len(buffer) == 0, buffer)
+
+    return len(buffer) == 0
 
 
-def validate_enabled_nonempty(mdp: 'MDP'):
+def __validate_enabled_nonempty(mdp: 'MDP'):
     """ Validate: 'forall s in S : en(s) != {}'
     """
     errors = [f"{_c[_c.function, 'en']}({_c[_c.state, s]}) -> {_c[_c.error, '{}']}"
@@ -38,7 +48,7 @@ def validate_enabled_nonempty(mdp: 'MDP'):
     return (len(errors) == 0, errors)
 
 
-def validate_sum_to_one(mdp: 'MDP'):
+def __validate_sum_to_one(mdp: 'MDP'):
     """ Validate: 'forall s in S, a in en(s) : sum_(s' in S) P(s, a, s') = 1'
     """
     errors = [f"{_c[_c.function, 'Dist']}({_c[_c.state, s]}, {_c[_c.action, a]}) ->"
