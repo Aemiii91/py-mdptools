@@ -2,4 +2,4 @@ init:
 	pip install -r requirements.txt
 
 test:
-	pytest -v --cov-report= --cov=mdptools tests/
+	pytest -v --cov-report=xml --cov=mdptools tests/

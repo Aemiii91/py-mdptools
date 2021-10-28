@@ -1,7 +1,10 @@
 .vscode/
-
-.coverage
-.pytest_cache/
 __pycache__/
+
+# Unit test / coverage reports
+htmlcov/
+.coverage
+coverage.xml
+.pytest_cache/
 
 examples/graphs/
