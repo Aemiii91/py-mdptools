@@ -1,1 +1,1 @@
-# py-mdp
+# py-mdptools

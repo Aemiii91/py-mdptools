@@ -1,4 +1,6 @@
-class bcolors:
+# pylint: disable=too-few-public-methods
+
+class enabled:
     RESET = '\033[0m'
     BOLD = '\033[01m'
     DISABLE = '\033[02m'
@@ -34,7 +36,7 @@ class bcolors:
         LIGHTGREY = '\033[47m'
 
 
-class bcolors_disable:
+class disabled:
     RESET = ''
     BOLD = ''
     DISABLE = ''
@@ -73,7 +75,10 @@ class bcolors_disable:
 _marks = ['RESET', 'BOLD', 'DISABLE', 'UNDERLINE', 'REVERSE', 'STRIKETHROUGH', 'INVISIBLE']
 
 if __name__ == '__main__':
-    for color in dir(bcolors):
-        if not color.startswith("_") and isinstance((attr := getattr(bcolors, color)), str) and color not in _marks:
-            row_format = attr + "{:<14}" + " ".join([attr + getattr(bcolors, mark) + "{}" + bcolors.RESET for mark in _marks])
+    for color in dir(enabled):
+        if (not color.startswith("_") and
+                isinstance((attr := getattr(enabled, color)), str) and
+                color not in _marks):
+            row_format = (attr + "{:<14}" +
+                " ".join([attr + getattr(enabled, mark) + "{}" + enabled.RESET for mark in _marks]))
             print(row_format.format(color, *_marks))

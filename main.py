@@ -1,5 +1,5 @@
 import importlib
-import mdp
+from mdptools import mdp
 
 
 def main(argc: int, argv: list[str]):

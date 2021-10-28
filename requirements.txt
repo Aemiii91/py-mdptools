@@ -1,0 +1,6 @@
+graphviz
+ipython
+numpy
+scipy
+setuptools
+pytest

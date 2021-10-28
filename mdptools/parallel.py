@@ -1,13 +1,16 @@
-import mdp
+from . import MDP
 
 
-def parallel(m1: mdp.MDP, m2: mdp.MDP,
-    name: str = None) -> mdp.MDP:
-    act_intersect = set(m1.A).intersection(set(m2.A))
+def parallel(m1: MDP, m2: MDP,
+    name: str = None) -> MDP:
+    """Performs parallel composition of two MDPs.
+    """
     transition_map = {}
+    act_intersect = set(m1.A).intersection(set(m2.A))
 
     def compose(s, t, left: bool = True):
-        if not left: s, t = t, s
+        if not left:
+            s, t = t, s
         s_name = __c_names(s, t)
         act_s, act_t = m1.actions(s), m2.actions(t)
         transition_map[s_name] = {}
@@ -35,20 +38,21 @@ def parallel(m1: mdp.MDP, m2: mdp.MDP,
         return __c_actions(dist_s, dist_t, left)
 
     compose(m1.s_init, m2.s_init)
-    return mdp.MDP(transition_map,
-        s_init=__c_names(m1.s_init, m2.s_init),
-        name=name or __c_names(m1.name, m2.name, '||'));
+    return MDP(transition_map, A=__a_union(m1, m2), s_init=__c_names(m1.s_init, m2.s_init),
+        name=name or __c_names(m1.name, m2.name, '||'))
 
 
-parallel.separator = '|'
+parallel.separator = '_'
 
 
 def __c_names(n1: str, n2: str, sep: str = None, left: bool = True) -> str:
-    sep = sep or parallel.separator
+    if sep is None:
+        sep = parallel.separator
     return n1 + sep + n2 if left else n2 + sep + n1
 
-
 def __c_actions(dist: dict, other_dist: dict, left: bool = True) -> dict:
-    return { (__c_names(s_prime, t_prime) if left else __c_names(t_prime, s_prime)): s_value * t_value
+    return { __c_names(s_prime, t_prime, left=left): s_value * t_value
         for s_prime, s_value in dist.items() for t_prime, t_value in other_dist.items() }
 
+def __a_union(m1: MDP, m2: MDP) -> list[str]:
+    return list(dict.fromkeys(list(m1.A) + list(m2.A)))

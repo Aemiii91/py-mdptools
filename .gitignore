@@ -1,3 +1,9 @@
+.vscode/
+
+.pytest_cache/
 __pycache__/
-renders/
-renders/*
+
+examples/*.gv
+examples/*.svg
+examples/*.pdf
+examples/*.png

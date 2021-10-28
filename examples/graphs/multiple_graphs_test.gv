@@ -1,0 +1,54 @@
+digraph {
+	node [fontsize=18]
+	edge [fontsize=18]
+	rankdir=TB ranksep=0.25 size=8.5
+	{
+		mdp_0_start [label=<<b>M1</b>> fontsize=21.599999999999998 shape=none]
+		mdp_0_start -> state_s0
+		state_s0 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>s<sub><font point-size="9.0">0</font></sub></td></tr></table></i>>]
+		p_point_s0_a [label="" shape=point]
+		state_s0 -> p_point_s0_a [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>a</td></tr></table></i>> arrowhead=none]
+		p_point_s0_a -> state_s1 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>.2</td></tr></table></i>>]
+		p_point_s0_a -> state_s2 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>.8</td></tr></table></i>>]
+		p_point_s0_b [label="" shape=point]
+		state_s0 -> p_point_s0_b [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>b</td></tr></table></i>> arrowhead=none]
+		p_point_s0_b -> state_s2 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>.7</td></tr></table></i>>]
+		p_point_s0_b -> state_s3 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>.3</td></tr></table></i>>]
+		state_s1 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>s<sub><font point-size="9.0">1</font></sub></td></tr></table></i>>]
+		state_s1 -> state_s1 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>&tau;<sub><font point-size="9.0">1</font></sub></td></tr></table></i>> minlen=2]
+		state_s2 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>s<sub><font point-size="9.0">2</font></sub></td></tr></table></i>>]
+		state_s2 -> state_s2 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>y</td></tr></table></i>> minlen=2]
+		state_s2 -> state_s2 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>z</td></tr></table></i>> minlen=2]
+		state_s2 -> state_s2 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>x</td></tr></table></i>> minlen=2]
+		state_s3 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>s<sub><font point-size="9.0">3</font></sub></td></tr></table></i>>]
+		state_s3 -> state_s3 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>z</td></tr></table></i>> minlen=2]
+		state_s3 -> state_s3 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>x</td></tr></table></i>> minlen=2]
+	}
+	{
+		mdp_1_start [label=<<b>M2</b>> fontsize=21.599999999999998 shape=none]
+		mdp_1_start -> state_r0
+		state_r0 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>r<sub><font point-size="9.0">0</font></sub></td></tr></table></i>>]
+		state_r0 -> state_r1 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>x</td></tr></table></i>> minlen=2]
+		state_r1 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>r<sub><font point-size="9.0">1</font></sub></td></tr></table></i>>]
+		state_r1 -> state_r0 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>y</td></tr></table></i>> minlen=2]
+		state_r1 -> state_r1 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>z</td></tr></table></i>> minlen=2]
+	}
+	{
+		mdp_2_start [label=<<b>M3</b>> fontsize=21.599999999999998 shape=none]
+		mdp_2_start -> state_w0
+		state_w0 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>w<sub><font point-size="9.0">0</font></sub></td></tr></table></i>>]
+		state_w0 -> state_w0 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>y</td></tr></table></i>> minlen=2]
+		state_w0 -> state_w1 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>c</td></tr></table></i>> minlen=2]
+		state_w1 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>w<sub><font point-size="9.0">1</font></sub></td></tr></table></i>>]
+		state_w1 -> state_w1 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>&tau;<sub><font point-size="9.0">2</font></sub></td></tr></table></i>> minlen=2]
+	}
+	{
+		mdp_3_start [label=<<b>M4</b>> fontsize=21.599999999999998 shape=none]
+		mdp_3_start -> state_v0
+		state_v0 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>v<sub><font point-size="9.0">0</font></sub></td></tr></table></i>>]
+		state_v0 -> state_v0 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>y</td></tr></table></i>> minlen=2]
+		state_v0 -> state_v1 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>z</td></tr></table></i>> minlen=2]
+		state_v1 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>v<sub><font point-size="9.0">1</font></sub></td></tr></table></i>>]
+		state_v1 -> state_v1 [label=<<i><table cellpadding="2" border="0" cellborder="0"><tr><td>z</td></tr></table></i>> minlen=2]
+	}
+}
