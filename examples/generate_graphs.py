@@ -22,7 +22,7 @@ Ms = MDP({
 
 Mt = Ms.remake((r'[a-z]([0-9])', r't\1'), ['x', 'y', 'z'], 'Mt')
 
-display_graph(mdp.graph(Ms + Mt, 'graphs/graph_simple_composition.gv', rankdir='LR'))
+display_graph(mdp.graph([Ms + Mt, Mt, Ms], 'graphs/graph_simple_composition.gv', rankdir='LR'))
 
 # %%
 # The 4 MDPs from fig 1 in Hansen2011

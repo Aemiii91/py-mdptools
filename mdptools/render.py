@@ -15,7 +15,7 @@ def graph(m: mdp.MDP, file_path: str,
     set_fontsize = { 'fontsize': f'{graph.point_size}' }
     dot = Digraph(filename=file_path, format=file_format, engine=engine,
         node_attr=set_fontsize, edge_attr=set_fontsize)
-    dot.attr(rankdir=rankdir, size=f'{size}', ranksep='0.25')
+    dot.attr(size=f'{size}', rankdir=rankdir, ranksep='0.25', margin='0.1')
 
     if isinstance(m, list):
         for idx, M in enumerate(m):
