@@ -5,4 +5,7 @@ Installation
 ------------
 To install the package's dependencies simply run:
 
-  ``make init``
+.. code-block::
+
+   make init
+
