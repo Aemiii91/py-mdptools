@@ -1,13 +1,13 @@
 """Unit-tests for the main `mdp` module
 """
 import pytest
-from mdptools import MDP
+from mdptools import MarkovDecisionProcess
 from .utils import error_code
 
 # pylint: disable=redefined-outer-name
 @pytest.fixture
 def M():
-    return MDP({'s0': {'a': {'s0': .5, 's1': .5}}, 's1': {'tau': {'s1': 1}}})
+    return MarkovDecisionProcess({'s0': {'a': {'s0': .5, 's1': .5}}, 's1': {'tau': {'s1': 1}}})
 
 
 def test_valid_mdp(M):
@@ -18,7 +18,7 @@ def test_valid_mdp(M):
 
 
 def test_invalid_req1():
-    M = MDP({'s0': {'a': {'s1': 1}}})
+    M = MarkovDecisionProcess({'s0': {'a': {'s1': 1}}})
     assert not M.is_valid
     assert len(M.errors) == 1
     assert error_code(M) == 0
@@ -39,7 +39,7 @@ def test_indexing_three(M):
 
 
 def test_set_s_a_to_float():
-    expected = MDP({
+    expected = MarkovDecisionProcess({
         's0_t0': { 'detect': { 's1_t0': .8, 's2_t0': .2 } },
         's1_t0': { 'warn': 's2_t1' },
         's2_t0': { 'shutdown': { 's3_t2': .9, 's3_t3': .1 } },

@@ -37,7 +37,7 @@ class Highlight:
     def numeral(self):
         return self.bc.ORANGE
     @property
-    def typing(self):
+    def types(self):
         return self.bc.GREEN
     @property
     def note(self):
@@ -51,3 +51,6 @@ class Highlight:
             self.bc = bcolors.enabled
         else:
             self.bc = bcolors.disabled
+
+
+highlight = Highlight()

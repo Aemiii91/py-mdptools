@@ -1,4 +1,5 @@
 """Utilities
 """
-from . import utils, bcolors
-from .utils import use_colors
+from . import utils, types
+from .highlight import highlight
+from .stringify import stringify, lit_str

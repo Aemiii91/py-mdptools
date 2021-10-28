@@ -1,17 +1,17 @@
 import re
-from typing import Union
-from graphviz import Digraph
-
-from . import mdp
+from .utils.types import MarkovDecisionProcess, Union, Digraph
 
 
-def graph(m: mdp.MDP, file_path: str,
+def graph(m: MarkovDecisionProcess, file_path: str,
     file_format: str = 'svg',
     engine: str = 'dot',
     rankdir: str = 'TB',
     size: float = 8.5) -> Digraph:
     """ Renders the graph of a given MDP and saves it to `file_path`.
     """
+    # pylint: disable=redefined-outer-name
+    from graphviz import Digraph
+
     set_fontsize = { 'fontsize': f'{graph.point_size}' }
     dot = Digraph(filename=file_path, format=file_format, engine=engine,
         node_attr=set_fontsize, edge_attr=set_fontsize)
@@ -34,7 +34,7 @@ graph.p_color = None
 graph.label_padding = 2
 
 
-def __render_mdp(dot: Digraph, m: mdp.MDP, name: Union[str, int]):
+def __render_mdp(dot: Digraph, m: MarkovDecisionProcess, name: Union[str, int]):
     # Add arrow pointing to the start state
     init_name = f'mdp_{name}_start'
     init_label = f'<<b>{m.name}</b>>'

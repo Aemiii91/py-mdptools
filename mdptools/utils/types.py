@@ -1,5 +1,12 @@
-from typing import Callable, Union
+# pylint: disable=unused-import
+from typing import Callable, Union, TYPE_CHECKING
 
+Digraph = any
+MarkovDecisionProcess = any
+
+if TYPE_CHECKING:
+    from graphviz.dot import Digraph
+    from ..mdp import MarkovDecisionProcess
 
 RenameFunction = Union[
     tuple[str, str],
@@ -7,9 +14,7 @@ RenameFunction = Union[
     dict[str, str],
     Callable[[str], str]]
 
-
 StrongTransitionMap = dict[str, dict[str, dict[str, float]]]
-
 
 LooseTransitionMap = dict[str, Union[
     set[str],
@@ -19,3 +24,5 @@ LooseTransitionMap = dict[str, Union[
     ]]
 
 ErrorCode = tuple[int, str]
+
+ColorMap = dict[str,list[str]]

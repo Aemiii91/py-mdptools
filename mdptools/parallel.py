@@ -1,10 +1,13 @@
-from . import MDP
+from .utils.types import MarkovDecisionProcess
 
 
-def parallel(m1: MDP, m2: MDP,
-    name: str = None) -> MDP:
+def parallel(m1: MarkovDecisionProcess, m2: MarkovDecisionProcess,
+    name: str = None) -> MarkovDecisionProcess:
     """Performs parallel composition of two MDPs.
     """
+    # pylint: disable=redefined-outer-name
+    from .mdp import MarkovDecisionProcess
+
     transition_map = {}
     act_intersect = set(m1.A).intersection(set(m2.A))
 
@@ -27,9 +30,6 @@ def parallel(m1: MDP, m2: MDP,
                 action_map[a] = compose_dist(act_s[a], act_t[a], left)
         return action_map
 
-    def exists(s, t, left):
-        return __c_names(s, t, left=left) in transition_map
-
     def compose_dist(dist_s, dist_t, left):
         for s_prime in dist_s:
             for t_prime in dist_t:
@@ -37,9 +37,14 @@ def parallel(m1: MDP, m2: MDP,
                     compose(s_prime, t_prime, left)
         return __c_actions(dist_s, dist_t, left)
 
+    def exists(s, t, left):
+        return __c_names(s, t, left=left) in transition_map
+
     compose(m1.s_init, m2.s_init)
-    return MDP(transition_map, A=__a_union(m1, m2), s_init=__c_names(m1.s_init, m2.s_init),
-        name=name or __c_names(m1.name, m2.name, '||'))
+    A_union = __a_union(m1, m2)
+    s_init = __c_names(m1.s_init, m2.s_init)
+    name = name or __c_names(m1.name, m2.name, '||')
+    return MarkovDecisionProcess(transition_map, A=A_union, s_init=s_init, name=name)
 
 
 parallel.separator = '_'
@@ -54,5 +59,5 @@ def __c_actions(dist: dict, other_dist: dict, left: bool = True) -> dict:
     return { __c_names(s_prime, t_prime, left=left): s_value * t_value
         for s_prime, s_value in dist.items() for t_prime, t_value in other_dist.items() }
 
-def __a_union(m1: MDP, m2: MDP) -> list[str]:
+def __a_union(m1: MarkovDecisionProcess, m2: MarkovDecisionProcess) -> list[str]:
     return list(dict.fromkeys(list(m1.A) + list(m2.A)))
