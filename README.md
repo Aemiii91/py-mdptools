@@ -39,3 +39,10 @@ After any edits you can format the code by calling:
     make format
 
 Or more preferably, setup your editor to automatically format on save using `black`.
+
+
+### Testing
+
+Run all tests with `pytest` and generate coverage reports:
+
+    make test
