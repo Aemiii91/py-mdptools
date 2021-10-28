@@ -3,7 +3,4 @@
 .pytest_cache/
 __pycache__/
 
-examples/*.gv
-examples/*.svg
-examples/*.pdf
-examples/*.png
+examples/graphs/
