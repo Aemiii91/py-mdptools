@@ -35,7 +35,7 @@ def graph(
     return dot
 
 
-graph.re_sep = "|"
+graph.re_sep = "_"
 graph.point_size = 18
 graph.p_color = None
 graph.label_padding = 2
@@ -53,7 +53,7 @@ def __render_mdp(
         shape="none",
         fontsize=f"{graph.point_size * 1.2}",
     )
-    dot.edge(init_name, __pf_s(m.s_init))
+    dot.edge(init_name, __pf_s(m.init))
 
     for s, act in m.transition_map.items():
         # Add a state node to the graph

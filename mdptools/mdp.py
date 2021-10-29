@@ -1,9 +1,12 @@
 from scipy.sparse.lil import lil_matrix
 
 from .utils.types import (
+    MarkovDecisionProcess as MDP,
+    ActionMap,
+    DistributionMap,
     ErrorCode,
     LooseTransitionMap,
-    StrongTransitionMap,
+    TransitionMap,
     RenameFunction,
     Callable,
     Union,
@@ -33,7 +36,7 @@ class MarkovDecisionProcess:
         transition_map: LooseTransitionMap,
         S: Union[list[str], str] = None,
         A: Union[list[str], str] = None,
-        s_init: str = None,
+        init: str = None,
         name: str = "M",
     ):
         self._did_init = False
@@ -44,7 +47,7 @@ class MarkovDecisionProcess:
         self.S, self.A, self.P = map_list(S), map_list(A), []
         if len(self.S) == 0 or len(self.A) == 0:
             walk_dict(transition_map, self.__infer_states_and_actions)
-        self.s_init = s_init
+        self.init = init
         self.__suspend_validation(
             lambda: (
                 self.__reset(),
@@ -104,25 +107,25 @@ class MarkovDecisionProcess:
     def __str__(self):
         return self.__repr__()
 
-    def __add__(self, m2: "MarkovDecisionProcess") -> "MarkovDecisionProcess":
+    def __add__(self, m2: "MDP") -> "MDP":
         return self.parallel(m2)
 
-    def __eq__(self, m2: "MarkovDecisionProcess") -> bool:
+    def __eq__(self, m2: "MDP") -> bool:
         return self.equals(m2)
 
-    def __copy__(self) -> "MarkovDecisionProcess":
+    def __copy__(self) -> "MDP":
         S, A = list(self.S), list(self.A)
         return MarkovDecisionProcess(
-            self.transition_map, S, A, self.s_init, self.name
+            self.transition_map, S, A, self.init, self.name
         )
 
     # Public properties
     @property
-    def s_init(self) -> str:
+    def init(self) -> str:
         return key_by_value(self.S, self._s_init) or None
 
-    @s_init.setter
-    def s_init(self, s):
+    @init.setter
+    def init(self, s):
         self._s_init = self.S[s] if isinstance(s, str) else 0
 
     @property
@@ -130,14 +133,14 @@ class MarkovDecisionProcess:
         return (len(self.A), len(self.S))
 
     @property
-    def transition_map(self) -> StrongTransitionMap:
+    def transition_map(self) -> TransitionMap:
         return {s: self.actions(s) for s in self.S}
 
     # Public methods
-    def equals(self, m2: "MarkovDecisionProcess") -> bool:
+    def equals(self, m2: "MDP") -> bool:
         return (
             self.transition_map == m2.transition_map
-            and self.s_init == m2.s_init
+            and self.init == m2.init
         )
 
     def enabled(self, s) -> set[str]:
@@ -145,10 +148,10 @@ class MarkovDecisionProcess:
             a for a in self.A for s_prime in self.S if self[s, a, s_prime] > 0
         }
 
-    def actions(self, s) -> dict[str, dict[str, float]]:
+    def actions(self, s) -> ActionMap:
         return {a: self.dist(s, a) for a in self.enabled(s)}
 
-    def dist(self, s, a) -> dict[str, float]:
+    def dist(self, s, a) -> DistributionMap:
         return {
             s_prime: self[s, a, s_prime]
             for s_prime in self.S
@@ -165,7 +168,7 @@ class MarkovDecisionProcess:
         rename_states: RenameFunction = None,
         rename_actions: RenameFunction = None,
         name: str = None,
-    ) -> "MarkovDecisionProcess":
+    ) -> "MDP":
         S_map = rename_map(self.S, rename_states)
         A_map = rename_map(self.A, rename_actions)
         S, A = list(S_map.values()), list(A_map.values())
@@ -173,12 +176,12 @@ class MarkovDecisionProcess:
         if name is None:
             name = self.name
         return MarkovDecisionProcess(
-            tm, S, A, S_map[self.s_init], name or self.name
+            tm, S, A, S_map[self.init], name or self.name
         )
 
     def parallel(
-        self, m2: "MarkovDecisionProcess", name: str = None
-    ) -> "MarkovDecisionProcess":
+        self, m2: "MDP", name: str = None
+    ) -> "MDP":
         return parallel(self, m2, name)
 
     def graph(self, file_path: str, file_format: str = "svg") -> Digraph:

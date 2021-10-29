@@ -14,7 +14,7 @@ def stringify(mdp: MarkovDecisionProcess) -> str:
     # States and start state
     lines += [
         f"  {_h[_h.variable, 'S']} := {lit_str(tuple(mdp.S), _h.state)},"
-        f" {_h[_h.variable, 's_init']} := {_h[_h.state, mdp.s_init]} "
+        f" {_h[_h.variable, 'init']} := {_h[_h.state, mdp.init]} "
         + _h[_h.comment, f"// {len(mdp.S)}"]
     ]
     # Actions

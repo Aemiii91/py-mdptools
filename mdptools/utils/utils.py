@@ -1,6 +1,9 @@
 import re
 
-from .types import StrongTransitionMap, RenameFunction, Callable
+from .types import TransitionMap, RenameFunction, Callable, Iterable
+
+
+PARALLEL_SEPARATOR = "_"
 
 
 def map_list(lst: list[str]) -> dict[str, int]:
@@ -56,10 +59,10 @@ def rename_map(obj: dict, rename: RenameFunction) -> dict[str, str]:
 
 
 def rename_transition_map(
-    old_map: StrongTransitionMap,
+    old_map: TransitionMap,
     states_map: dict[str, str],
     actions_map: dict[str, str],
-) -> StrongTransitionMap:
+) -> TransitionMap:
     return {
         states_map[s]: {
             actions_map[a]: {
@@ -84,3 +87,8 @@ def ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     elif rename is None or not isinstance(rename, Callable):
         return lambda s: s
     return rename
+
+
+def list_union(a: Iterable, b: Iterable) -> list[str]:
+    # list is used to preserve ordering
+    return list(dict.fromkeys(list(a) + list(b)))

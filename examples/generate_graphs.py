@@ -3,7 +3,7 @@ from IPython.display import Image, SVG, display
 
 from mdptools import MarkovDecisionProcess, graph, use_colors
 
-use_colors()
+# use_colors()
 
 
 def root_path(filename: str) -> str:
@@ -72,5 +72,33 @@ display_graph(
 # %%
 # Parallel composition of 4 MDPs
 display_graph(graph(M1 + M2 + M3 + M4, root_path("graphs/graph_test.gv")))
+
+# %%
+m1 = MarkovDecisionProcess(
+    {
+        "noncrit_1": {"demand_1": "wait_1"},
+        "wait_1": {"req_1": "wait_1", "enter_1": "crit_1"},
+        "crit_1": {"exit_1": "noncrit_1"},
+    },
+    name="M1",
+)
+
+m2 = m1.remake(("_1", "_2"), ("_1", "_2"), "M2")
+
+rm = MarkovDecisionProcess(
+    {
+        "idle": {
+            "req_1": {"idle": 0.1, "p_1": 0.9},
+            "req_2": {"idle": 0.1, "p_2": 0.9},
+        },
+        "p_1": {"enter_1": "idle"},
+        "p_2": {"enter_2": "idle"},
+    },
+    name="RM",
+)
+
+display_graph(
+    graph([m1, m2, rm, m1 + m2 + rm], root_path("graphs/graph_mutex.gv"))
+)
 
 # %%
