@@ -12,7 +12,9 @@ A library containing tools for representing and manipulating Markov Decision Pro
 
 Manually install the package with the command:
 
-    make install
+```console
+make install
+```
 
 ---
 
@@ -22,22 +24,36 @@ Manually install the package with the command:
 
 Setup a virtual environment with the following command:
 
-    make env
+```console
+make env
+```
+
+Activate the environment with:
+
+```console
+source env/bin/activate
+```
 
 Or, if you're on Windows:
 
-    make env-win
+```console
+.\env\Scripts\activate
+```
 
 
 ### Developer tools
 
 Install the package in development mode, as well as all development dependencies, such as `pytest`, `pytest-cov`, and `black`:
 
-    make init
+```console
+make init
+```
 
 After any edits you can format the code by calling:
 
-    make format
+```console
+make format
+```
 
 Preferably, setup your editor to automatically format on save using `black`. For vscode [see below](#workspace-settings).
 
@@ -46,7 +62,9 @@ Preferably, setup your editor to automatically format on save using `black`. For
 
 Run all tests with `pytest` and generate coverage reports:
 
-    make test
+```console
+make test
+```
 
 
 ### [vscode] Recommended workspace files

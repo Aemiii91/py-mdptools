@@ -1,11 +1,12 @@
+from mdptools.utils.utils import intersect
 from .utils.types import MarkovDecisionProcess as MDP, TransitionMap
 from .utils import list_union, PARALLEL_SEPARATOR
 
 
-_transition_map: TransitionMap = {}
-_actions_intersect: set[str] = set()
 _ms: MDP = None
 _mt: MDP = None
+_transition_map: TransitionMap = {}
+_actions_intersect: set[str] = set()
 
 
 def parallel(ms: MDP, mt: MDP, name: str = None) -> MDP:
@@ -16,9 +17,7 @@ def parallel(ms: MDP, mt: MDP, name: str = None) -> MDP:
 
     _ms, _mt = ms, mt
     _transition_map = {}  # empty map for the new composed MDP
-    _actions_intersect = set(_ms.A).intersection(
-        set(_mt.A)
-    )  # synchronized actions
+    _actions_intersect = intersect(_ms.A, _mt.A)  # synchronized actions
 
     # Start the parallel composition
     compose(_ms.init, _mt.init)
@@ -37,8 +36,7 @@ def compose(s, t, swap: bool = False):
         s, t = t, s
     s_name = combine_names(s, t)
     act_s, act_t = _ms.actions(s), _mt.actions(t)
-    # This reserves the mapping of transitions from `(s,t)`
-    _transition_map[s_name] = {}
+    _transition_map[s_name] = None  # mark state `(s,t)` as visited
     _transition_map[s_name] = {
         # Map all actions possible from `s`
         **compose_actions(act_s, act_t, t),

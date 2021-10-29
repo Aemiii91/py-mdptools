@@ -1,9 +1,10 @@
 import re
 
-from .types import TransitionMap, RenameFunction, Callable, Iterable
+from .types import TransitionMap, RenameFunction, Callable, Iterable, Union
 
 
 PARALLEL_SEPARATOR = "_"
+INDEX_KEY_SEPARATOR = "->"
 
 
 def map_list(lst: list[str]) -> dict[str, int]:
@@ -20,30 +21,33 @@ def key_by_value(obj: dict, value) -> str:
     return list(obj.keys())[list(obj.values()).index(value)]
 
 
-def parse_sas_str(sas: any) -> tuple[str, str, str]:
+def parse_indices(indices: Union[Iterable, str]) -> tuple[str, str, str]:
     res = [None, None, None]
 
-    if sas is None:
+    if indices is None:
         return res
 
-    if not isinstance(sas, str):
-        sas = "->".join(sas)
+    if not isinstance(indices, str):
+        indices = INDEX_KEY_SEPARATOR.join(indices)
 
-    for idx, value in enumerate(re.split(r"\s*->\s*", f"{sas}")):
+    for idx, value in enumerate(re.split(r"\s*->\s*", f"{indices}")):
         if idx < len(res) and value != "":
             res[idx] = value
 
     return res
 
 
-def walk_dict(
-    obj, callback, path: list[str] = None, default_value: float = 1.0
+def tree_walker(
+    obj: Union[dict, set, str, any],
+    callback: Callable[[list, any], None],
+    path: list[str] = None,
+    default_value: float = 1.0,
 ):
     if path is None:
         path = []
     if isinstance(obj, dict):
         for key, value in obj.items():
-            walk_dict(value, callback, path + [key])
+            tree_walker(value, callback, path + [key])
     elif isinstance(obj, set):
         for key in obj:
             callback(path + [key], default_value)
@@ -87,6 +91,10 @@ def ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     elif rename is None or not isinstance(rename, Callable):
         return lambda s: s
     return rename
+
+
+def intersect(a: Iterable, b: Iterable):
+    return set(a).intersection(set(b))
 
 
 def list_union(a: Iterable, b: Iterable) -> list[str]:

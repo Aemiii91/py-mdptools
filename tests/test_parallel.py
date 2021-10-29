@@ -4,23 +4,23 @@ from mdptools import MarkovDecisionProcess, parallel
 
 
 def test_simple_composition():
-    M1 = MarkovDecisionProcess(
+    m1 = MarkovDecisionProcess(
         {"s0": {"a": "s1"}, "s1": {"b": {"s0": 0.5, "s2": 0.5}}, "s2": "c"},
         A="a, b, c",
         name="M1",
     )
 
-    M2 = M1.remake((r"[a-z]([0-9])", r"t\1"), ["x", "y", "z"], "M2")
+    m2 = m1.remake((r"[a-z]([0-9])", r"t\1"), ["x", "y", "z"], "M2")
 
-    M = parallel(M1, M2, "M")
+    m = parallel(m1, m2, "M")
 
-    assert M.is_valid
-    assert len(M.S) == 9
-    assert M.name == "M"
+    assert m.is_valid
+    assert len(m.S) == 9
+    assert m.name == "M"
 
 
 def test_example_kwiatkowska2013():
-    Ms = MarkovDecisionProcess(
+    ms = MarkovDecisionProcess(
         {
             "s0": {"detect": {"s1": 0.8, "s2": 0.2}},
             "s1": {"warn": "s2"},
@@ -30,7 +30,7 @@ def test_example_kwiatkowska2013():
         name="Ms",
     )
 
-    Md = MarkovDecisionProcess(
+    md = MarkovDecisionProcess(
         {
             "t0": {"warn": "t1", "shutdown": {"t2": 0.9, "t3": 0.1}},
             "t1": {"shutdown": "t2"},
@@ -52,7 +52,7 @@ def test_example_kwiatkowska2013():
         name="Ms||Md (Expected)",
     )
 
-    actual = parallel(Ms, Md, "Ms||Md (Actual)")
+    actual = parallel(ms, md, "Ms||Md (Actual)")
 
     assert actual == expected
 
@@ -80,6 +80,6 @@ def test_complex_composition():
         {"v0": {"z": "v1", "y": "v0"}, "v1": "z"}, name="M4"
     )
 
-    M = M1 + M2 + M3 + M4
+    M = M1 | M2 | M3 | M4
 
     assert M.is_valid and len(M.S) == 16
