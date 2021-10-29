@@ -3,7 +3,8 @@ from IPython.display import Image, SVG, display
 
 from mdptools import MarkovDecisionProcess, graph, use_colors
 
-# use_colors()
+
+use_colors()
 
 
 def root_path(filename: str) -> str:

@@ -3,6 +3,7 @@ scipy
 graphviz
 ipython
 setuptools
+pylint
 pytest
 pytest-cov
 black
