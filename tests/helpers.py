@@ -1,4 +1,4 @@
-""" Test utils
+""" Test helpers
 """
 from mdptools import MarkovDecisionProcess
 

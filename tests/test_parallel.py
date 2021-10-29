@@ -19,7 +19,7 @@ def test_simple_composition():
     assert M.name == "M"
 
 
-def test_parallel_composition_kwiatkowska2013():
+def test_example_kwiatkowska2013():
     Ms = MarkovDecisionProcess(
         {
             "s0": {"detect": {"s1": 0.8, "s2": 0.2}},
