@@ -6,7 +6,6 @@
 
 A library containing tools for representing and manipulating Markov Decision Processes (MDP).
 
----
 
 ## Installation
 
@@ -16,7 +15,6 @@ Manually install the package with the command:
 make install
 ```
 
----
 
 ## Development
 
@@ -76,26 +74,26 @@ make test
 ```jsonc
 {
     // Enable pytest integration
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
     "python.testing.pytestArgs": [
         "tests"
     ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
     // Auto formatting
+    "editor.formatOnSave": true,
     "python.formatting.provider": "black",
     "python.formatting.blackArgs": [
         "--line-length",
         "79"
     ],
-    "editor.formatOnSave": true,
     // Hide unused files and folders
     "files.exclude": {
-        "env/": true,
+        "**/__pycache__/": true,
+        ".pytest_cache/": true,
         "build/": true,
         "dist/": true,
-        "**/__pycache__": true,
-        ".pytest_cache": true,
-        "mdptools.egg-info": true,
+        "env/": true,
+        "mdptools.egg-info/": true,
         ".coverage": true,
         "coverage.xml": true
     }
@@ -124,4 +122,4 @@ make test
 }
 ```
 
-Replace `<EXAMPLE>` with the name of the example script to debug (without '`.py`').
+Replace `<EXAMPLE>` with the name of the example script you want to debug (located in the `examples` folder).
