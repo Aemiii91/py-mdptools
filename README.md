@@ -38,7 +38,7 @@ After any edits you can format the code by calling:
 
     make format
 
-Preferably, setup your editor to automatically format on save using `black`. For *Visual Studio Code* [see below](#workspace-settings).
+Preferably, setup your editor to automatically format on save using `black`. For vscode [see below](#workspace-settings).
 
 
 ### Testing
@@ -48,13 +48,13 @@ Run all tests with `pytest` and generate coverage reports:
     make test
 
 
-### Recommended `.vscode` workspace
+### [vscode] Recommended workspace files
 
 #### Workspace settings
 
 `.vscode/settings.json`
 
-```json
+```jsonc
 {
     // Enable pytest integration
     "python.testing.pytestArgs": [
@@ -86,10 +86,9 @@ Run all tests with `pytest` and generate coverage reports:
 
 #### Run and debug
 
-Replace `<EXAMPLE>` with the name of the example script to debug (without '`.py`').
-
 `.vscode/launch.json`
-```json
+
+```jsonc
 {
     "version": "0.2.0",
     "configurations": [
@@ -99,9 +98,11 @@ Replace `<EXAMPLE>` with the name of the example script to debug (without '`.py`
             "request": "launch",
             "module": "run",
             "args": [
-                "hansen2011"
+                "<EXAMPLE>"
             ],
         }
     ]
 }
 ```
+
+Replace `<EXAMPLE>` with the name of the example script to debug (without '`.py`').
