@@ -11,15 +11,20 @@ _mt: MDP = None
 def parallel(ms: MDP, mt: MDP, name: str = None) -> MDP:
     """Performs parallel composition of two MDPs."""
     from .mdp import MarkovDecisionProcess as MDP
+
     global _transition_map, _actions_intersect, _ms, _mt
 
     _ms, _mt = ms, mt
-    _transition_map = {} # empty map for the new composed MDP
-    _actions_intersect = set(_ms.A).intersection(set(_mt.A)) # synchronized actions
+    _transition_map = {}  # empty map for the new composed MDP
+    _actions_intersect = set(_ms.A).intersection(
+        set(_mt.A)
+    )  # synchronized actions
 
     # Start the parallel composition
     compose(_ms.init, _mt.init)
-    actions_union = list_union(_ms.A, _mt.A) # list union is used to preserve ordering
+    actions_union = list_union(
+        _ms.A, _mt.A
+    )  # list union is used to preserve ordering
     init = combine_names(_ms.init, _mt.init)
     if name is None:
         name = combine_names(_ms.name, _mt.name, "||")
@@ -60,7 +65,7 @@ def compose_actions(act_s, act_t, t, swap: bool = False):
 
 def compose_dist(dist_s, dist_t, swap):
     """Recursively runs `compose` on all possible next states `(s',t')`
-    
+
     Returns the product of `dist(s)` and `dist(t)`
     """
     for s_prime in dist_s:
@@ -83,7 +88,9 @@ def dist_product(dist: dict, other_dist: dict, swap: bool = True) -> dict:
     }
 
 
-def combine_names(n1: str, n2: str, sep: str = None, swap: bool = False) -> str:
+def combine_names(
+    n1: str, n2: str, sep: str = None, swap: bool = False
+) -> str:
     if sep is None:
         sep = PARALLEL_SEPARATOR
     return n2 + sep + n1 if swap else n1 + sep + n2

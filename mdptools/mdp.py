@@ -139,8 +139,7 @@ class MarkovDecisionProcess:
     # Public methods
     def equals(self, m2: "MDP") -> bool:
         return (
-            self.transition_map == m2.transition_map
-            and self.init == m2.init
+            self.transition_map == m2.transition_map and self.init == m2.init
         )
 
     def enabled(self, s) -> set[str]:
@@ -179,9 +178,7 @@ class MarkovDecisionProcess:
             tm, S, A, S_map[self.init], name or self.name
         )
 
-    def parallel(
-        self, m2: "MDP", name: str = None
-    ) -> "MDP":
+    def parallel(self, m2: "MDP", name: str = None) -> "MDP":
         return parallel(self, m2, name)
 
     def graph(self, file_path: str, file_format: str = "svg") -> Digraph:
