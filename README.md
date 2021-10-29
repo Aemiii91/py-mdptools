@@ -54,7 +54,7 @@ Run all tests with `pytest` and generate coverage reports:
 
 `.vscode/settings.json`
 
-```json
+```jsonc
 {
     // Enable pytest integration
     "python.testing.pytestArgs": [
@@ -89,7 +89,7 @@ Run all tests with `pytest` and generate coverage reports:
 Replace `<EXAMPLE>` with the name of the example script to debug (without '`.py`').
 
 `.vscode/launch.json`
-```json
+```jsonc
 {
     "version": "0.2.0",
     "configurations": [
@@ -99,7 +99,7 @@ Replace `<EXAMPLE>` with the name of the example script to debug (without '`.py`
             "request": "launch",
             "module": "run",
             "args": [
-                "hansen2011"
+                "<EXAMPLE>"
             ],
         }
     ]
