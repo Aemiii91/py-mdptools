@@ -68,7 +68,18 @@ Run all tests with `pytest` and generate coverage reports:
         "--line-length",
         "79"
     ],
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    // Hide unused files and folders
+    "files.exclude": {
+        "env/": true,
+        "build/": true,
+        "dist/": true,
+        "**/__pycache__": true,
+        ".pytest_cache": true,
+        "mdptools.egg-info": true,
+        ".coverage": true,
+        "coverage.xml": true
+    }
 }
 ```
 
