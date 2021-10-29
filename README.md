@@ -1,4 +1,4 @@
-# py-mdptools
+# mdptools
 
 [![pytest](https://github.com/mholdg16/py-mdptools/actions/workflows/pytest.yml/badge.svg)](https://github.com/mholdg16/py-mdptools/actions/workflows/pytest.yml)
 [![codecov](https://codecov.io/gh/mholdg16/py-mdptools/branch/master/graph/badge.svg?token=2ONO8MQDHT)](https://codecov.io/gh/mholdg16/py-mdptools)
