@@ -1,22 +1,22 @@
 install:
-	python3 setup.py install
+	python3 -m pip install .
 
 env:
 	python3 -m venv env
 	
 init:
-	pip install --upgrade pip
-	pip install -r requirements.txt
-	pip install -e . --no-deps
+	python3 -m pip install --upgrade pip
+	python3 -m pip install -r requirements.txt
+	python3 -m pip install -e . --no-deps
 
 vscode:
 	python3 -m vscode
 
 test:
-	pytest -v --cov-report=xml --cov=mdptools tests/
+	python3 -m pytest -v --cov-report=xml --cov=mdptools tests/
 
 format:
-	black . --line-length 79
+	python3 -m black . --line-length 79
 
 clean:
 	git clean -fdx
