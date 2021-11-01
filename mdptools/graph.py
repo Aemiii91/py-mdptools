@@ -1,4 +1,6 @@
 import re
+
+from mdptools.utils.stringify import lit_str
 from .utils.types import MarkovDecisionProcess, Union, Digraph
 
 
@@ -92,7 +94,7 @@ def __create_p_point(dot: Digraph, s: str, a: str) -> str:
 
 def __label_html(label: str, color: str = None) -> str:
     if isinstance(label, float):
-        label = __float_str(label)
+        label = lit_str(label)
     label = __subscript_numerals(label, graph.point_size * 0.5)
     label = __greek_letters(label)
     label = __remove_separators(label, graph.re_sep)
@@ -111,10 +113,6 @@ def __html_padding(label: str, padding: int):
     )
 
 
-def __float_str(n: float) -> str:
-    return re.sub(r"^0+(\.[0-9]+)$", r"\1", f"{n}")
-
-
 # pylint: disable=line-too-long
 _re_greek = r"\b(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|omicron|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega)(?![a-z])"
 
@@ -125,8 +123,8 @@ def __greek_letters(label: str) -> str:
 
 def __subscript_numerals(label: str, size: int) -> str:
     return re.sub(
-        r"\B_?([0-9]+)",
-        f'<sub><font point-size="{size}">' r"\1" "</font></sub>",
+        r"([a-z])_?([0-9]+)(?![0-9])",
+        r"\1" f'<sub><font point-size="{size}">' r"\2" "</font></sub>",
         label,
     )
 

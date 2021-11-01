@@ -65,9 +65,9 @@ def format_strings(s: str, color_map: ColorMap = None) -> str:
 
 def format_floats(s: str) -> str:
     float_re = (
-        r"([^\w\\'])"
+        r"(^|[^\w\\'])"
         r"(?:(?:(?:(0*[1-9][0-9]*)|0+)(?:\.?0+|(\.?0*[1-9][0-9]*)))|(\.[0-9]+))"
-        r"([^\w\\'])"
+        r"([^\w\\']|$)"
     )
     return re.sub(
         float_re, r"\1" + _h.numeral + r"\2\3\4" + _h.reset + r"\5", s

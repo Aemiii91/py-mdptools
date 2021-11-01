@@ -1,5 +1,7 @@
 from mdptools import MarkovDecisionProcess
+from helpers import display_graph
 
+# %%
 m1 = MarkovDecisionProcess(
     {
         "s0": {"a": {"s1": 0.2, "s2": 0.8}, "b": {"s2": 0.7, "s3": 0.3}},
@@ -31,3 +33,9 @@ print(m4, "\n")
 m = m1 | m2 | m3 | m4
 
 print(m)
+
+# %%
+display_graph([m1, m2, m3, m4], "graphs/hansen2011_mdps.gv")
+
+# %%
+display_graph((m1 | m2 | m3 | m4), "graphs/hansen2011_combined.gv")
