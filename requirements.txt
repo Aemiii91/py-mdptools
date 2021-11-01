@@ -2,6 +2,7 @@ numpy
 scipy
 graphviz
 ipython
+ipykernel
 setuptools
 pylint
 pytest
