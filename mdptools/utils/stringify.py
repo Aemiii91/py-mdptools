@@ -43,35 +43,41 @@ def mdp_color_map(mdp: MarkovDecisionProcess) -> ColorMap:
     return {_h.state: list(mdp.S.keys()), _h.action: list(mdp.A.keys())}
 
 
-def lit_str(obj, color_map: ColorMap = None) -> str:
+def lit_str(obj, color_map: ColorMap = None, colors: bool = True) -> str:
     return format_strings(
-        format_floats(round_floats(obj.__str__())), color_map
+        format_floats(round_floats(obj.__str__()), colors), color_map, colors
     )
 
 
-def format_strings(s: str, color_map: ColorMap = None) -> str:
+def format_strings(
+    s: str, color_map: ColorMap = None, colors: bool = True
+) -> str:
     str_re = r"\"([^\"\n]*?)\"|'([^'\n]*?)'"
     # pylint: disable=undefined-variable
-    return re.sub(
-        str_re,
-        lambda x: (
-            word := f"{x[1] or ''}{x[2] or ''}",
-            color := word_color(word, color_map),
-            color + word + _h.reset,
-        )[-1],
-        s,
-    )
+    if colors:
+        return re.sub(
+            str_re,
+            lambda x: (
+                word := f"{x[1] or ''}{x[2] or ''}",
+                color := word_color(word, color_map),
+                color + word + _h.reset,
+            )[-1],
+            s,
+        )
+    return re.sub(str_re, r"\1\2", s)
 
 
-def format_floats(s: str) -> str:
+def format_floats(s: str, colors: bool = True) -> str:
     float_re = (
         r"(^|[^\w\\'])"
         r"(?:(?:(?:(0*[1-9][0-9]*)|0+)(?:\.?0+|(\.?0*[1-9][0-9]*)))|(\.[0-9]+))"
         r"([^\w\\']|$)"
     )
-    return re.sub(
-        float_re, r"\1" + _h.numeral + r"\2\3\4" + _h.reset + r"\5", s
-    )
+    if colors:
+        return re.sub(
+            float_re, r"\1" + _h.numeral + r"\2\3\4" + _h.reset + r"\5", s
+        )
+    return re.sub(float_re, r"\1\2\3\4\5", s)
 
 
 def round_floats(s: str) -> str:

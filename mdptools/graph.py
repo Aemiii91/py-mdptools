@@ -94,7 +94,7 @@ def __create_p_point(dot: Digraph, s: str, a: str) -> str:
 
 def __label_html(label: str, color: str = None) -> str:
     if isinstance(label, float):
-        label = lit_str(label)
+        label = lit_str(label, colors=False)
     label = __subscript_numerals(label, graph.point_size * 0.5)
     label = __greek_letters(label)
     label = __remove_separators(label, graph.re_sep)
@@ -124,7 +124,7 @@ def __greek_letters(label: str) -> str:
 def __subscript_numerals(label: str, size: int) -> str:
     return re.sub(
         r"([a-z])_?([0-9]+)(?![0-9])",
-        r"\1" f'<sub><font point-size="{size}">' r"\2" "</font></sub>",
+        r"\1" f'<sub><font point-size="{int(size)}">' r"\2" "</font></sub>",
         label,
     )
 
