@@ -10,9 +10,7 @@ init:
 	pip install -e . --no-deps
 
 vscode:
-	mkdir -p .vscode
-	touch .vscode/settings.json
-	touch .vscode/launch.json
+	python3 -m vscode
 
 test:
 	pytest -v --cov-report=xml --cov=mdptools tests/

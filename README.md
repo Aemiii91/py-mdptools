@@ -47,7 +47,7 @@ Install the package in development mode, as well as all development dependencies
 make init
 ```
 
-After any edits you can format the code by calling:
+Before you commit and push your changes, format the code by calling:
 
 ```console
 make format
@@ -66,6 +66,15 @@ make test
 
 
 ### [vscode] Recommended workspace files
+
+To add the recommended workspace files as seen below, run the following command:
+
+```console
+make vscode
+```
+
+This will overwrite any changes you've made to either `launch.json` or `settings.json`.
+
 
 #### Workspace settings
 
