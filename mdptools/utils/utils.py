@@ -1,3 +1,4 @@
+from functools import reduce
 import re
 
 from .types import TransitionMap, RenameFunction, Callable, Iterable, Union
@@ -93,10 +94,18 @@ def ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     return rename
 
 
-def intersect(a: Iterable, b: Iterable):
+def intersect(a: Iterable, b: Iterable) -> set:
     return set(a).intersection(set(b))
+
+
+def intersect_multi(l: list[Iterable]) -> set:
+    return reduce(intersect, l)
 
 
 def list_union(a: Iterable, b: Iterable) -> list[str]:
     # list is used to preserve ordering
     return list(dict.fromkeys(list(a) + list(b)))
+
+
+def list_union_multi(l: list[Iterable]) -> list[str]:
+    return reduce(list_union, l)

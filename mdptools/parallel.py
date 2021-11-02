@@ -1,6 +1,46 @@
-from mdptools.utils.utils import intersect
-from .utils.types import MarkovDecisionProcess as MDP, TransitionMap
-from .utils import list_union, PARALLEL_SEPARATOR
+from .utils.types import MarkovDecisionProcess as MDP, TransitionMap, Callable
+from .utils import list_union, intersect, reduce, PARALLEL_SEPARATOR
+
+
+def parallel_system(
+    processes: list[MDP],
+    callback: Callable[[list[str], list[MDP]], list[str]] = None,
+) -> MDP:
+    if callback is None:
+        callback = enabled
+
+    transition_map: TransitionMap = {}
+    s_init = [p.init for p in processes]
+    stack = [s_init]
+
+    while len(stack) > 0:
+        states = stack.pop()
+        states_name = serialize(states, ",")
+        if states_name not in transition_map:
+            transition_map[states_name] = {}
+            transitions = callback(states, processes)
+            for t in transitions:
+                stack += successor(states, t, processes)
+
+    return MDP(transition_map)
+
+
+def successor(
+    states: list[str], transition: str, processes: list[MDP]
+) -> list[list[str]]:
+    succ = [
+        processes[i][s, transition]
+        for i, s in enumerate(states)
+        if processes[i].enabled(s)
+    ]
+
+    return [succ]
+
+
+def enabled(states: list[str], processes: list[MDP]) -> list[str]:
+    actions = [processes[i].actions(s) for i, s in enumerate(states)]
+    transitions = []
+    return transitions
 
 
 _ms: MDP = None
@@ -92,3 +132,7 @@ def combine_names(
     if sep is None:
         sep = PARALLEL_SEPARATOR
     return n2 + sep + n1 if swap else n1 + sep + n2
+
+
+def serialize(l: list[str], sep: str = None):
+    return reduce(lambda a, b: combine_names(a, b, sep), l)
