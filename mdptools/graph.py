@@ -81,8 +81,14 @@ def __render_mdp(
                     )
 
 
-def __pf_s(s: str) -> str:
-    return f"state_{s}"
+def __pf_s(s: Union[tuple[str], str]) -> str:
+    return f"state_{__str_tuple(s)}"
+
+
+def __str_tuple(s: Union[tuple, str]) -> str:
+    if isinstance(s, str):
+        return s
+    return "_".join(__str_tuple(sb) for sb in s)
 
 
 def __create_p_point(dot: Digraph, s: str, a: str) -> str:
@@ -95,6 +101,7 @@ def __create_p_point(dot: Digraph, s: str, a: str) -> str:
 def __label_html(label: str, color: str = None) -> str:
     if isinstance(label, float):
         label = lit_str(label, colors=False)
+    label = __str_tuple(label)
     label = __subscript_numerals(label, graph.point_size * 0.5)
     label = __greek_letters(label)
     label = __remove_separators(label, graph.re_sep)

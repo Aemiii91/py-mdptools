@@ -29,19 +29,12 @@ def parse_indices(indices: Union[Iterable, str]) -> tuple[str, str, str]:
     if indices is None:
         return res
 
-    if (
-        isinstance(indices, Iterable)
-        and isinstance(indices[0], tuple)
-        and len(indices) == 3
-    ):
-        return indices
+    if isinstance(indices, str):
+        indices = tuple(
+            re.split(r"\s*" + INDEX_KEY_SEPARATOR + r"\s*", indices)
+        )
 
-    if not isinstance(indices, str):
-        indices = INDEX_KEY_SEPARATOR.join(list(indices))
-
-    for idx, value in enumerate(re.split(r"\s*->\s*", f"{indices}")):
-        if idx < len(res) and value != "":
-            res[idx] = value
+    res = tuple(indices[i] if len(indices) > i else None for i in range(3))
 
     return res
 
@@ -60,7 +53,7 @@ def tree_walker(
     elif isinstance(obj, set):
         for key in obj:
             callback(path + [key], default_value)
-    elif isinstance(obj, str):
+    elif isinstance(obj, (str, tuple)):
         callback(path + [obj], default_value)
     else:
         callback(path, obj)

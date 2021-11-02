@@ -1,4 +1,4 @@
-from mdptools import MarkovDecisionProcess
+from mdptools import MarkovDecisionProcess, parallel
 from helpers import display_graph
 
 # %%
@@ -24,7 +24,7 @@ md = MarkovDecisionProcess(
 )
 print(md, "\n")
 
-m = ms | md
+m = parallel(ms, md)
 print(m, "\n")
 
 # %%
@@ -43,4 +43,4 @@ ms = MarkovDecisionProcess(
 
 mt = ms.remake((r"s([0-9])", r"t\1"), "Mt")
 
-display_graph([ms, mt, (ms | mt)], "graphs/graph_kwiatkowska_2.gv")
+display_graph([ms, mt, parallel(ms, mt)], "graphs/graph_kwiatkowska_2.gv")

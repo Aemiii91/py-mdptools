@@ -24,7 +24,6 @@ from .utils.prompt import dist_wrong_value
 from .utils.stringify import stringify
 
 from .validate import validate
-from .parallel import parallel
 from .graph import graph
 
 
@@ -40,12 +39,14 @@ class MarkovDecisionProcess:
         S: Union[list[str], str] = None,
         A: Union[list[str], str] = None,
         init: str = None,
-        name: str = DEFAULT_NAME,
+        name: str = None,
     ):
         self._did_init = False
         self._validate_on = True
         self.is_valid = False
         self.errors: list[tuple[ErrorCode, str]] = []
+        if name is None:
+            name = DEFAULT_NAME
         self.name = name
         self.S, self.A, self.P = map_list(S), map_list(A), []
         if len(self.S) == 0 or len(self.A) == 0:
@@ -132,9 +133,6 @@ class MarkovDecisionProcess:
         # Create an instance of `MDP` with the renamed data
         return MarkovDecisionProcess(tm, S, A, map_S[self.init], name)
 
-    def parallel(self, m2: "MDP", name: str = None) -> "MDP":
-        return parallel(self, m2, name)
-
     def graph(self, file_path: str, file_format: str = "svg") -> Digraph:
         return graph(self, file_path, file_format)
 
@@ -214,6 +212,10 @@ class MarkovDecisionProcess:
 
     def __getitem__(self, indices):
         s, a, s_prime = parse_indices(indices)
+        if a is None:
+            return self.actions(s)
+        if s_prime is None:
+            return self.dist(s, a)
         return self.__ref_matrix(s).__getitem__((self.A[a], self.S[s_prime]))
 
     def __setitem__(self, indices, value):
@@ -232,7 +234,7 @@ class MarkovDecisionProcess:
 
         if s_prime is None:
             # Set the `dist(s, a)`
-            if isinstance(value, (dict, str)):
+            if isinstance(value, (dict, str, tuple)):
                 # A `dict` describes the map of s' -> p.
                 # If a string is given, is must describe `s_prime`
                 self.__set_special([s, a], value)
@@ -254,9 +256,6 @@ class MarkovDecisionProcess:
 
     def __repr__(self):
         return stringify(self)
-
-    def __or__(self, m2: "MDP") -> "MDP":
-        return self.parallel(m2)
 
     def __eq__(self, m2: "MDP") -> bool:
         return self.equals(m2)

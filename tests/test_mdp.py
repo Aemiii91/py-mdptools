@@ -5,18 +5,22 @@ from mdptools import MarkovDecisionProcess
 
 
 @pytest.mark.usefixtures("stmdp")
-def test_indexing_one(stmdp: MarkovDecisionProcess):
-    assert stmdp["s0"] == {"a": {"s0": 0.5, "s1": 0.5}}
+def test_get_actions(stmdp: MarkovDecisionProcess):
+    expected = {"a": {"s0": 0.5, "s1": 0.5}}
+    assert stmdp.actions("s0") == expected
+    assert stmdp["s0"] == expected
 
 
 @pytest.mark.usefixtures("stmdp")
-def test_indexing_two(stmdp: MarkovDecisionProcess):
-    assert stmdp["s0", "a"] == {"s0": 0.5, "s1": 0.5}
-    assert stmdp["s0->a"] == {"s0": 0.5, "s1": 0.5}  # short version
+def test_get_distribution(stmdp: MarkovDecisionProcess):
+    expected = {"s0": 0.5, "s1": 0.5}
+    assert stmdp.dist("s0", "a") == expected
+    assert stmdp["s0", "a"] == expected
+    assert stmdp["s0->a"] == expected
 
 
 @pytest.mark.usefixtures("stmdp")
-def test_indexing_three(stmdp: MarkovDecisionProcess):
+def test_get_probability(stmdp: MarkovDecisionProcess):
     assert stmdp["s0", "a", "s0"] == 0.5
     assert stmdp["s0->a->s0"] == 0.5  # short version
 
