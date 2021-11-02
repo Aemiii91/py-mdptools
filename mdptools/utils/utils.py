@@ -95,18 +95,6 @@ def ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     return rename
 
 
-def intersect(a: Iterable, b: Iterable) -> set:
-    return set(a).intersection(set(b))
-
-
-def intersect_multi(l: list[Iterable]) -> set:
-    return reduce(intersect, l)
-
-
-def list_union(a: Iterable, b: Iterable) -> list[str]:
-    # list is used to preserve ordering
-    return list(dict.fromkeys(list(a) + list(b)))
-
-
-def list_union_multi(l: list[Iterable]) -> list[str]:
-    return list(dict.fromkeys(chain.from_iterable(l)))
+def apply_filter(_list: Iterable, _filter: list[bool]):
+    """Applies a boolean filter on a list"""
+    return [element for idx, element in enumerate(_list) if _filter[idx]]

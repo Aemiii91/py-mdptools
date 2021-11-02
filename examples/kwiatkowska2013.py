@@ -40,7 +40,13 @@ ms = MarkovDecisionProcess(
     },
     name="Ms",
 )
+print(ms, "\n")
 
 mt = ms.remake((r"s([0-9])", r"t\1"), "Mt")
+print(mt, "\n")
 
-display_graph([ms, mt, parallel(ms, mt)], "graphs/graph_kwiatkowska_2.gv")
+m = parallel(ms, mt)
+print(m, "\n")
+
+# %%
+display_graph([ms, mt, m], "graphs/graph_kwiatkowska_2.gv")

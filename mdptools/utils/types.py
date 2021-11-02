@@ -8,7 +8,11 @@ if TYPE_CHECKING:
     from graphviz.dot import Digraph
     from ..mdp import MarkovDecisionProcess
 
-TransitionMap = dict[str, dict[str, dict[str, float]]]
+
+States = tuple[str]
+State = Union[str, States]
+Transition = tuple[States, str, dict[States, float]]
+
 LooseTransitionMap = dict[
     str,
     Union[
@@ -16,8 +20,9 @@ LooseTransitionMap = dict[
         dict[str, Union[dict[str, float], float]],
     ],
 ]
-ActionMap = dict[str, dict[str, float]]
-DistributionMap = dict[str, float]
+DistributionMap = dict[State, float]
+ActionMap = dict[str, DistributionMap]
+TransitionMap = dict[State, ActionMap]
 
 ErrorCode = tuple[int, str]
 ColorMap = dict[str, list[str]]

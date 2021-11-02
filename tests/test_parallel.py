@@ -1,6 +1,7 @@
 """Unit-tests for the `parallel` module
 """
 from mdptools import MarkovDecisionProcess, parallel
+from mdptools.parallel import enabled
 
 
 def test_simple_composition():
@@ -12,7 +13,7 @@ def test_simple_composition():
 
     m2 = m1.remake((r"[a-z]([0-9])", r"t\1"), ["x", "y", "z"], "M2")
 
-    m = parallel(m1, m2, "M")
+    m = parallel(m1, m2, name="M")
 
     assert m.is_valid
     assert len(m.S) == 9
@@ -52,7 +53,7 @@ def test_example_kwiatkowska2013():
         name="Ms||Md (Expected)",
     )
 
-    actual = parallel(ms, md, "Ms||Md (Actual)")
+    actual = parallel(ms, md, name="Ms||Md (Actual)")
 
     assert actual == expected
 
@@ -83,3 +84,39 @@ def test_complex_composition():
     m = parallel(m1, m2, m3, m4)
 
     assert m.is_valid and len(m.S) == 16
+
+
+def test_custom_transition_function():
+    m1 = MarkovDecisionProcess(
+        {
+            "noncrit_1": {"demand_1": "wait_1"},
+            "wait_1": {"request_1": "wait_1", "enter_1": "crit_1"},
+            "crit_1": {"exit_1": "noncrit_1"},
+        },
+        name="M1",
+    )
+    m2 = m1.remake(("_1", "_2"), ("_1", "_2"), "M2")
+    rm = MarkovDecisionProcess(
+        {
+            "idle": {
+                "request_1": {"idle": 0.1, "prepare_1": 0.9},
+                "request_2": {"idle": 0.1, "prepare_2": 0.9},
+            },
+            "prepare_1": {"grant_1": "idle"},
+            "prepare_2": {"grant_2": "idle"},
+        },
+        name="RM",
+    )
+
+    count = 10
+
+    def custom_transition_function(states, processes):
+        nonlocal count
+        if count > 0:
+            count -= 1
+            return enabled(states, processes)
+        return []
+
+    m = parallel(m1, m2, rm, callback=custom_transition_function)
+
+    assert len(m) == 20
