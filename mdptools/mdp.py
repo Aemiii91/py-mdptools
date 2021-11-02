@@ -257,6 +257,9 @@ class MarkovDecisionProcess:
     def __repr__(self):
         return stringify(self)
 
+    def __len__(self):
+        return len(self.S)
+
     def __eq__(self, m2: "MDP") -> bool:
         return self.equals(m2)
 

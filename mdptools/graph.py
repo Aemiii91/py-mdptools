@@ -1,6 +1,6 @@
 import re
 
-from mdptools.utils.stringify import lit_str
+from mdptools.utils.stringify import literal_string
 from .utils.types import MarkovDecisionProcess, Union, Digraph
 
 
@@ -100,7 +100,7 @@ def __create_p_point(dot: Digraph, s: str, a: str) -> str:
 
 def __label_html(label: str, color: str = None) -> str:
     if isinstance(label, float):
-        label = lit_str(label, colors=False)
+        label = literal_string(label, colors=False)
     label = __str_tuple(label)
     label = __subscript_numerals(label, graph.point_size * 0.5)
     label = __greek_letters(label)
