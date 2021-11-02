@@ -14,7 +14,7 @@ def stringify(mdp: MarkovDecisionProcess) -> str:
     # States and start state
     lines += [
         f"  {_h[_h.variable, 'S']} := {lit_str(tuple(mdp.S), _h.state)},"
-        f" {_h[_h.variable, 'init']} := {_h[_h.state, mdp.init]} "
+        f" {_h[_h.variable, 'init']} := {lit_str(mdp.init, _h.state)} "
         + _h[_h.comment, f"// {len(mdp.S)}"]
     ]
     # Actions
@@ -25,8 +25,8 @@ def stringify(mdp: MarkovDecisionProcess) -> str:
     # Enabled transitions
     lines += [
         (
-            en_s := mdp[s],
-            f"  {_h[_h.function, 'en']}({_h[_h.state, s]}) ->"
+            en_s := mdp.actions(s),
+            f"  {_h[_h.function, 'en']}({lit_str(s, _h.state)}) ->"
             f" {lit_str(en_s, mdp_color_map(mdp))} "
             + _h[_h.comment, f"// {len(en_s)}"],
         )[-1]

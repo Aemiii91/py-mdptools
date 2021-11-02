@@ -1,46 +1,120 @@
-from .utils.types import MarkovDecisionProcess as MDP, TransitionMap, Callable
-from .utils import list_union, intersect, reduce, PARALLEL_SEPARATOR
+import itertools
+
+from numpy.core.fromnumeric import prod
+
+from .utils.types import (
+    MarkovDecisionProcess as MDP,
+    TransitionMap,
+    Callable,
+    Iterable,
+    Union,
+)
+from .utils import (
+    list_union,
+    list_union_multi,
+    intersect,
+    reduce,
+    PARALLEL_SEPARATOR,
+)
 
 
 def parallel_system(
     processes: list[MDP],
     callback: Callable[[list[str], list[MDP]], list[str]] = None,
 ) -> MDP:
+    from .mdp import MarkovDecisionProcess as MDP
+
     if callback is None:
         callback = enabled
 
     transition_map: TransitionMap = {}
-    s_init = [p.init for p in processes]
+    s_init = tuple(p.init for p in processes)
     stack = [s_init]
 
     while len(stack) > 0:
-        states = stack.pop()
-        states_name = serialize(states, ",")
-        if states_name not in transition_map:
-            transition_map[states_name] = {}
-            transitions = callback(states, processes)
-            for t in transitions:
-                stack += successor(states, t, processes)
+        s = stack.pop()
+        if s not in transition_map:
+            transition_map[s] = {}
+            transitions = callback(s, processes)
+            for tr in transitions:
+                _, action, post = tr
+                succ = successor(s, tr)
+                transition_map[s][action] = dict(zip(succ, post.values()))
+                stack += succ
 
     return MDP(transition_map)
 
 
-def successor(
-    states: list[str], transition: str, processes: list[MDP]
-) -> list[list[str]]:
-    succ = [
-        processes[i][s, transition]
-        for i, s in enumerate(states)
-        if processes[i].enabled(s)
-    ]
-
-    return [succ]
+States = tuple[str]
+Actions = dict[str, dict[str, float]]
+Transition = tuple[States, str, list[States]]
 
 
-def enabled(states: list[str], processes: list[MDP]) -> list[str]:
-    actions = [processes[i].actions(s) for i, s in enumerate(states)]
+def successor(states: States, transition: Transition) -> list[States]:
+    succ = []
+    pre, _, post = transition
+
+    for post_states in post.keys():
+        replace_map = dict(zip(pre, post_states))
+        s_prime = tuple(replace_map[s] if s in pre else s for s in states)
+        succ.append(s_prime)
+
+    return succ
+
+
+def enabled(states: States, processes: list[MDP]) -> list[Transition]:
     transitions = []
+    enabled_actions = [processes[i].actions(s) for i, s in enumerate(states)]
+    act_union = list_union_multi(enabled_actions)
+
+    for action in act_union:
+        should_sync, can_sync, sync_filter, filtered_actions = synchronized(
+            action, enabled_actions, processes
+        )
+        if not should_sync or can_sync:
+            tr = transition(
+                tuple(apply_filter(states, sync_filter)),
+                action,
+                filtered_actions,
+            )
+            transitions.append(tr)
+
     return transitions
+
+
+def transition(
+    states: States,
+    action: str,
+    enabled_actions: list[list[str]],
+) -> Transition:
+    s_primes = (act[action].keys() for act in enabled_actions)
+    p_values = (act[action].values() for act in enabled_actions)
+    dist = dict(
+        zip(
+            itertools.product(*s_primes),
+            (prod(p) for p in itertools.product(*p_values)),
+        )
+    )
+    return (states, action, dist)
+
+
+def synchronized(
+    action: str, enabled_actions: list[list[str]], processes: list[MDP]
+) -> tuple[bool, bool, list[int]]:
+    sync_processes = [1 if action in p.A else 0 for p in processes]
+    filtered_actions = apply_filter(enabled_actions, sync_processes)
+    should_sync = sum(sync_processes) > 1
+    can_sync = all(action in en for en in filtered_actions)
+    return (
+        should_sync,
+        can_sync,
+        sync_processes,
+        filtered_actions,
+    )
+
+
+def apply_filter(l: Iterable, f: list[int]):
+    return [x for i, x in enumerate(l) if f[i] == 1]
 
 
 _ms: MDP = None
@@ -66,7 +140,7 @@ def parallel(ms: MDP, mt: MDP, name: str = None) -> MDP:
     )  # list union is used to preserve ordering
     init = combine_names(_ms.init, _mt.init)
     if name is None:
-        name = combine_names(_ms.name, _mt.name, "||")
+        name = f"{_ms.name}||{_mt.name}"
     return MDP(_transition_map, A=actions_union, init=init, name=name)
 
 
@@ -127,11 +201,13 @@ def dist_product(dist: dict, other_dist: dict, swap: bool = True) -> dict:
 
 
 def combine_names(
-    n1: str, n2: str, sep: str = None, swap: bool = False
-) -> str:
-    if sep is None:
-        sep = PARALLEL_SEPARATOR
-    return n2 + sep + n1 if swap else n1 + sep + n2
+    n1: Union[tuple[str], str], n2: Union[tuple[str], str], swap: bool = False
+) -> tuple[str]:
+    if not isinstance(n1, tuple):
+        n1 = (n1,)
+    if not isinstance(n2, tuple):
+        n2 = (n2,)
+    return tuple(n2 + n1) if swap else tuple(n1 + n2)
 
 
 def serialize(l: list[str], sep: str = None):

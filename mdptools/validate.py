@@ -61,7 +61,7 @@ def __validate_sum_to_one(
 
     for s in mdp.S:
         for a in mdp.enabled(s):
-            dist = mdp[s, a]
+            dist = mdp.dist(s, a)
             sum_a = _np.abs(sum(dist.values()))
             if sum_a - 1.0 >= 10 * _np.spacing(_np.float64(1)):
                 errors += __format_sum_to_one(dist, s, a, sum_a)

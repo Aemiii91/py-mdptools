@@ -1,3 +1,5 @@
+from deepdiff import DeepDiff
+from numpy import e
 from mdptools import MarkovDecisionProcess
 from mdptools.parallel import parallel_system
 
@@ -27,5 +29,10 @@ rm = MarkovDecisionProcess(
     name="RM",
 )
 
+mp = m1 | m2 | rm
+m = parallel_system([m1, m2, rm])
+eq = mp == m
 
-parallel_system([m1, m2, rm])
+print(eq)
+
+print(m)

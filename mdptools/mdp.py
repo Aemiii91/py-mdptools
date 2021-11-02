@@ -87,19 +87,28 @@ class MarkovDecisionProcess:
         )
 
     def enabled(self, s) -> set[str]:
-        return {
-            a for a in self.A for s_prime in self.S if self[s, a, s_prime] > 0
-        }
+        if s in self.S:
+            return {
+                a
+                for a in self.A
+                for s_prime in self.S
+                if self[s, a, s_prime] > 0
+            }
+        return set()
 
     def actions(self, s) -> ActionMap:
-        return {a: self.dist(s, a) for a in self.enabled(s)}
+        if s in self.S:
+            return {a: self.dist(s, a) for a in self.enabled(s)}
+        return {}
 
     def dist(self, s, a) -> DistributionMap:
-        return {
-            s_prime: self[s, a, s_prime]
-            for s_prime in self.S
-            if self[s, a, s_prime] > 0
-        }
+        if s in self.S and a in self.A:
+            return {
+                s_prime: self[s, a, s_prime]
+                for s_prime in self.S
+                if self[s, a, s_prime] > 0
+            }
+        return {}
 
     def validate(self) -> bool:
         if self._validate_on:
@@ -121,9 +130,7 @@ class MarkovDecisionProcess:
         if name is None:
             name = self.name
         # Create an instance of `MDP` with the renamed data
-        return MarkovDecisionProcess(
-            tm, S, A, map_S[self.init], name or self.name
-        )
+        return MarkovDecisionProcess(tm, S, A, map_S[self.init], name)
 
     def parallel(self, m2: "MDP", name: str = None) -> "MDP":
         return parallel(self, m2, name)
@@ -207,10 +214,6 @@ class MarkovDecisionProcess:
 
     def __getitem__(self, indices):
         s, a, s_prime = parse_indices(indices)
-        if a is None:
-            return self.actions(s)
-        if s_prime is None:
-            return self.dist(s, a)
         return self.__ref_matrix(s).__getitem__((self.A[a], self.S[s_prime]))
 
     def __setitem__(self, indices, value):

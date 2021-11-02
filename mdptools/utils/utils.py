@@ -1,5 +1,6 @@
 from functools import reduce
 import re
+from itertools import chain
 
 from .types import TransitionMap, RenameFunction, Callable, Iterable, Union
 
@@ -28,8 +29,15 @@ def parse_indices(indices: Union[Iterable, str]) -> tuple[str, str, str]:
     if indices is None:
         return res
 
+    if (
+        isinstance(indices, Iterable)
+        and isinstance(indices[0], tuple)
+        and len(indices) == 3
+    ):
+        return indices
+
     if not isinstance(indices, str):
-        indices = INDEX_KEY_SEPARATOR.join(indices)
+        indices = INDEX_KEY_SEPARATOR.join(list(indices))
 
     for idx, value in enumerate(re.split(r"\s*->\s*", f"{indices}")):
         if idx < len(res) and value != "":
@@ -108,4 +116,4 @@ def list_union(a: Iterable, b: Iterable) -> list[str]:
 
 
 def list_union_multi(l: list[Iterable]) -> list[str]:
-    return reduce(list_union, l)
+    return list(dict.fromkeys(chain.from_iterable(l)))
