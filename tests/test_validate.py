@@ -14,6 +14,13 @@ def test_valid_mdp(stmdp: MarkovDecisionProcess):
     assert stmdp.is_valid
 
 
+def test_invalid_raise_exception():
+    M = MarkovDecisionProcess({"s0": {"a": {"s1": 1}}})
+
+    with pytest.raises(Exception):
+        validate(M, raise_exception=True)
+
+
 def test_invalid_req1():
     M = MarkovDecisionProcess({"s0": {"a": {"s1": 1}}})
     is_valid = validate(M, raise_exception=False)

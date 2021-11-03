@@ -95,8 +95,8 @@ def __ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
         old, new = rename
         rename = lambda s: re.sub(old, new, s)
     elif isinstance(rename, list):
-        rename_list = iter(rename)
-        rename = lambda _: next(rename_list)
+        rename_list = [__ensure_rename_function(el) for el in rename]
+        rename = lambda s: reduce(lambda sb, fn: fn(sb), rename_list, s)
     elif isinstance(rename, dict):
         re_map = rename
         rename = lambda s: re_map[s] if s in re_map else s

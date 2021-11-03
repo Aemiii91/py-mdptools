@@ -6,7 +6,7 @@ from .utils.types import Action, MarkovDecisionProcess, State, Union, Digraph
 
 def graph(
     m: MarkovDecisionProcess,
-    file_path: str,
+    file_path: str = None,
     file_format: str = "svg",
     engine: str = "dot",
     rankdir: str = "TB",
@@ -16,7 +16,7 @@ def graph(
     # pylint: disable=redefined-outer-name
     from graphviz import Digraph
 
-    set_fontsize = {"fontsize": f"{graph.point_size}"}
+    set_fontsize = {"fontsize": f"{round(graph.point_size, 2)}"}
     dot = Digraph(
         filename=file_path,
         format=file_format,
@@ -33,7 +33,9 @@ def graph(
     else:
         __render_mdp(dot, m, m.name)
 
-    dot.render()
+    if file_path is not None:
+        dot.render()
+
     return dot
 
 
@@ -53,7 +55,7 @@ def __render_mdp(
         init_name,
         label=init_label,
         shape="none",
-        fontsize=f"{graph.point_size * 1.2}",
+        fontsize=f"{round(graph.point_size * 1.2, 2)}",
     )
     dot.edge(init_name, __pf_s(m.init))
 
@@ -131,7 +133,10 @@ def __greek_letters(label: str) -> str:
 def __subscript_numerals(label: str, size: int) -> str:
     return re.sub(
         r"([a-z])_?([0-9]+)(?![0-9])",
-        r"\1" f'<sub><font point-size="{int(size)}">' r"\2" "</font></sub>",
+        r"\1"
+        f'<sub><font point-size="{round(size, 2)}">'
+        r"\2"
+        "</font></sub>",
         label,
     )
 

@@ -162,6 +162,7 @@ class MarkovDecisionProcess:
         if s not in self.S:
             self.S[s] = len(self.S)
             if self._did_init:
+                self.__resize()
                 self.__reset(s)
 
     def __add_action(self, a: Action):
@@ -187,6 +188,7 @@ class MarkovDecisionProcess:
 
     def __reset(self, path: list[StateOrAction] = None):
         s, a, s_prime = parse_indices(path)
+
         if s is None:
             # Reset all matrices
             shape = self.shape
@@ -224,6 +226,9 @@ class MarkovDecisionProcess:
     def __setitem__(self, indices, value):
         s, a, s_prime = parse_indices(indices)
 
+        if self._did_init:
+            self.__add_state(s)
+
         if a is None:
             # Set the enabled actions of `s`
             # Note: If a `set` is given, the target will be `s` with probability 1.
@@ -233,7 +238,10 @@ class MarkovDecisionProcess:
             if isinstance(value, str):
                 # String is given, which is short for a transition to self
                 self.__set_special([s, value], s)
-                return
+            return
+
+        if self._did_init:
+            self.__add_action(a)
 
         if s_prime is None:
             # Set the `dist(s, a)`
@@ -250,8 +258,6 @@ class MarkovDecisionProcess:
             s_prime = s
 
         if self._did_init:
-            self.__add_state(s)
-            self.__add_action(a)
             self.__add_state(s_prime)
 
         self.__ref_matrix(s).__setitem__((self.A[a], self.S[s_prime]), value)
@@ -265,9 +271,3 @@ class MarkovDecisionProcess:
 
     def __eq__(self, m2: "MDP") -> bool:
         return self.equals(m2)
-
-    def __copy__(self) -> "MDP":
-        S, A = list(self.S), list(self.A)
-        return MarkovDecisionProcess(
-            self.transition_map, S, A, self.init, self.name
-        )

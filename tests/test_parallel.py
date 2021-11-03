@@ -11,7 +11,9 @@ def test_simple_composition():
         name="M1",
     )
 
-    m2 = m1.remake((r"[a-z]([0-9])", r"t\1"), ["x", "y", "z"], "M2")
+    m2 = m1.remake(
+        (r"[a-z]([0-9])", r"t\1"), {"a": "x", "b": "y", "c": "z"}, "M2"
+    )
 
     m = parallel(m1, m2, name="M")
 
