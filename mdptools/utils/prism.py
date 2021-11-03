@@ -1,7 +1,6 @@
-from os import makedirs, path
-
 from .types import MarkovDecisionProcess as MDP
 from .stringify import to_identifier
+from .utils import write_file
 
 
 def to_prism(mdp: MDP, file_path: str = None) -> str:
@@ -18,12 +17,5 @@ def to_prism(mdp: MDP, file_path: str = None) -> str:
 
     buffer += "endmodule"
 
-    if file_path is not None:
-        d = path.dirname(file_path)
-        if d != "" and not path.exists(d):
-            makedirs(d)
-
-        with open(file_path, "w+", encoding="utf-8") as f:
-            f.write(buffer)
-
+    write_file(file_path, buffer)
     return buffer

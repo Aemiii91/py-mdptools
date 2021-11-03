@@ -107,3 +107,17 @@ def __ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
 def apply_filter(_list: Iterable, _filter: list[bool]):
     """Applies a boolean filter on a list"""
     return [element for idx, element in enumerate(_list) if _filter[idx]]
+
+
+def write_file(filename: str, content: str):
+    """Safely writes to a file"""
+    from os import makedirs, path
+
+    if filename is None or filename == "":
+        return
+
+    if path.dirname(filename) != "":
+        makedirs(path.dirname(filename), exist_ok=True)
+
+    with open(filename, "w+", encoding="utf-8") as f:
+        f.write(content)
