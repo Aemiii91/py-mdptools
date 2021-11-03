@@ -1,3 +1,5 @@
+from pytest_mock import MockerFixture
+
 from mdptools import MarkovDecisionProcess, use_colors
 from mdptools.utils import stringify, literal_string, to_prism
 
@@ -53,21 +55,13 @@ def test_literal_string():
     assert actual == expected
 
 
-def test_to_prism():
-    m1 = MarkovDecisionProcess(
-        {
-            "s0": {"a": {"s1": 0.2, "s2": 0.8}, "b": {"s2": 0.7, "s3": 0.3}},
-            "s1": "tau_1",
-            "s2": {"x", "y", "z"},
-            "s3": {"x", "z"},
-        },
-        S="s0,s1,s2,s3",
-        A="a,b,x,y,z,tau_1",
-        name="M1",
-    )
+def test_to_prism(mocker: MockerFixture, hansen_m1: MarkovDecisionProcess):
+    mck = mocker.patch("builtins.open", mocker.mock_open())
 
-    expected = """mdp\nmodule M1\n\ts : [0..4] init 0;\n\n\t[a] s=0 -> 0.2:(s'=1) + 0.8:(s'=2);\n\t[b] s=0 -> 0.7:(s'=2) + 0.3:(s'=3);\n\t[tau_1] s=1 -> 1.0:(s'=1);\n\t[x] s=2 -> 1.0:(s'=2);\n\t[y] s=2 -> 1.0:(s'=2);\n\t[z] s=2 -> 1.0:(s'=2);\n\t[x] s=3 -> 1.0:(s'=3);\n\t[z] s=3 -> 1.0:(s'=3);\nendmodule"""
+    expected = "mdp\nmodule M1\n\ts : [0..4] init 0;\n\n\t[a] s=0 -> 0.2:(s'=1) + 0.8:(s'=2);\n\t[b] s=0 -> 0.7:(s'=2) + 0.3:(s'=3);\n\t[tau_1] s=1 -> 1.0:(s'=1);\n\t[x] s=2 -> 1.0:(s'=2);\n\t[y] s=2 -> 1.0:(s'=2);\n\t[z] s=2 -> 1.0:(s'=2);\n\t[x] s=3 -> 1.0:(s'=3);\n\t[z] s=3 -> 1.0:(s'=3);\nendmodule"
 
-    actual = to_prism(m1)
+    actual = to_prism(hansen_m1, "some_file.prism")
 
+    mck.assert_called_once_with("some_file.prism", "w+", encoding="utf-8")
+    mck().write.assert_called_once_with(expected)
     assert actual == expected

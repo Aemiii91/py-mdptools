@@ -6,7 +6,6 @@ from mdptools import MarkovDecisionProcess, validate
 from .helpers import error_code
 
 
-@pytest.mark.usefixtures("stmdp")
 def test_valid_mdp(stmdp: MarkovDecisionProcess):
     assert stmdp.shape == (2, 2)
     assert list(stmdp.S) == ["s0", "s1"]
