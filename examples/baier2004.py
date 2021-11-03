@@ -1,4 +1,4 @@
-from mdptools import MarkovDecisionProcess
+from mdptools import MarkovDecisionProcess, parallel
 from helpers import display_graph
 
 # %%
@@ -30,7 +30,7 @@ rm = MarkovDecisionProcess(
 )
 print(rm, "\n")
 
-m = m1 | m2 | rm
+m = parallel(m1, m2, rm)
 print(m, "\n")
 
 # %%

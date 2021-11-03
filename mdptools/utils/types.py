@@ -8,16 +8,23 @@ if TYPE_CHECKING:
     from graphviz.dot import Digraph
     from ..mdp import MarkovDecisionProcess
 
-TransitionMap = dict[str, dict[str, dict[str, float]]]
+
+States = tuple[str]
+State = Union[str, States]
+Action = str
+StateOrAction = Union[State, Action]
+Transition = tuple[States, Action, dict[States, float]]
+
 LooseTransitionMap = dict[
-    str,
+    State,
     Union[
-        set[str],
-        dict[str, Union[dict[str, float], float]],
+        set[Action],
+        dict[Action, Union[dict[State, float], float]],
     ],
 ]
-ActionMap = dict[str, dict[str, float]]
-DistributionMap = dict[str, float]
+DistributionMap = dict[State, float]
+ActionMap = dict[Action, DistributionMap]
+TransitionMap = dict[State, ActionMap]
 
 ErrorCode = tuple[int, str]
 ColorMap = dict[str, list[str]]

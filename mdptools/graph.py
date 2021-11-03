@@ -1,12 +1,12 @@
 import re
 
-from mdptools.utils.stringify import lit_str
-from .utils.types import MarkovDecisionProcess, Union, Digraph
+from mdptools.utils.stringify import literal_string
+from .utils.types import Action, MarkovDecisionProcess, State, Union, Digraph
 
 
 def graph(
     m: MarkovDecisionProcess,
-    file_path: str,
+    file_path: str = None,
     file_format: str = "svg",
     engine: str = "dot",
     rankdir: str = "TB",
@@ -16,7 +16,7 @@ def graph(
     # pylint: disable=redefined-outer-name
     from graphviz import Digraph
 
-    set_fontsize = {"fontsize": f"{graph.point_size}"}
+    set_fontsize = {"fontsize": f"{round(graph.point_size, 2)}"}
     dot = Digraph(
         filename=file_path,
         format=file_format,
@@ -33,7 +33,9 @@ def graph(
     else:
         __render_mdp(dot, m, m.name)
 
-    dot.render()
+    if file_path is not None:
+        dot.render()
+
     return dot
 
 
@@ -53,7 +55,7 @@ def __render_mdp(
         init_name,
         label=init_label,
         shape="none",
-        fontsize=f"{graph.point_size * 1.2}",
+        fontsize=f"{round(graph.point_size * 1.2, 2)}",
     )
     dot.edge(init_name, __pf_s(m.init))
 
@@ -81,20 +83,27 @@ def __render_mdp(
                     )
 
 
-def __pf_s(s: str) -> str:
-    return f"state_{s}"
+def __pf_s(s: State) -> str:
+    return f"state_{__str_tuple(s)}"
 
 
-def __create_p_point(dot: Digraph, s: str, a: str) -> str:
+def __str_tuple(s: Union[tuple, str]) -> str:
+    if isinstance(s, str):
+        return s
+    return "_".join(__str_tuple(sb) for sb in s)
+
+
+def __create_p_point(dot: Digraph, s: State, a: Action) -> str:
     p_point = f"p_point_{s}_{a}"
     dot.node(p_point, "", shape="point")
-    dot.edge(__pf_s(s), p_point, __label_html(a), arrowhead="none")
+    dot.edge(__pf_s(s), p_point, __label_html(f"{a}"), arrowhead="none")
     return p_point
 
 
 def __label_html(label: str, color: str = None) -> str:
     if isinstance(label, float):
-        label = lit_str(label, colors=False)
+        label = literal_string(label, colors=False)
+    label = __str_tuple(label)
     label = __subscript_numerals(label, graph.point_size * 0.5)
     label = __greek_letters(label)
     label = __remove_separators(label, graph.re_sep)
@@ -124,7 +133,10 @@ def __greek_letters(label: str) -> str:
 def __subscript_numerals(label: str, size: int) -> str:
     return re.sub(
         r"([a-z])_?([0-9]+)(?![0-9])",
-        r"\1" f'<sub><font point-size="{int(size)}">' r"\2" "</font></sub>",
+        r"\1"
+        f'<sub><font point-size="{round(size, 2)}">'
+        r"\2"
+        "</font></sub>",
         label,
     )
 

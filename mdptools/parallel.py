@@ -1,94 +1,115 @@
-from mdptools.utils.utils import intersect
-from .utils.types import MarkovDecisionProcess as MDP, TransitionMap
-from .utils import list_union, PARALLEL_SEPARATOR
+import itertools
+from numpy.core.fromnumeric import prod
+
+from .utils.types import (
+    Action,
+    DistributionMap,
+    MarkovDecisionProcess as MDP,
+    TransitionMap,
+    States,
+    Transition,
+    Callable,
+)
+from .utils import apply_filter
 
 
-_ms: MDP = None
-_mt: MDP = None
-_transition_map: TransitionMap = {}
-_actions_intersect: set[str] = set()
-
-
-def parallel(ms: MDP, mt: MDP, name: str = None) -> MDP:
+def parallel(
+    *processes: MDP,
+    callback: Callable[[list[str], list[MDP]], list[str]] = None,
+    name: str = None,
+) -> MDP:
     """Performs parallel composition of two MDPs."""
     from .mdp import MarkovDecisionProcess as MDP
 
-    global _transition_map, _actions_intersect, _ms, _mt
+    if callback is None:
+        callback = enabled
 
-    _ms, _mt = ms, mt
-    _transition_map = {}  # empty map for the new composed MDP
-    _actions_intersect = intersect(_ms.A, _mt.A)  # synchronized actions
+    transition_map: TransitionMap = {}
+    s_init: States = tuple(p.init for p in processes)
 
-    # Start the parallel composition
-    compose(_ms.init, _mt.init)
-    actions_union = list_union(
-        _ms.A, _mt.A
-    )  # list union is used to preserve ordering
-    init = combine_names(_ms.init, _mt.init)
+    stack = [s_init]
+
+    while len(stack) > 0:
+        states = stack.pop()
+        if states not in transition_map:
+            # Register the global state
+            transition_map[states] = {}
+            # Generate transitions via callback
+            transitions = callback(states, processes)
+            for tr in transitions:
+                # Get the successor states for the transition
+                action, succ = successor(states, tr)
+                transition_map[states][action] = succ
+                # Add the discovered states to the stack
+                stack += succ.keys()
+
     if name is None:
-        name = combine_names(_ms.name, _mt.name, "||")
-    return MDP(_transition_map, A=actions_union, init=init, name=name)
+        name = "||".join(p.name for p in processes)
+
+    return MDP(transition_map, init=s_init, name=name)
 
 
-def compose(s, t, swap: bool = False):
-    """Stands at state `(s,t)` and maps all enabled actions `en((s,t))`"""
-    if swap:
-        s, t = t, s
-    s_name = combine_names(s, t)
-    act_s, act_t = _ms.actions(s), _mt.actions(t)
-    _transition_map[s_name] = None  # mark state `(s,t)` as visited
-    _transition_map[s_name] = {
-        # Map all actions possible from `s`
-        **compose_actions(act_s, act_t, t),
-        # Map all actions possible from `t`
-        **compose_actions(act_t, act_s, s, True),
-    }
+def successor(
+    states: States, transition: Transition
+) -> tuple[Action, DistributionMap]:
+    """Generates a map of successor states and their probabilities"""
+    pre, action, post = transition
+
+    succ = {}
+
+    for post_states, p_value in post.items():
+        # Replace the states that are in the preset with the corresponding states in the postset
+        replace_map = dict(zip(pre, post_states))
+        s_prime = tuple(replace_map[s] if s in pre else s for s in states)
+        succ[s_prime] = p_value
+
+    return (action, succ)
 
 
-def compose_actions(act_s, act_t, t, swap: bool = False):
-    """Maps the possible actions of `s`, when standing at `(s,t)`"""
-    action_map = {}
-    for a in act_s:
-        # If the `a` in `en(s)` does not exist in `mt.A` (No synchronization)
-        if not a in _actions_intersect:
-            # When no synchronization is required, we can take the action on `s`, while staying in `t`
-            action_map[a] = compose_dist(act_s[a], {t: 1.0}, swap)
-        # Check if synchronization can happen (`a` in `en(s)` and `en(t)`)
-        # `not swap` ensures we only synchronize one way (avoid duplicates)
-        elif a in act_t and not swap:
-            # Synchronize the action, resulting in the product of two distributions
-            action_map[a] = compose_dist(act_s[a], act_t[a], swap)
-    return action_map
+def enabled(states: States, processes: list[MDP]) -> list[Transition]:
+    """Returns all enabled transitions in a global state"""
+    transitions = []
+    # Get the actions from every process that are enabled in s(i)
+    enabled_actions = [processes[i].actions(s) for i, s in enumerate(states)]
+    # Get the union of all enabled actions, `list` gives more deterministic results
+    act_union = list(
+        dict.fromkeys(itertools.chain.from_iterable(enabled_actions))
+    )
+
+    for action in act_union:
+        # Boolean mapping of processes which contain `action`
+        sync_filter = [action in p.A for p in processes]
+        # A list of the action's distributions from each process
+        distributions = [
+            act[action] if action in act else None
+            for act in apply_filter(enabled_actions, sync_filter)
+        ]
+        # Check if more than one process contains the `action`
+        sync_required = sum(sync_filter) > 1
+        # Check that all processes containing `action` also have it enabled in s(i)
+        sync_enabled = all(dist is not None for dist in distributions)
+
+        if not sync_required or sync_enabled:
+            transitions.append(
+                (
+                    tuple(apply_filter(states, sync_filter)),  # preset
+                    action,  # transition label
+                    dist_product(distributions),  # postset distribution
+                )
+            )
+
+    return transitions
 
 
-def compose_dist(dist_s, dist_t, swap):
-    """Recursively runs `compose` on all possible next states `(s',t')`
-
-    Returns the product of `dist(s)` and `dist(t)`
-    """
-    for s_prime in dist_s:
-        for t_prime in dist_t:
-            if not visited(s_prime, t_prime, swap):
-                compose(s_prime, t_prime, swap)
-    return dist_product(dist_s, dist_t, swap)
-
-
-def visited(s, t, swap):
-    """Checks whether the state `(s,t)` is visited"""
-    return combine_names(s, t, swap=swap) in _transition_map
-
-
-def dist_product(dist: dict, other_dist: dict, swap: bool = True) -> dict:
-    return {
-        combine_names(s_prime, t_prime, swap=swap): s_value * t_value
-        for s_prime, s_value in dist.items()
-        for t_prime, t_value in other_dist.items()
-    }
-
-
-def combine_names(
-    n1: str, n2: str, sep: str = None, swap: bool = False
-) -> str:
-    if sep is None:
-        sep = PARALLEL_SEPARATOR
-    return n2 + sep + n1 if swap else n1 + sep + n2
+def dist_product(distributions: list[DistributionMap]) -> DistributionMap:
+    """Calculates the product of multiple distributions"""
+    # Split the list of distributions into two generators
+    s_primes = (dist.keys() for dist in distributions)
+    p_values = (dist.values() for dist in distributions)
+    # Calculate the product of all permutations of the distributions
+    return dict(
+        zip(
+            itertools.product(*s_primes),
+            (prod(p) for p in itertools.product(*p_values)),
+        )
+    )

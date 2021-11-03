@@ -1,8 +1,14 @@
 import sys
 import numpy as _np
 
-from .utils.types import ErrorCode, MarkovDecisionProcess
-from .utils import highlight as _c, lit_str, prompt
+from .utils.types import (
+    Action,
+    DistributionMap,
+    ErrorCode,
+    MarkovDecisionProcess,
+    State,
+)
+from .utils import highlight as _c, literal_string, prompt
 
 
 MDP_REQ_EN_S_NONEMPTY: ErrorCode = (0, "forall s in S : en(s) != {}")
@@ -46,7 +52,7 @@ def __validate_enabled_nonempty(
 ) -> tuple[bool, list[str]]:
     """Validate: 'forall s in S : en(s) != {}'"""
     errors = [
-        f"{_c[_c.function, 'en']}({_c[_c.state, s]}) -> {_c[_c.error, '{}']}"
+        f"{_c[_c.function, 'en']}({literal_string(s, _c.state)}) -> {_c[_c.error, '{}']}"
         for s in mdp.S
         if len(mdp.enabled(s)) == 0
     ]
@@ -60,8 +66,7 @@ def __validate_sum_to_one(
     errors = []
 
     for s in mdp.S:
-        for a in mdp.enabled(s):
-            dist = mdp[s, a]
+        for a, dist in mdp.actions(s).items():
             sum_a = _np.abs(sum(dist.values()))
             if sum_a - 1.0 >= 10 * _np.spacing(_np.float64(1)):
                 errors += __format_sum_to_one(dist, s, a, sum_a)
@@ -70,10 +75,10 @@ def __validate_sum_to_one(
 
 
 def __format_sum_to_one(
-    dist: dict[str, float], s: str, a: str, sum_a: float
+    dist: DistributionMap, s: State, a: Action, sum_a: float
 ) -> list[str]:
     return [
-        f"{_c[_c.function, 'Dist']}({_c[_c.state, s]}, "
-        f"{_c[_c.action, a]}) -> {lit_str(dist)} "
+        f"{_c[_c.function, 'Dist']}({literal_string(s, _c.state)}, "
+        f"{_c[_c.action, a]}) -> {literal_string(dist)} "
         f"{_c[_c.comment, '// sum -> '] + _c[_c.error, str(sum_a)]}"
     ]
