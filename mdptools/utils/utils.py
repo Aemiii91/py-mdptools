@@ -1,13 +1,22 @@
+from functools import reduce
 import re
+from itertools import chain
 
-from .types import TransitionMap, RenameFunction, Callable, Iterable, Union
+from .types import (
+    State,
+    StateOrAction,
+    TransitionMap,
+    RenameFunction,
+    Callable,
+    Iterable,
+    Union,
+)
 
 
-PARALLEL_SEPARATOR = "_"
 INDEX_KEY_SEPARATOR = "->"
 
 
-def map_list(lst: list[str]) -> dict[str, int]:
+def map_list(lst: Union[list[StateOrAction], str]) -> dict[StateOrAction, int]:
     if lst is None:
         return {}
     if isinstance(lst, str):
@@ -21,26 +30,26 @@ def key_by_value(obj: dict, value) -> str:
     return list(obj.keys())[list(obj.values()).index(value)]
 
 
-def parse_indices(indices: Union[Iterable, str]) -> tuple[str, str, str]:
+def parse_indices(indices: Union[Iterable, str]) -> tuple[State, str, State]:
     res = [None, None, None]
 
     if indices is None:
         return res
 
-    if not isinstance(indices, str):
-        indices = INDEX_KEY_SEPARATOR.join(indices)
+    if isinstance(indices, str):
+        indices = tuple(
+            re.split(r"\s*" + INDEX_KEY_SEPARATOR + r"\s*", indices)
+        )
 
-    for idx, value in enumerate(re.split(r"\s*->\s*", f"{indices}")):
-        if idx < len(res) and value != "":
-            res[idx] = value
+    res = tuple(indices[i] if len(indices) > i else None for i in range(3))
 
     return res
 
 
 def tree_walker(
-    obj: Union[dict, set, str, any],
-    callback: Callable[[list, any], None],
-    path: list[str] = None,
+    obj: Union[dict, set, str, float],
+    callback: Callable[[list[StateOrAction], float], None],
+    path: list[StateOrAction] = None,
     default_value: float = 1.0,
 ):
     if path is None:
@@ -51,15 +60,18 @@ def tree_walker(
     elif isinstance(obj, set):
         for key in obj:
             callback(path + [key], default_value)
-    elif isinstance(obj, str):
+    elif isinstance(obj, (str, tuple)):
         callback(path + [obj], default_value)
     else:
         callback(path, obj)
 
 
 def rename_map(obj: dict, rename: RenameFunction) -> dict[str, str]:
-    rename = ensure_rename_function(rename)
-    return {s: rename(s) for s in obj}
+    rename = __ensure_rename_function(rename)
+    return {
+        s: rename(s) if isinstance(s, str) else tuple(rename(sb) for sb in s)
+        for s in obj
+    }
 
 
 def rename_transition_map(
@@ -78,13 +90,13 @@ def rename_transition_map(
     }
 
 
-def ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
+def __ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     if isinstance(rename, tuple):
         old, new = rename
         rename = lambda s: re.sub(old, new, s)
     elif isinstance(rename, list):
-        rename_list = iter(rename)
-        rename = lambda _: next(rename_list)
+        rename_list = [__ensure_rename_function(el) for el in rename]
+        rename = lambda s: reduce(lambda sb, fn: fn(sb), rename_list, s)
     elif isinstance(rename, dict):
         re_map = rename
         rename = lambda s: re_map[s] if s in re_map else s
@@ -93,10 +105,6 @@ def ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     return rename
 
 
-def intersect(a: Iterable, b: Iterable):
-    return set(a).intersection(set(b))
-
-
-def list_union(a: Iterable, b: Iterable) -> list[str]:
-    # list is used to preserve ordering
-    return list(dict.fromkeys(list(a) + list(b)))
+def apply_filter(_list: Iterable, _filter: list[bool]):
+    """Applies a boolean filter on a list"""
+    return [element for idx, element in enumerate(_list) if _filter[idx]]

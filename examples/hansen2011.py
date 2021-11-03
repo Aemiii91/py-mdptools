@@ -1,4 +1,4 @@
-from mdptools import MarkovDecisionProcess
+from mdptools import MarkovDecisionProcess, parallel
 from helpers import display_graph, prism_file
 
 # %%
@@ -30,18 +30,16 @@ m4 = MarkovDecisionProcess(
 )
 print(m4, "\n")
 
-m = m1 | m2 | m3 | m4
+m = parallel(m1, m2, m3, m4)
 
 print(m)
 
 # %%
 display_graph([m1, m2, m3, m4], "graphs/hansen2011_mdps.gv")
-
-# %%
-display_graph((m1 | m2 | m3 | m4), "graphs/hansen2011_combined.gv")
+display_graph(m, "graphs/hansen2011_combined.gv")
 
 # %%
 prism_file(m1, "generated.prism")
-prism_file((m1 | m2 | m3 | m4), "testing.prism")
+prism_file(m, "testing.prism")
 
 # %%
