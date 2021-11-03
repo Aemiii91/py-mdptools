@@ -66,6 +66,7 @@ class PrismCompiler:
         self,
         content: str,
     ) -> None:
+        print(f"Writing output to {self.filePath}...")
         at_root = lambda filename: path.join(
             path.dirname(__file__), "..", filename
         )

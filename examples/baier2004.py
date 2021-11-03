@@ -1,5 +1,5 @@
 from mdptools import MarkovDecisionProcess
-from helpers import display_graph
+from helpers import display_graph, prism_file
 
 # %%
 m1 = MarkovDecisionProcess(
@@ -35,3 +35,5 @@ print(m, "\n")
 
 # %%
 display_graph([m1, m2, rm, m], "graphs/graph_baier2004.gv")
+
+prism_file(m, "baier2004.prism")
