@@ -31,3 +31,4 @@ def prism_file(mdp: MarkovDecisionProcess, file_path: str) -> None:
     compiler = PrismCompiler(mdp, file_path)
     tree_walker(compiler.mdp.transition_map, compiler.callback)
     compiler.finish()
+    print(compiler.getResultString())

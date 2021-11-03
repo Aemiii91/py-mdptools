@@ -22,7 +22,6 @@ class PrismCompiler:
         self.initPrismFile(mdp)
 
     def callback(self, path: list[str], value: float) -> None:
-        print(path, "----", value)
         result = ""
         if (
             self._currentState != self.getStateId(path[0])
@@ -36,9 +35,6 @@ class PrismCompiler:
             result += f"[{path[1]}] s={self.getStateId(path[0])} -> {self.getTransitionString(value, path[2])}"
         else:
             result = f"+ {self.getTransitionString(value, path[2])}"
-
-        print(result)
-        print("\n")
         self._fileContent += result
 
     def getStateId(self, state) -> int:
@@ -62,6 +58,9 @@ class PrismCompiler:
         )
         self._fileContent += "\nendmodule"
         self.writeToFile(self._fileContent)
+
+    def getResultString(self) -> str:
+        return self._fileContent
 
     def writeToFile(
         self,

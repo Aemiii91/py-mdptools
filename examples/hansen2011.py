@@ -42,5 +42,6 @@ display_graph((m1 | m2 | m3 | m4), "graphs/hansen2011_combined.gv")
 
 # %%
 prism_file(m1, "generated.prism")
+# prism_file((m1 | m2 | m3 | m4), "testing.prism")
 
 # %%
