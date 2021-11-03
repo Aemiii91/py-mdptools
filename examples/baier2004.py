@@ -1,5 +1,7 @@
-from helpers import display_graph, prism_file
 from mdptools import MarkovDecisionProcess, parallel
+from mdptools.utils.prism import to_prism
+
+from helpers import at_root, display_graph
 
 # %%
 m1 = MarkovDecisionProcess(
@@ -34,6 +36,6 @@ m = parallel(m1, m2, rm)
 print(m, "\n")
 
 # %%
-display_graph([m1, m2, rm, m], "graphs/graph_baier2004.gv")
+display_graph([m1, m2, rm, m], "out/graphs/graph_baier2004.gv")
 
-prism_file(m, "baier2004.prism")
+to_prism(m, at_root("out/prism/baier2004.prism"))

@@ -47,6 +47,10 @@ def literal_string(
     )
 
 
+def to_identifier(name: str) -> str:
+    return re.sub(r"\W+|^(?=\d+)", "_", name)
+
+
 def __mdp_color_map(mdp: MarkovDecisionProcess) -> ColorMap:
     if _h.state == "":
         return {}
