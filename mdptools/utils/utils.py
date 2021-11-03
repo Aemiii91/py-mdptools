@@ -1,6 +1,5 @@
 from functools import reduce
 import re
-from itertools import chain
 
 from .types import (
     State,

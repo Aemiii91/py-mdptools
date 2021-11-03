@@ -28,7 +28,7 @@ m = parallel(ms, md)
 print(m, "\n")
 
 # %%
-display_graph([ms, md, m], "graphs/graph_kwiatkowska.gv")
+display_graph([ms, md, m], "out/graphs/graph_kwiatkowska.gv")
 
 # %%
 ms = MarkovDecisionProcess(
@@ -49,4 +49,4 @@ m = parallel(ms, mt)
 print(m, "\n")
 
 # %%
-display_graph([ms, mt, m], "graphs/graph_kwiatkowska_2.gv")
+display_graph([ms, mt, m], "out/graphs/graph_kwiatkowska_2.gv")

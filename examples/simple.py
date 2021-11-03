@@ -10,7 +10,9 @@ ms = MarkovDecisionProcess(
 
 mt = ms.remake((r"[a-z]([0-9])", r"t\1"), ["x", "y", "z"], "Mt")
 
-display_graph([ms, mt, parallel(ms, mt)], "graphs/graph_simple_composition.gv")
+display_graph(
+    [ms, mt, parallel(ms, mt)], "out/graphs/graph_simple_composition.gv"
+)
 
 # %%
 s = MarkovDecisionProcess(
@@ -21,7 +23,7 @@ p = MarkovDecisionProcess({"p0": {"a": "p1"}}, name="P")
 
 sp = parallel(s, p)
 
-display_graph([s, p, sp], "graphs/graph_example_sp1.gv")
+display_graph([s, p, sp], "out/graphs/graph_example_sp1.gv")
 
 # %%
 s = MarkovDecisionProcess(
@@ -32,4 +34,4 @@ p = MarkovDecisionProcess({"p0": {"a": "p1"}, "p1": {"b": "p0"}}, name="P")
 
 sp = parallel(s, p)
 
-display_graph([s, p, sp], "graphs/graph_example_sp2.gv")
+display_graph([s, p, sp], "out/graphs/graph_example_sp2.gv")

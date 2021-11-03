@@ -1,6 +1,3 @@
-from mdptools import graph
-
-
 def at_root(filename: str) -> str:
     from os.path import join, dirname
 
@@ -21,4 +18,6 @@ def display_dot(dot):
 
 
 def display_graph(mdp, file_path):
+    from mdptools import graph
+
     display_dot(graph(mdp, at_root(file_path)))

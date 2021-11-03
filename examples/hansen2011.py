@@ -1,5 +1,7 @@
 from mdptools import MarkovDecisionProcess, parallel
-from helpers import display_graph
+from mdptools.utils.prism import to_prism
+
+from helpers import at_root, display_graph
 
 # %%
 m1 = MarkovDecisionProcess(
@@ -35,7 +37,11 @@ m = parallel(m1, m2, m3, m4)
 print(m)
 
 # %%
-display_graph([m1, m2, m3, m4], "graphs/hansen2011_mdps.gv")
+display_graph([m1, m2, m3, m4], "out/graphs/hansen2011_mdps.gv")
+display_graph(m, "out/graphs/hansen2011_combined.gv")
 
 # %%
-display_graph(m, "graphs/hansen2011_combined.gv")
+to_prism(m1, at_root("out/prism/generated.prism"))
+to_prism(m, at_root("out/prism/testing.prism"))
+
+# %%

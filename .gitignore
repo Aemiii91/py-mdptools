@@ -16,3 +16,6 @@ coverage.xml
 .pytest_cache/
 
 graphs/
+out/
+
+*.prism
