@@ -1,7 +1,7 @@
 import re
 
 from mdptools.utils.stringify import literal_string
-from .utils.types import MarkovDecisionProcess, Union, Digraph
+from .utils.types import Action, MarkovDecisionProcess, State, Union, Digraph
 
 
 def graph(
@@ -81,7 +81,7 @@ def __render_mdp(
                     )
 
 
-def __pf_s(s: Union[tuple[str], str]) -> str:
+def __pf_s(s: State) -> str:
     return f"state_{__str_tuple(s)}"
 
 
@@ -91,10 +91,10 @@ def __str_tuple(s: Union[tuple, str]) -> str:
     return "_".join(__str_tuple(sb) for sb in s)
 
 
-def __create_p_point(dot: Digraph, s: str, a: str) -> str:
+def __create_p_point(dot: Digraph, s: State, a: Action) -> str:
     p_point = f"p_point_{s}_{a}"
     dot.node(p_point, "", shape="point")
-    dot.edge(__pf_s(s), p_point, __label_html(a), arrowhead="none")
+    dot.edge(__pf_s(s), p_point, __label_html(f"{a}"), arrowhead="none")
     return p_point
 
 

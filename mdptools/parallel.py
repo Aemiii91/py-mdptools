@@ -2,6 +2,7 @@ import itertools
 from numpy.core.fromnumeric import prod
 
 from .utils.types import (
+    Action,
     DistributionMap,
     MarkovDecisionProcess as MDP,
     TransitionMap,
@@ -13,7 +14,7 @@ from .utils import apply_filter
 
 
 def parallel(
-    *processes: list[MDP],
+    *processes: MDP,
     callback: Callable[[list[str], list[MDP]], list[str]] = None,
     name: str = None,
 ) -> MDP:
@@ -50,7 +51,7 @@ def parallel(
 
 def successor(
     states: States, transition: Transition
-) -> tuple[str, dict[States, float]]:
+) -> tuple[Action, DistributionMap]:
     """Generates a map of successor states and their probabilities"""
     pre, action, post = transition
 
@@ -100,7 +101,7 @@ def enabled(states: States, processes: list[MDP]) -> list[Transition]:
     return transitions
 
 
-def dist_product(distributions: list[DistributionMap]):
+def dist_product(distributions: list[DistributionMap]) -> DistributionMap:
     """Calculates the product of multiple distributions"""
     # Split the list of distributions into two generators
     s_primes = (dist.keys() for dist in distributions)

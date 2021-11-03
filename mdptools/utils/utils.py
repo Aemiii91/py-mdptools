@@ -2,14 +2,21 @@ from functools import reduce
 import re
 from itertools import chain
 
-from .types import TransitionMap, RenameFunction, Callable, Iterable, Union
+from .types import (
+    State,
+    StateOrAction,
+    TransitionMap,
+    RenameFunction,
+    Callable,
+    Iterable,
+    Union,
+)
 
 
-PARALLEL_SEPARATOR = "_"
 INDEX_KEY_SEPARATOR = "->"
 
 
-def map_list(lst: list[str]) -> dict[str, int]:
+def map_list(lst: Union[list[StateOrAction], str]) -> dict[StateOrAction, int]:
     if lst is None:
         return {}
     if isinstance(lst, str):
@@ -23,7 +30,7 @@ def key_by_value(obj: dict, value) -> str:
     return list(obj.keys())[list(obj.values()).index(value)]
 
 
-def parse_indices(indices: Union[Iterable, str]) -> tuple[str, str, str]:
+def parse_indices(indices: Union[Iterable, str]) -> tuple[State, str, State]:
     res = [None, None, None]
 
     if indices is None:
@@ -40,9 +47,9 @@ def parse_indices(indices: Union[Iterable, str]) -> tuple[str, str, str]:
 
 
 def tree_walker(
-    obj: Union[dict, set, str, any],
-    callback: Callable[[list, any], None],
-    path: list[str] = None,
+    obj: Union[dict, set, str, float],
+    callback: Callable[[list[StateOrAction], float], None],
+    path: list[StateOrAction] = None,
     default_value: float = 1.0,
 ):
     if path is None:
@@ -60,8 +67,11 @@ def tree_walker(
 
 
 def rename_map(obj: dict, rename: RenameFunction) -> dict[str, str]:
-    rename = ensure_rename_function(rename)
-    return {s: rename(s) for s in obj}
+    rename = __ensure_rename_function(rename)
+    return {
+        s: rename(s) if isinstance(s, str) else tuple(rename(sb) for sb in s)
+        for s in obj
+    }
 
 
 def rename_transition_map(
@@ -80,7 +90,7 @@ def rename_transition_map(
     }
 
 
-def ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
+def __ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     if isinstance(rename, tuple):
         old, new = rename
         rename = lambda s: re.sub(old, new, s)

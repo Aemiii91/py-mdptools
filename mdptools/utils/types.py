@@ -11,17 +11,19 @@ if TYPE_CHECKING:
 
 States = tuple[str]
 State = Union[str, States]
-Transition = tuple[States, str, dict[States, float]]
+Action = str
+StateOrAction = Union[State, Action]
+Transition = tuple[States, Action, dict[States, float]]
 
 LooseTransitionMap = dict[
-    str,
+    State,
     Union[
-        set[str],
-        dict[str, Union[dict[str, float], float]],
+        set[Action],
+        dict[Action, Union[dict[State, float], float]],
     ],
 ]
 DistributionMap = dict[State, float]
-ActionMap = dict[str, DistributionMap]
+ActionMap = dict[Action, DistributionMap]
 TransitionMap = dict[State, ActionMap]
 
 ErrorCode = tuple[int, str]
