@@ -1,4 +1,4 @@
-from .types import MarkovDecisionProcess as MDP
+from ..types import MarkovDecisionProcess as MDP
 from .stringify import to_identifier
 from .utils import write_file
 

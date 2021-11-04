@@ -1,4 +1,3 @@
-import pytest
 from mdptools import MarkovDecisionProcess, graph, parallel
 
 

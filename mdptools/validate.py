@@ -1,7 +1,7 @@
 import sys
 import numpy as _np
 
-from .utils.types import (
+from .types import (
     Action,
     DistributionMap,
     ErrorCode,

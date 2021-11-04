@@ -1,7 +1,7 @@
 import re
 
-from mdptools.utils.stringify import literal_string
-from .utils.types import Action, MarkovDecisionProcess, State, Union, Digraph
+from .utils.stringify import literal_string
+from .types import Action, MarkovDecisionProcess, State, Union, Digraph
 
 
 def graph(

@@ -6,7 +6,7 @@ MarkovDecisionProcess = any
 
 if TYPE_CHECKING:
     from graphviz.dot import Digraph
-    from ..mdp import MarkovDecisionProcess
+    from .mdp import MarkovDecisionProcess
 
 
 States = tuple[str]

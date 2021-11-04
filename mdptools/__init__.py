@@ -4,6 +4,8 @@ from .mdp import MarkovDecisionProcess
 from .parallel import parallel
 from .graph import graph
 from .validate import validate
-from .utils import highlight as _c, types
+import types
+
+from .utils import highlight as _c
 
 use_colors = _c.use_colors

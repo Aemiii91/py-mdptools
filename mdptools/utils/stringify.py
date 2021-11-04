@@ -1,5 +1,5 @@
 import re
-from .types import ColorMap, MarkovDecisionProcess
+from ..types import ColorMap, MarkovDecisionProcess
 from .highlight import highlight as _h
 from .prompt import fail
 

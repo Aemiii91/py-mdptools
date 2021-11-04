@@ -1,7 +1,7 @@
 from functools import reduce
 import re
 
-from .types import (
+from ..types import (
     State,
     StateOrAction,
     TransitionMap,

@@ -1,7 +1,7 @@
 import itertools
 from numpy.core.fromnumeric import prod
 
-from .utils.types import (
+from .types import (
     Action,
     DistributionMap,
     MarkovDecisionProcess as MDP,

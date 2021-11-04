@@ -1,6 +1,6 @@
 from scipy.sparse.lil import lil_matrix
 
-from .utils.types import (
+from .types import (
     Action,
     MarkovDecisionProcess as MDP,
     State,
@@ -16,7 +16,7 @@ from .utils.types import (
     Digraph,
     Iterable,
 )
-from .utils.utils import (
+from .utils import (
     map_list,
     tree_walker,
     parse_indices,
