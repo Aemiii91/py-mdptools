@@ -1,6 +1,7 @@
 import pytest
 
 from mdptools import MarkovDecisionProcess
+from mdptools.types import State
 
 
 @pytest.fixture
@@ -115,12 +116,16 @@ def kwiatkowska_md():
 def kwiatkowska_pc():
     return MarkovDecisionProcess(
         {
-            ("s0", "t0"): {"detect": {("s1", "t0"): 0.8, ("s2", "t0"): 0.2}},
-            ("s1", "t0"): {"warn": ("s2", "t1")},
-            ("s2", "t0"): {"shutdown": {("s3", "t2"): 0.9, ("s3", "t3"): 0.1}},
-            ("s2", "t1"): {"shutdown": ("s3", "t2")},
-            ("s3", "t2"): {"off"},
-            ("s3", "t3"): {"fail"},
+            State("s0", "t0"): {
+                "detect": {State("s1", "t0"): 0.8, State("s2", "t0"): 0.2}
+            },
+            State("s1", "t0"): {"warn": State("s2", "t1")},
+            State("s2", "t0"): {
+                "shutdown": {State("s3", "t2"): 0.9, State("s3", "t3"): 0.1}
+            },
+            State("s2", "t1"): {"shutdown": State("s3", "t2")},
+            State("s3", "t2"): {"off"},
+            State("s3", "t3"): {"fail"},
         },
         name="Ms||Md (Expected)",
     )

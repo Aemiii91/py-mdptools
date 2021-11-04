@@ -15,11 +15,15 @@ from ..types import (
 INDEX_KEY_SEPARATOR = "->"
 
 
-def map_list(lst: Union[list[StateOrAction], str]) -> dict[StateOrAction, int]:
+def map_list(
+    lst: Union[list[StateOrAction], str], convert: Callable[[str], any] = None
+) -> dict[StateOrAction, int]:
     if lst is None:
         return {}
     if isinstance(lst, str):
         lst = re.split(r"\s*,\s*", lst)
+    if convert is not None:
+        lst = map(convert, lst)
     return {value: index for index, value in enumerate(lst)}
 
 
@@ -40,7 +44,15 @@ def parse_indices(indices: Union[Iterable, str]) -> tuple[State, str, State]:
             re.split(r"\s*" + INDEX_KEY_SEPARATOR + r"\s*", indices)
         )
 
-    res = tuple(indices[i] if len(indices) > i else None for i in range(3))
+    if isinstance(indices, State):
+        return [indices, None, None]
+
+    if len(indices) > 0:
+        res[0] = State(indices[0])
+    if len(indices) > 1:
+        res[1] = indices[1]
+    if len(indices) > 2:
+        res[2] = State(indices[2])
 
     return res
 
@@ -59,18 +71,17 @@ def tree_walker(
     elif isinstance(obj, set):
         for key in obj:
             callback(path + [key], default_value)
-    elif isinstance(obj, (str, tuple)):
+    elif isinstance(obj, (str, State)):
         callback(path + [obj], default_value)
     else:
         callback(path, obj)
 
 
-def rename_map(obj: dict, rename: RenameFunction) -> dict[str, str]:
+def rename_map(
+    obj: dict, rename: RenameFunction
+) -> dict[StateOrAction, StateOrAction]:
     rename = __ensure_rename_function(rename)
-    return {
-        s: rename(s) if isinstance(s, str) else tuple(rename(sb) for sb in s)
-        for s in obj
-    }
+    return {s: State(rename(sb) for sb in s) for s in obj}
 
 
 def rename_transition_map(

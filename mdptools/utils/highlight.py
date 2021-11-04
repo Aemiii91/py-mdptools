@@ -7,7 +7,7 @@ class Highlight:
 
     def __getitem__(self, indices) -> str:
         color, text = indices
-        return color + text + self.bc.RESET
+        return color + f"{text}" + self.bc.RESET
 
     @property
     def state(self):

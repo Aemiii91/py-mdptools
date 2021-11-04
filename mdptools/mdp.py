@@ -9,6 +9,7 @@ from .types import (
     ErrorCode,
     LooseTransitionMap,
     StateOrAction,
+    Transition,
     TransitionMap,
     RenameFunction,
     Callable,
@@ -53,7 +54,7 @@ class MarkovDecisionProcess:
         if name is None:
             name = DEFAULT_NAME
         self.name = name
-        self.S, self.A, self.P = map_list(S), map_list(A), []
+        self.S, self.A, self.P = map_list(S, State), map_list(A), []
         if len(self.S) == 0 or len(self.A) == 0:
             tree_walker(transition_map, self.__infer_states_and_actions)
         self.init = init
@@ -69,11 +70,12 @@ class MarkovDecisionProcess:
     # -----------------
 
     @property
-    def init(self) -> str:
-        return key_by_value(self.S, self._s_init) or None
+    def init(self) -> State:
+        return key_by_value(self.S, self._s_init)
 
     @init.setter
     def init(self, s: State):
+        s = State(s) if s is not None else None
         self._s_init = self.S[s] if s in self.S else 0
 
     @property
@@ -84,6 +86,14 @@ class MarkovDecisionProcess:
     def transition_map(self) -> TransitionMap:
         return {s: self.actions(s) for s in self.S}
 
+    @property
+    def transitions(self) -> list[Transition]:
+        return [
+            Transition(s, a, dist)
+            for s in self.S
+            for a, dist in self.actions(s).items()
+        ]
+
     # Public methods
     # --------------
 
@@ -93,17 +103,20 @@ class MarkovDecisionProcess:
             and self.init == other.init
         )
 
-    def enabled(self, s: State) -> set[str]:
+    def enabled(self, s: State) -> set[State]:
+        s = State(s)
         if s not in self.S:
             return None
         return set(self.__enabled_generator(s))
 
     def actions(self, s: State) -> ActionMap:
+        s = State(s)
         if s not in self.S:
             return None
         return {a: self.dist(s, a) for a in self.__enabled_generator(s)}
 
     def dist(self, s: State, a: Action) -> DistributionMap:
+        s = State(s)
         if s in self.S and a in self.A:
             return {
                 s_prime: self[s, a, s_prime]
@@ -245,7 +258,7 @@ class MarkovDecisionProcess:
 
         if s_prime is None:
             # Set the `dist(s, a)`
-            if isinstance(value, (dict, str, tuple)):
+            if isinstance(value, (dict, str, State)):
                 # A `dict` describes the map of s' -> p.
                 # If a string is given, is must describe `s_prime`
                 self.__set_special([s, a], value)

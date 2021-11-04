@@ -2,16 +2,17 @@
 """
 import pytest
 from mdptools import MarkovDecisionProcess, parallel
+from mdptools.types import State
 
 
 def test_get_actions(stmdp: MarkovDecisionProcess):
-    expected = {"a": {"s0": 0.5, "s1": 0.5}}
+    expected = {"a": {State("s0"): 0.5, State("s1"): 0.5}}
     assert stmdp.actions("s0") == expected
     assert stmdp["s0"] == expected
 
 
 def test_get_distribution(stmdp: MarkovDecisionProcess):
-    expected = {"s0": 0.5, "s1": 0.5}
+    expected = {State("s0"): 0.5, State("s1"): 0.5}
     assert stmdp.dist("s0", "a") == expected
     assert stmdp["s0", "a"] == expected
     assert stmdp["s0->a"] == expected
@@ -88,7 +89,7 @@ def test_add_new_s_prime(stmdp: MarkovDecisionProcess):
 
 def test_remake(stmdp: MarkovDecisionProcess):
     m2 = stmdp.remake(("s", "t"), (r"([a-z])", r"\1_2"))
-    expected = {"t0", "t1"}
+    expected = {State("t0"), State("t1")}
     actual = set(m2.S)
     assert actual == expected
 
@@ -98,6 +99,11 @@ def test_remake_system(stmdp: MarkovDecisionProcess):
 
     system = parallel(stmdp, m2).remake([("s", "x"), ("t", "y")])
 
-    expected = {("x0", "y0"), ("x1", "y0"), ("x1", "y1"), ("x0", "y1")}
+    expected = {
+        State("x0", "y0"),
+        State("x1", "y0"),
+        State("x1", "y1"),
+        State("x0", "y1"),
+    }
     actual = set(system.S)
     assert actual == expected

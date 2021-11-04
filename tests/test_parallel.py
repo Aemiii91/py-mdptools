@@ -1,7 +1,7 @@
 """Unit-tests for the `parallel` module
 """
 from mdptools import MarkovDecisionProcess as MDP, parallel
-from mdptools.parallel import enabled
+from mdptools.parallel import enabled, persistent_set
 
 
 def test_simple_composition():
@@ -43,11 +43,11 @@ def test_custom_transition_function(
 ):
     count = 10
 
-    def custom_transition_function(states, processes):
+    def custom_transition_function(s, transitions):
         nonlocal count
         if count > 0:
             count -= 1
-            return enabled(states, processes)
+            return enabled(s, transitions)
         return []
 
     m = parallel(
@@ -55,3 +55,9 @@ def test_custom_transition_function(
     )
 
     assert len(m) == 20
+
+
+def test_persistent_set(baier_p1: MDP, baier_p2: MDP, baier_rm: MDP):
+    m = parallel(baier_p1, baier_p2, baier_rm, callback=persistent_set)
+
+    assert m.is_valid

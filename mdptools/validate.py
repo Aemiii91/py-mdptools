@@ -18,7 +18,9 @@ MDP_REQ_SUM_TO_ONE: ErrorCode = (
 )
 
 
-def validate(mdp: MarkovDecisionProcess, raise_exception: bool = True) -> bool:
+def validate(
+    mdp: MarkovDecisionProcess, raise_exception: bool = False
+) -> bool:
     mdp.errors = []
     buffer = []
 
