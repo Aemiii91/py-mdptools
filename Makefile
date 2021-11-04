@@ -1,36 +1,38 @@
 ifeq ($(OS),Windows_NT)
     OPEN := start
+	PYTHON := py
 else
     UNAME := $(shell uname -s)
     ifeq ($(UNAME),Linux)
         OPEN := xdg-open
+		PYTHON := python3
     endif
 endif
 
 
 install:
-	python3 -m pip install .
+	$(PYTHON) -m pip install .
 
 env:
-	python3 -m venv env
+	$(PYTHON) -m venv env
 	
 init:
-	python3 -m pip install --upgrade pip
-	python3 -m pip install -r requirements.txt
-	python3 -m pip install -e . --no-deps
+	$(PYTHON) -m pip install --upgrade pip
+	$(PYTHON) -m pip install -r requirements.txt
+	$(PYTHON) -m pip install -e . --no-deps
 
 vscode:
-	python3 -m vscode
+	$(PYTHON) -m vscode
 
 test:
-	python3 -m pytest -v --cov-report=xml --cov=mdptools tests/
+	$(PYTHON) -m pytest -v --cov-report=xml --cov=mdptools tests/
 
 coverage:
-	python3 -m pytest -q --cov-report=html --cov=mdptools tests/
+	$(PYTHON) -m pytest -q --cov-report=html --cov=mdptools tests/
 	$(OPEN) htmlcov/index.html &
 
 format:
-	python3 -m black . --line-length 79
+	$(PYTHON) -m black . --line-length 79
 
 clean:
 	git clean -fdx
