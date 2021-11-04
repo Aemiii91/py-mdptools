@@ -12,11 +12,13 @@ A library containing tools for representing and manipulating Markov Decision Pro
 Manually install the package with the command:
 
 ```console
-make install
+python3 -m pip install .
 ```
 
 
 ## Development
+
+> This is the setup guide using `make` (Don't have `make`? See [setup without `make`](docs/setup_without_make.md))
 
 ### Virtual environment (Recommended)
 
