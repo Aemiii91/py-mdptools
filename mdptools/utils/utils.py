@@ -81,7 +81,10 @@ def rename_map(
     obj: dict, rename: RenameFunction
 ) -> dict[StateOrAction, StateOrAction]:
     rename = __ensure_rename_function(rename)
-    return {s: State(rename(sb) for sb in s) for s in obj}
+    return {
+        s: State(rename(sb) for sb in s) if isinstance(s, State) else rename(s)
+        for s in obj
+    }
 
 
 def rename_transition_map(

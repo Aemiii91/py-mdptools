@@ -57,11 +57,11 @@ def __render_mdp(
         shape="none",
         fontsize=f"{round(graph.point_size * 1.2, 2)}",
     )
-    dot.edge(init_name, __pf_s(m.init))
+    dot.edge(init_name, __pf_s(m.init, name))
 
     for s, act in m.transition_map.items():
         # Add a state node to the graph
-        dot.node(__pf_s(s), __label_html(s))
+        dot.node(__pf_s(s, name), __label_html(s))
         for a, dist in act.items():
             # p_point is used to create a common point for probabilistic actions
             p_point = None
@@ -69,22 +69,25 @@ def __render_mdp(
                 if p == 1:
                     # Add a transition arrow between two states (non-deterministic)
                     dot.edge(
-                        __pf_s(s), __pf_s(s_prime), __label_html(a), minlen="2"
+                        __pf_s(s, name),
+                        __pf_s(s_prime, name),
+                        __label_html(a),
+                        minlen="2",
                     )
                 else:
                     if p_point is None:
                         # Create a common point for the probabilistic outcome of action `a`
-                        p_point = __create_p_point(dot, s, a)
+                        p_point = __create_p_point(dot, s, a, name)
                     # Add a transition arrow between the common point and the next state
                     dot.edge(
                         p_point,
-                        __pf_s(s_prime),
+                        __pf_s(s_prime, name),
                         __label_html(p, color=graph.p_color),
                     )
 
 
-def __pf_s(s: State) -> str:
-    return f"state_{__str_tuple(s)}"
+def __pf_s(s: State, name: Union[str, int]) -> str:
+    return f"mdp_{name}_state_{__str_tuple(s)}"
 
 
 def __str_tuple(s: Union[tuple, str]) -> str:
@@ -93,10 +96,12 @@ def __str_tuple(s: Union[tuple, str]) -> str:
     return "_".join(__str_tuple(sb) for sb in s)
 
 
-def __create_p_point(dot: Digraph, s: State, a: Action) -> str:
-    p_point = f"p_point_{s}_{a}"
+def __create_p_point(
+    dot: Digraph, s: State, a: Action, name: Union[str, int]
+) -> str:
+    p_point = f"mdp_{name}_p_point_{s}_{a}"
     dot.node(p_point, "", shape="point")
-    dot.edge(__pf_s(s), p_point, __label_html(f"{a}"), arrowhead="none")
+    dot.edge(__pf_s(s, name), p_point, __label_html(f"{a}"), arrowhead="none")
     return p_point
 
 

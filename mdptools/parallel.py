@@ -11,6 +11,7 @@ from .types import (
     TransitionMap,
     Transition,
     Callable,
+    Union,
 )
 
 
@@ -114,13 +115,22 @@ def dist_product(distributions: list[DistributionMap]) -> DistributionMap:
     )
 
 
-def enabled(s: State, transitions: list[Transition]) -> list[Transition]:
-    """Returns all enabled transitions in a global state"""
-    return filter(lambda tr: all(sb in s for sb in tr.pre), transitions)
+def enabled(
+    s: State, transitions: Union[list[Transition], Transition]
+) -> list[Transition]:
+    """Returns all enabled transitions in a state"""
+    if isinstance(transitions, Transition):
+        return list(enabled(s, [transitions]))
+    return filter(lambda tr: all(ls in s for ls in tr.pre), transitions)
+
+
+def enabled_take_one(s: State, transitions: list[Transition]) -> Transition:
+    """Return the first enabled transition in a state"""
+    return next(enabled(s, transitions), None)
 
 
 def disabled(s: State, transitions: list[Transition]) -> list[Transition]:
-    """Returns all disabled transitions in a global state"""
+    """Returns all disabled transitions in a state"""
     return filter(lambda tr: any(sb not in s for sb in tr.pre), transitions)
 
 
@@ -130,7 +140,7 @@ def successor(
     """Generates a map of successor states and their probabilities"""
     pre, action, post = transition
 
-    if any(sb not in s for sb in pre):
+    if any(ls not in s for ls in pre):
         raise Exception("Transition can not be taken on s")
 
     succ = {}
@@ -144,15 +154,26 @@ def successor(
     return (action, succ)
 
 
+def conflict(t1: Transition, t2: Transition) -> bool:
+    return any(t1_ls in t2.pre for t1_ls in t1.pre)
+
+
 def persistent_set(
     s: State, global_transitions: list[Transition]
 ) -> list[Transition]:
-    transitions = []
-    enabled_trs = list(enabled(s, global_transitions))
-    disabled_trs = list(disabled(s, global_transitions))
+    transitions = [enabled_take_one(s, global_transitions)]
 
-    for tr in enabled_trs:
-        if tr in global_transitions:
-            transitions.append(tr)
+    if transitions[0] is None:
+        return []
+
+    for t in transitions:
+        for t_ in global_transitions:
+            if t_ in transitions:
+                continue
+            if conflict(t, t_):
+                if enabled(s, t_):
+                    transitions.append(t_)
+                else:
+                    return transitions
 
     return transitions

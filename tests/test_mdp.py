@@ -88,10 +88,9 @@ def test_add_new_s_prime(stmdp: MarkovDecisionProcess):
 
 
 def test_remake(stmdp: MarkovDecisionProcess):
-    m2 = stmdp.remake(("s", "t"), (r"([a-z])", r"\1_2"))
-    expected = {State("t0"), State("t1")}
-    actual = set(m2.S)
-    assert actual == expected
+    m2 = stmdp.remake(("s", "t"), (r"([a-z]+)", r"\1_2"))
+    assert set(m2.S) == {State("t0"), State("t1")}
+    assert set(m2.A) == {"a_2", "tau_2"}
 
 
 def test_remake_system(stmdp: MarkovDecisionProcess):

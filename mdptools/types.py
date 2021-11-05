@@ -32,8 +32,13 @@ class State:
         initializer(ret, tuple(flatten_state(s)))
         return ret
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return self.s[0] if len(self.s) == 1 else "(" + ",".join(self.s) + ")"
+
+    def __repr__(self) -> str:
+        from .utils.highlight import highlight as _h
+
+        return _h[_h.state, self.__str__()]
 
     def __getitem__(self, index):
         return self.s[index]
@@ -89,9 +94,23 @@ class Transition:
     action: Action
     post: DistributionMap
 
-    def __repr__(self):
+    def __str__(self):
         return f"[{self.action}] {self.pre} -> " + " + ".join(
             f"{p}:{s_}" if p != 1.0 else f"{s_}" for s_, p in self.post.items()
+        )
+
+    def __repr__(self) -> str:
+        from .utils.highlight import highlight as _h
+        from .utils.stringify import literal_string
+
+        return (
+            f"[{_h[_h.action, self.action]}] {self.pre.__repr__()} -> "
+            + " + ".join(
+                f"{literal_string(p)}:{s_.__repr__()}"
+                if p != 1.0
+                else f"{s_.__repr__()}"
+                for s_, p in self.post.items()
+            )
         )
 
     def __getitem__(self, index):

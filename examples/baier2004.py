@@ -1,4 +1,5 @@
-from mdptools import MarkovDecisionProcess, parallel
+from mdptools import MarkovDecisionProcess
+from mdptools.parallel import parallel, persistent_set
 from mdptools.utils.prism import to_prism
 
 from helpers import at_root, display_graph
@@ -32,10 +33,24 @@ rm = MarkovDecisionProcess(
 )
 print(rm, "\n")
 
+# %%
+display_graph([m1, m2, rm], "out/graphs/graph_baier2004.gv")
+
+# %%
 m = parallel(m1, m2, rm)
 print(m, "\n")
 
 # %%
-display_graph([m1, m2, rm, m], "out/graphs/graph_baier2004.gv")
+display_graph(m, "out/graphs/graph_baier2004_parallel.gv")
 
-to_prism(m, at_root("out/prism/baier2004.prism"))
+# %%
+print(to_prism(m, at_root("out/prism/baier2004.prism")), "\n")
+
+# %%
+m_ps = parallel(m1, m2, rm, callback=persistent_set)
+
+print(m_ps, "\n")
+print("\n".join(f"{tr.__repr__()}" for tr in m_ps.global_transitions), "\n")
+
+# %%
+display_graph(m_ps, "out/graphs/graph_baier2004_persistent_set.gv")
