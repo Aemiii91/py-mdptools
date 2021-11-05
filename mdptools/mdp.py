@@ -46,6 +46,7 @@ class MarkovDecisionProcess:
         init: State = None,
         name: str = None,
         no_validation: bool = False,
+        global_transitions: list[Transition] = None,
     ):
         self._did_init = False
         self._validate_on = not no_validation
@@ -64,6 +65,7 @@ class MarkovDecisionProcess:
                 tree_walker(transition_map, self.__setitem__),
             )
         )
+        self.global_transitions = global_transitions
         self._did_init = True
 
     # Public properties

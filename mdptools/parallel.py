@@ -12,7 +12,6 @@ from .types import (
     Transition,
     Callable,
 )
-from .utils import apply_filter
 
 
 def parallel(
@@ -48,7 +47,9 @@ def parallel(
                 # Add the discovered states to the stack
                 stack += succ.keys()
 
-    return MDP(transition_map, init=s_init, name=name)
+    return MDP(
+        transition_map, init=s_init, name=name, global_transitions=transitions
+    )
 
 
 def global_transitions(processes: list[MDP]) -> list[Transition]:
@@ -119,7 +120,7 @@ def enabled(s: State, transitions: list[Transition]) -> list[Transition]:
 
 
 def disabled(s: State, transitions: list[Transition]) -> list[Transition]:
-    """Returns all enabled transitions in a global state"""
+    """Returns all disabled transitions in a global state"""
     return filter(lambda tr: any(sb not in s for sb in tr.pre), transitions)
 
 
