@@ -32,13 +32,8 @@ class State:
         initializer(ret, tuple(flatten_state(s)))
         return ret
 
-    def __str__(self) -> str:
-        return self.s[0] if len(self.s) == 1 else "(" + ",".join(self.s) + ")"
-
     def __repr__(self) -> str:
-        from .utils.highlight import highlight as _h
-
-        return _h[_h.state, self.__str__()]
+        return self.s[0] if len(self.s) == 1 else "(" + ",".join(self.s) + ")"
 
     def __getitem__(self, index):
         return self.s[index]
@@ -104,11 +99,11 @@ class Transition:
         from .utils.stringify import literal_string
 
         return (
-            f"[{_h[_h.action, self.action]}] {self.pre.__repr__()} -> "
+            f"[{_h[_h.action, self.action]}] {_h[_h.state, self.pre]} -> "
             + " + ".join(
-                f"{literal_string(p)}:{s_.__repr__()}"
+                f"{literal_string(p)}:{_h[_h.state, s_]}"
                 if p != 1.0
-                else f"{s_.__repr__()}"
+                else f"{_h[_h.state, s_]}"
                 for s_, p in self.post.items()
             )
         )

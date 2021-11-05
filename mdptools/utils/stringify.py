@@ -41,7 +41,9 @@ def literal_string(
     obj, color_map: ColorMap = None, colors: bool = True
 ) -> str:
     return __format_strings(
-        __format_floats(__round_floats(obj.__repr__()), colors),
+        __format_floats(
+            __round_floats(obj.__repr__() if colors else f"{obj}"), colors
+        ),
         color_map,
         colors,
     )
