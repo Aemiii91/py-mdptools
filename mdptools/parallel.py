@@ -1,12 +1,11 @@
 import itertools
 from collections import Counter, defaultdict
-from operator import itemgetter
 from numpy.core.fromnumeric import prod
 
 from .types import (
     State,
     Action,
-    DistributionMap,
+    Distribution,
     MarkovDecisionProcess as MDP,
     TransitionMap,
     Transition,
@@ -73,7 +72,7 @@ def global_transitions(processes: list[MDP]) -> list[Transition]:
         if count > 1
     }
 
-    for pid, (pre, action, post) in process_transitions:
+    for pid, (action, pre, guard, post) in process_transitions:
         if action in synched_actions:
             # Create placeholder for adding in synched transitions
             if action not in placeholders:
@@ -81,7 +80,7 @@ def global_transitions(processes: list[MDP]) -> list[Transition]:
             # Collect all transitions belonging to a synched action
             synched_actions[action][pid].append((pre, post))
         else:
-            transitions.append(Transition(pre, action, post))
+            transitions.append(Transition(action, pre, None, post))
 
     # Generate all permutations of synched transitions
     synched_transitions = (
@@ -93,7 +92,7 @@ def global_transitions(processes: list[MDP]) -> list[Transition]:
     for a, combinable in synched_transitions:
         # Combine all combinable transitions
         trs = [
-            Transition(State(pre), a, dist_product(post))
+            Transition(a, State(pre), None, dist_product(post))
             for pre, post in combinable
         ]
         # Insert the transitions at the placeholder
@@ -104,7 +103,7 @@ def global_transitions(processes: list[MDP]) -> list[Transition]:
     return transitions
 
 
-def dist_product(distributions: list[DistributionMap]) -> DistributionMap:
+def dist_product(distributions: list[Distribution]) -> Distribution:
     """Calculates the product of multiple distributions"""
     # Split the list of distributions into two generators
     s_primes = itertools.product(*(dist.keys() for dist in distributions))
@@ -134,22 +133,20 @@ def disabled(s: State, transitions: list[Transition]) -> list[Transition]:
     return filter(lambda tr: any(sb not in s for sb in tr.pre), transitions)
 
 
-def successor(
-    s: State, transition: Transition
-) -> tuple[Action, DistributionMap]:
+def successor(s: State, transition: Transition) -> tuple[Action, Distribution]:
     """Generates a map of successor states and their probabilities"""
-    pre, action, post = transition
+    action, pre, guard, post = transition
 
     if any(ls not in s for ls in pre):
         raise Exception("Transition can not be taken on s")
 
     succ = {}
 
-    for post_states, p_value in post.items():
+    for (s_, update), value in post.items():
         # Replace the states that are in the preset with the corresponding states in the postset
-        replace_map = dict(zip(pre, post_states))
-        s_prime = State(replace_map[s] if s in pre else s for s in s)
-        succ[s_prime] = p_value
+        replace_map = dict(zip(pre, s_))
+        s_ = State(replace_map[ss] if ss in pre else ss for ss in s)
+        succ[s_] = value
 
     return (action, succ)
 

@@ -5,7 +5,7 @@ from .types import (
     MarkovDecisionProcess as MDP,
     State,
     ActionMap,
-    DistributionMap,
+    Distribution,
     ErrorCode,
     LooseTransitionMap,
     StateOrAction,
@@ -91,7 +91,7 @@ class MarkovDecisionProcess:
     @property
     def transitions(self) -> list[Transition]:
         return [
-            Transition(s, a, dist)
+            Transition(a, s, None, {(s_, ""): p for s_, p in dist.items()})
             for s in self.S
             for a, dist in self.actions(s).items()
         ]
@@ -117,7 +117,7 @@ class MarkovDecisionProcess:
             return None
         return {a: self.dist(s, a) for a in self.__enabled_generator(s)}
 
-    def dist(self, s: State, a: Action) -> DistributionMap:
+    def dist(self, s: State, a: Action) -> Distribution:
         s = State(s)
         if s in self.S and a in self.A:
             return {

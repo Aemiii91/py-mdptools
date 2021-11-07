@@ -1,5 +1,7 @@
-from functools import reduce
+import itertools
 import re
+from functools import reduce
+from itertools import filterfalse, tee
 
 from ..types import (
     State,
@@ -9,6 +11,7 @@ from ..types import (
     Callable,
     Iterable,
     Union,
+    Generator,
 )
 
 
@@ -25,6 +28,46 @@ def map_list(
     if convert is not None:
         lst = map(convert, lst)
     return {value: index for index, value in enumerate(lst)}
+
+
+def flatten(s: Union[tuple, set, list]):
+    if isinstance(s, str):
+        yield s
+        return
+    for ls in s:
+        if isinstance(ls, State):
+            yield from flatten(ls.s)
+        elif isinstance(ls, (str, tuple, set, filterfalse, Generator)):
+            yield from flatten(ls)
+        else:
+            raise TypeError
+
+
+def partition(pred, iterable):
+    """Use a predicate to partition entries into false entries and true entries
+
+    Usage: partition(is_odd, range(10)) -> 0 2 4 6 8   and  1 3 5 7 9
+    """
+    t1, t2 = tee(iterable)
+    return filterfalse(pred, t1), filter(pred, t2)
+
+
+def partition_multi(
+    predicates: list, iterable: Iterable
+) -> tuple[filter, ...]:
+    it, *iters = tee(iterable, len(predicates) + 1)
+    g = [filterfalse(lambda el: any(pred(el) for pred in predicates), it)]
+    for idx, pred in enumerate(predicates):
+        g += [filter(pred, iters[idx])]
+    return tuple(g)
+
+
+def is_guard(s: str) -> bool:
+    return any(c in s for c in "=<>")
+
+
+def is_update(s: str) -> bool:
+    return ":=" in s
 
 
 def key_by_value(obj: dict, value) -> str:

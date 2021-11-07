@@ -94,7 +94,7 @@ def test_remake(stmdp: MarkovDecisionProcess):
 
 
 def test_remake_system(stmdp: MarkovDecisionProcess):
-    m2 = stmdp.remake(("s", "t"), (r"([a-z])", r"\1_2"))
+    m2 = stmdp.remake(("s", "t"), (r"([a-z]+)", r"\1_2"))
 
     system = parallel(stmdp, m2).remake([("s", "x"), ("t", "y")])
 

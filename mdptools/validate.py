@@ -3,7 +3,7 @@ import numpy as _np
 
 from .types import (
     Action,
-    DistributionMap,
+    Distribution,
     ErrorCode,
     MarkovDecisionProcess,
     State,
@@ -77,7 +77,7 @@ def __validate_sum_to_one(
 
 
 def __format_sum_to_one(
-    dist: DistributionMap, s: State, a: Action, sum_a: float
+    dist: Distribution, s: State, a: Action, sum_a: float
 ) -> list[str]:
     return [
         f"{_c[_c.function, 'Dist']}({literal_string(s, _c.state)}, "
