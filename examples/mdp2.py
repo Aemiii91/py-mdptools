@@ -1,11 +1,13 @@
+from mdptools.commands import update
 from mdptools.mdp2 import MarkovDecisionProcess2 as MDP
+from mdptools.state import state
 
 
 def make_process(i: int):
     return MDP(
         {
             "name": f"P{i}",
-            "init": (f"noncrit_{i}", "x:=0"),
+            "init": f"noncrit_{i}",
             "transitions": [
                 # format: (action, pre, post)
                 (f"demand_{i}", f"noncrit_{i}", f"wait_{i}"),
@@ -27,9 +29,24 @@ def make_resource_manager(n: int):
     return MDP({"name": "RM", "init": ("idle", "x:=0"), "transitions": trs})
 
 
-n = 3
+n = 2
 processes = [make_process(i) for i in range(1, n + 1)]
 processes += [make_resource_manager(n)]
 
 for process in processes:
     print(process, "\n")
+
+m = MDP(*processes)
+
+print(m, "\n")
+
+trs = m.enabled(m.init)
+succ = [tr.successors(m.init) for tr in trs]
+print(trs, "\n")
+
+visited_states = []
+
+for s, action_map in processes[-1].search():
+    visited_states.append((s, action_map))
+
+print(visited_states, "\n")

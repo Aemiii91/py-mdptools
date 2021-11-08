@@ -12,6 +12,8 @@ from .types import (
     Callable,
     Union,
 )
+from .transition import transition
+from .state import state
 
 
 def parallel(
@@ -30,7 +32,7 @@ def parallel(
 
     transition_map: TransitionMap = {}
     transitions = global_transitions(processes)
-    s_init: State = State(p.init for p in processes)
+    s_init = state(p.init for p in processes)
 
     stack = [s_init]
 
@@ -80,7 +82,7 @@ def global_transitions(processes: list[MDP]) -> list[Transition]:
             # Collect all transitions belonging to a synched action
             synched_actions[action][pid].append((pre, post))
         else:
-            transitions.append(Transition(action, pre, None, post))
+            transitions.append(transition(action, pre, post))
 
     # Generate all permutations of synched transitions
     synched_transitions = (
@@ -92,8 +94,7 @@ def global_transitions(processes: list[MDP]) -> list[Transition]:
     for a, combinable in synched_transitions:
         # Combine all combinable transitions
         trs = [
-            Transition(a, State(pre), None, dist_product(post))
-            for pre, post in combinable
+            transition(a, pre, dist_product(post)) for pre, post in combinable
         ]
         # Insert the transitions at the placeholder
         idx = placeholders[a] + offset
@@ -110,7 +111,7 @@ def dist_product(distributions: list[Distribution]) -> Distribution:
     p_values = itertools.product(*(dist.values() for dist in distributions))
     # Calculate the product of all permutations of the distributions
     return dict(
-        zip((State(s_) for s_ in s_primes), (prod(p) for p in p_values))
+        zip((state(s_) for s_ in s_primes), (prod(p) for p in p_values))
     )
 
 
@@ -145,7 +146,7 @@ def successor(s: State, transition: Transition) -> tuple[Action, Distribution]:
     for (s_, update), value in post.items():
         # Replace the states that are in the preset with the corresponding states in the postset
         replace_map = dict(zip(pre, s_))
-        s_ = State(replace_map[ss] if ss in pre else ss for ss in s)
+        s_ = state(replace_map[ss] if ss in pre else ss for ss in s)
         succ[s_] = value
 
     return (action, succ)

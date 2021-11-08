@@ -116,16 +116,16 @@ def kwiatkowska_md():
 def kwiatkowska_pc():
     return MarkovDecisionProcess(
         {
-            State("s0", "t0"): {
-                "detect": {State("s1", "t0"): 0.8, State("s2", "t0"): 0.2}
+            state("s0", "t0"): {
+                "detect": {state("s1", "t0"): 0.8, state("s2", "t0"): 0.2}
             },
-            State("s1", "t0"): {"warn": State("s2", "t1")},
-            State("s2", "t0"): {
-                "shutdown": {State("s3", "t2"): 0.9, State("s3", "t3"): 0.1}
+            state("s1", "t0"): {"warn": state("s2", "t1")},
+            state("s2", "t0"): {
+                "shutdown": {state("s3", "t2"): 0.9, state("s3", "t3"): 0.1}
             },
-            State("s2", "t1"): {"shutdown": State("s3", "t2")},
-            State("s3", "t2"): {"off"},
-            State("s3", "t3"): {"fail"},
+            state("s2", "t1"): {"shutdown": state("s3", "t2")},
+            state("s3", "t2"): {"off"},
+            state("s3", "t3"): {"fail"},
         },
         name="Ms||Md (Expected)",
     )

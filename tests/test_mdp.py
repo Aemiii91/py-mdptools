@@ -6,13 +6,13 @@ from mdptools.types import State
 
 
 def test_get_actions(stmdp: MarkovDecisionProcess):
-    expected = {"a": {State("s0"): 0.5, State("s1"): 0.5}}
+    expected = {"a": {state("s0"): 0.5, state("s1"): 0.5}}
     assert stmdp.actions("s0") == expected
     assert stmdp["s0"] == expected
 
 
 def test_get_distribution(stmdp: MarkovDecisionProcess):
-    expected = {State("s0"): 0.5, State("s1"): 0.5}
+    expected = {state("s0"): 0.5, state("s1"): 0.5}
     assert stmdp.dist("s0", "a") == expected
     assert stmdp["s0", "a"] == expected
     assert stmdp["s0->a"] == expected
@@ -89,7 +89,7 @@ def test_add_new_s_prime(stmdp: MarkovDecisionProcess):
 
 def test_remake(stmdp: MarkovDecisionProcess):
     m2 = stmdp.remake(("s", "t"), (r"([a-z]+)", r"\1_2"))
-    assert set(m2.S) == {State("t0"), State("t1")}
+    assert set(m2.S) == {state("t0"), state("t1")}
     assert set(m2.A) == {"a_2", "tau_2"}
 
 
@@ -99,10 +99,10 @@ def test_remake_system(stmdp: MarkovDecisionProcess):
     system = parallel(stmdp, m2).remake([("s", "x"), ("t", "y")])
 
     expected = {
-        State("x0", "y0"),
-        State("x1", "y0"),
-        State("x1", "y1"),
-        State("x0", "y1"),
+        state("x0", "y0"),
+        state("x1", "y0"),
+        state("x1", "y1"),
+        state("x0", "y1"),
     }
     actual = set(system.S)
     assert actual == expected

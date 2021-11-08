@@ -30,6 +30,8 @@ from .utils.stringify import stringify
 
 from .validate import validate
 from .graph import graph
+from .state import state
+from .transition import transition
 
 
 DEFAULT_NAME = "M"
@@ -77,7 +79,7 @@ class MarkovDecisionProcess:
 
     @init.setter
     def init(self, s: State):
-        s = State(s) if s is not None else None
+        s = state(s) if s is not None else None
         self._s_init = self.S[s] if s in self.S else 0
 
     @property
@@ -91,7 +93,7 @@ class MarkovDecisionProcess:
     @property
     def transitions(self) -> list[Transition]:
         return [
-            Transition(a, s, None, {(s_, ""): p for s_, p in dist.items()})
+            transition(a, s, {(s_, ""): p for s_, p in dist.items()})
             for s in self.S
             for a, dist in self.actions(s).items()
         ]
@@ -106,19 +108,19 @@ class MarkovDecisionProcess:
         )
 
     def enabled(self, s: State) -> set[State]:
-        s = State(s)
+        s = state(s)
         if s not in self.S:
             return None
         return set(self.__enabled_generator(s))
 
     def actions(self, s: State) -> ActionMap:
-        s = State(s)
+        s = state(s)
         if s not in self.S:
             return None
         return {a: self.dist(s, a) for a in self.__enabled_generator(s)}
 
     def dist(self, s: State, a: Action) -> Distribution:
-        s = State(s)
+        s = state(s)
         if s in self.S and a in self.A:
             return {
                 s_prime: self[s, a, s_prime]

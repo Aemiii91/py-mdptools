@@ -9,7 +9,7 @@ from .helpers import error_code
 
 def test_valid_mdp(stmdp: MarkovDecisionProcess):
     assert stmdp.shape == (2, 2)
-    assert list(stmdp.S) == [State("s0"), State("s1")]
+    assert list(stmdp.S) == [state("s0"), state("s1")]
     assert list(stmdp.A) == ["a", "tau"]
     assert stmdp.is_valid
 

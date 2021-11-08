@@ -11,7 +11,6 @@ from ..types import (
     Callable,
     Iterable,
     Union,
-    Generator,
 )
 
 
@@ -31,13 +30,15 @@ def map_list(
 
 
 def flatten(s: Union[tuple, set, list]):
+    from ..state import State
+
     if isinstance(s, str):
         yield s
         return
     for ls in s:
         if isinstance(ls, State):
             yield from flatten(ls.s)
-        elif isinstance(ls, (str, tuple, set, filterfalse, Generator)):
+        elif isinstance(ls, Iterable):
             yield from flatten(ls)
         else:
             raise TypeError
@@ -76,7 +77,11 @@ def key_by_value(obj: dict, value) -> str:
     return list(obj.keys())[list(obj.values()).index(value)]
 
 
-def parse_indices(indices: Union[Iterable, str]) -> tuple[State, str, State]:
+def parse_indices(
+    indices: Union[Iterable, str]
+) -> tuple["State", str, "State"]:
+    from ..state import State, state
+
     res = [None, None, None]
 
     if indices is None:
@@ -91,11 +96,11 @@ def parse_indices(indices: Union[Iterable, str]) -> tuple[State, str, State]:
         return [indices, None, None]
 
     if len(indices) > 0:
-        res[0] = State(indices[0])
+        res[0] = state(indices[0])
     if len(indices) > 1:
         res[1] = indices[1]
     if len(indices) > 2:
-        res[2] = State(indices[2])
+        res[2] = state(indices[2])
 
     return res
 
@@ -106,6 +111,8 @@ def tree_walker(
     path: list[StateOrAction] = None,
     default_value: float = 1.0,
 ):
+    from ..state import State
+
     if path is None:
         path = []
     if isinstance(obj, dict):
@@ -123,9 +130,11 @@ def tree_walker(
 def rename_map(
     obj: dict, rename: RenameFunction
 ) -> dict[StateOrAction, StateOrAction]:
+    from ..state import state
+
     rename = __ensure_rename_function(rename)
     return {
-        s: State(rename(sb) for sb in s) if isinstance(s, State) else rename(s)
+        s: state(rename(sb) for sb in s) if isinstance(s, State) else rename(s)
         for s in obj
     }
 
