@@ -26,12 +26,28 @@ if TYPE_CHECKING:
     from .model import State, Transition, Guard, Update
 
 
+class imdict(dict):
+    def __hash__(self):
+        return hash(frozenset(self.items()))
+
+    def _immutable(self, *args, **kws):
+        raise TypeError("object is immutable")
+
+    __setitem__ = _immutable
+    __delitem__ = _immutable
+    clear = _immutable
+    update = _immutable
+    setdefault = _immutable
+    pop = _immutable
+    popitem = _immutable
+
+
 StateDescription = Union[str, tuple, set, "State"]
 
 Action = str
 StateOrAction = Union[State, Action]
 
-Distribution = dict[tuple[State, Update], float]
+Distribution = imdict[tuple[State, Update], float]
 ActionMap = dict[Action, Distribution]
 TransitionMap = dict[tuple[State, Guard], ActionMap]
 
@@ -48,19 +64,3 @@ RenameMap = dict[tuple[str, ...], tuple[str, ...]]
 RenameFunction = Union[
     tuple[str, str], list[str], dict[str, str], Callable[[str], str]
 ]
-
-
-class imdict(dict):
-    def __hash__(self):
-        return hash(frozenset(self.items()))
-
-    def _immutable(self, *args, **kws):
-        raise TypeError("object is immutable")
-
-    __setitem__ = _immutable
-    __delitem__ = _immutable
-    clear = _immutable
-    update = _immutable
-    setdefault = _immutable
-    pop = _immutable
-    popitem = _immutable

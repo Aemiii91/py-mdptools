@@ -81,7 +81,7 @@ def __render_process(dot: Digraph, m: MDP, pid: int):
         s_label = __ordered_state_str(s, m)
         s_name = __pf_s(s, pid, m)
         dot.node(s_name, __label_html(s_label))
-        __add_edges(dot, s_name, a, dist, pid, m, second_line=guard._repr)
+        __add_edges(dot, s_name, a, dist, pid, m, second_line=guard.text)
 
 
 def __render_system(

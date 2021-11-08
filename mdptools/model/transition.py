@@ -79,6 +79,12 @@ class Transition:
             for s_, p in self.post.items()
         )
 
+    def __eq__(self, other: "Transition") -> bool:
+        return (*self,) == (*other,)
+
+    def __hash__(self) -> int:
+        return hash((*self,))
+
     def __getitem__(self, index):
         return (self.action, self.pre, self.guard, self.post)[index]
 
@@ -107,8 +113,8 @@ def transition(
 
 def structure_post(post) -> Distribution:
     if isinstance(post, (str, set, tuple, State)):
-        return {post_state(post): 1.0}
-    return {post_state(s_): p for s_, p in post.items()}
+        return imdict({post_state(post): 1.0})
+    return imdict({post_state(s_): p for s_, p in post.items()})
 
 
 def post_state(s_) -> tuple[State, Update]:

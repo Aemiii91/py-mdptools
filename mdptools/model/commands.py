@@ -4,25 +4,31 @@ from ..utils import re, reduce, highlight as _h
 
 @dataclass(eq=True, frozen=True)
 class Guard:
-    _repr: str = field(compare=True)
+    text: str = field(compare=True)
     conj: frozenset[Callable[[dict], bool]]
 
     def __repr__(self) -> str:
-        return f"Guard({self._repr or 'True'})"
+        return f"Guard({self.text or 'True'})"
 
     def __str__(self) -> str:
-        return _h[_h.variable, self._repr] if self._repr else ""
+        return _h[_h.variable, self.text] if self.text else ""
+
+    def __eq__(self, other: "Guard") -> bool:
+        return self.text == other.text  # TODO make comparable
+
+    def __hash__(self) -> int:
+        return hash((self.text,))
 
     def __call__(self, context: dict[str, int]) -> bool:
         return all(p(context) for p in self.conj)
 
     def __add__(self, other: "Guard") -> "Guard":
-        _repr = " & ".join(filter(None, [self._repr, other._repr]))
+        _repr = " & ".join(filter(None, [self.text, other.text]))
         conj = self.conj.union(other.conj)
         return Guard(_repr, conj)
 
     def __bool__(self) -> bool:
-        return bool(self._repr)
+        return bool(self.text)
 
 
 def guard(pred: Union[str, Iterable[str]]) -> Guard:

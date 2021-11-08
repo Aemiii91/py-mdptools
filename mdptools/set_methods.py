@@ -1,13 +1,13 @@
-from typing import Generator, Iterable
-
-from mdptools.model.transition import transition
-from .types import MarkovDecisionProcess as MDP, State, Generator, Transition
+from .types import MarkovDecisionProcess as MDP, State, Generator
 
 
-def persistent_set(mdp: MDP, s: State) -> Iterable[Transition]:
-    transitions = [next(iter(mdp.enabled(s)))]
+def persistent_set(mdp: MDP, s: State) -> Generator:
+    transitions = [mdp.enabled_take_one(s)]
 
     for t in transitions:
+        if t is None:
+            return
+        yield t
         for t_ in mdp.transitions:
             if t_ in transitions:
                 continue
@@ -15,7 +15,5 @@ def persistent_set(mdp: MDP, s: State) -> Iterable[Transition]:
                 t.is_parallel(t_) and t.can_be_dependent(t_)
             ):
                 if not t_.is_enabled(s):
-                    return transitions
+                    return
                 transitions.append(t_)
-
-    return transitions

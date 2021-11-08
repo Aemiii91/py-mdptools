@@ -1,4 +1,3 @@
-from typing import Iterable
 from .types import (
     Digraph,
     MarkovDecisionProcess as MDP,
@@ -34,7 +33,7 @@ class MarkovDecisionProcess:
     name: str = DEFAULT_NAME
     init: State = None
     processes: list[MDP] = []
-    transitions: list[Transition]
+    transitions: list[Transition] = []
 
     def __init__(
         self,
@@ -74,10 +73,17 @@ class MarkovDecisionProcess:
         self.transitions = combine_transitions(self.processes)
         self.name = "||".join(p.name for p in self.processes)
 
-    def enabled(self, s: State = None) -> Iterable[Transition]:
+    def enabled(self, s: State = None) -> list[Transition]:
         if s is None:
             s = self.init
-        return filter(lambda tr: tr.is_enabled(s), self.transitions)
+        return list(filter(lambda tr: tr.is_enabled(s), self.transitions))
+
+    def enabled_take_one(self, s: State = None) -> Transition:
+        if s is None:
+            s = self.init
+        return next(
+            iter(filter(lambda tr: tr.is_enabled(s), self.transitions))
+        )
 
     def search(
         self,
@@ -178,6 +184,14 @@ class MarkovDecisionProcess:
     def is_process(self) -> bool:
         return len(self.processes) == 1
 
+    def __eq__(self, other: MDP) -> bool:
+        init = self.init == other.init
+        trs = all(tr in other.transitions for tr in self.transitions)
+        return init and trs
+
+    def __hash__(self) -> int:
+        return id(self)
+
     def __repr__(self) -> str:
         return f"MDP({self.name})"
 
@@ -200,7 +214,7 @@ class MarkovDecisionProcess:
             states = states.union(tr.pre.s)
             for (s_, _), _ in tr.post.items():
                 states = states.union(s_.s)
-            actions = actions.union(set(tr.action))
+            actions = actions.union({tr.action})
         self._states = frozenset(states)
         self._actions = frozenset(actions)
 
