@@ -1,290 +1,217 @@
-from scipy.sparse.lil import lil_matrix
-
+from mdptools.utils.utils import rename_map
 from .types import (
-    Action,
     MarkovDecisionProcess as MDP,
-    State,
-    ActionMap,
-    Distribution,
-    ErrorCode,
-    LooseTransitionMap,
-    StateOrAction,
-    Transition,
-    TransitionMap,
     RenameFunction,
-    Callable,
+    State,
+    StateDescription,
+    TransitionDescription,
     Union,
-    Digraph,
-    Iterable,
+    Callable,
+    Generator,
+    defaultdict,
 )
 from .utils import (
-    map_list,
-    tree_walker,
-    parse_indices,
-    key_by_value,
-    rename_map,
-    rename_transition_map,
+    itertools,
+    operator,
+    reduce,
+    Counter,
+    highlight as _h,
 )
-from .utils.prompt import dist_wrong_value
-from .utils.stringify import stringify
-
-from .validate import validate
-from .graph import graph
-from .state import state
-from .transition import transition
+from .model.transition import Transition, transition, post_state, apply_update
 
 
 DEFAULT_NAME = "M"
 
 
 class MarkovDecisionProcess:
-    """The Markov Decision Process class."""
+    """The Markov decision process class (v2)"""
+
+    name: str = DEFAULT_NAME
+    init: State = None
+    processes: list[MDP] = []
+    transitions: list[Transition]
 
     def __init__(
         self,
-        transition_map: LooseTransitionMap,
-        S: Union[list[State], str] = None,
-        A: Union[list[Action], str] = None,
-        init: State = None,
+        *processes: Union[list[TransitionDescription], MDP],
+        init: StateDescription = None,
         name: str = None,
-        no_validation: bool = False,
-        global_transitions: list[Transition] = None,
     ):
-        self._did_init = False
-        self._validate_on = not no_validation
-        self.is_valid = False
-        self.errors: list[tuple[ErrorCode, str]] = []
-        if name is None:
-            name = DEFAULT_NAME
-        self.name = name
-        self.S, self.A, self.P = map_list(S, State), map_list(A), []
-        if len(self.S) == 0 or len(self.A) == 0:
-            tree_walker(transition_map, self.__infer_states_and_actions)
-        self.init = init
-        self.__suspend_validation(
-            lambda: (
-                self.__reset(),
-                tree_walker(transition_map, self.__setitem__),
-            )
-        )
-        self.global_transitions = global_transitions
-        self._did_init = True
+        self._states = None
+        self._actions = None
+        if len(processes) == 1 and isinstance(processes[0], list):
+            self.transitions = list(map(self.__bind_transition, processes[0]))
+            if init is None:
+                init = next(iter(self.transitions)).pre
+            self.init = apply_update(post_state(init))
+        else:
+            self.processes = list(processes)
+            self.init = reduce(operator.add, (p.init for p in self.processes))
+            self.transitions = combine_transitions(self.processes)
+            self.name = "||".join(p.name for p in self.processes)
 
-    # Public properties
-    # -----------------
+        if name is not None:
+            self.name = name
 
-    @property
-    def init(self) -> State:
-        return key_by_value(self.S, self._s_init)
+    def enabled(self, s: State = None) -> list[Transition]:
+        if s is None:
+            s = self.init
+        return list(filter(lambda tr: tr.enabled(s), self.transitions))
 
-    @init.setter
-    def init(self, s: State):
-        s = state(s) if s is not None else None
-        self._s_init = self.S[s] if s in self.S else 0
+    def search(
+        self,
+        s: State = None,
+        set_method: Callable[[MDP, State], list[Transition]] = None,
+    ) -> Generator:
+        if set_method is None:
+            set_method = MarkovDecisionProcess.enabled
+        if s is None:
+            s = self.init
 
-    @property
-    def shape(self):
-        return (len(self.A), len(self.S))
+        stack = [s]
+        transition_map = {}
 
-    @property
-    def transition_map(self) -> TransitionMap:
-        return {s: self.actions(s) for s in self.S}
+        while len(stack) > 0:
+            s = stack.pop()
+            if s not in transition_map:
+                # Register the global state
+                transition_map[s] = {}
+                # Iterate transitions returned by callback
+                for tr in set_method(self, s):
+                    # Get the successor states for the transition
+                    succ = tr.successors(s)
+                    transition_map[s][tr.action] = succ
+                    # Add the discovered states to the stack
+                    stack += list(succ.keys())
+                yield (s, transition_map[s])
 
-    @property
-    def transitions(self) -> list[Transition]:
-        return [
-            transition(a, s, {(s_, ""): p for s_, p in dist.items()})
-            for s in self.S
-            for a, dist in self.actions(s).items()
-        ]
+    def bfs(
+        self,
+        s: State = None,
+        set_method: Callable[[MDP, State], list[Transition]] = None,
+    ) -> Generator:
+        from queue import SimpleQueue
 
-    # Public methods
-    # --------------
+        if set_method is None:
+            set_method = MarkovDecisionProcess.enabled
+        if s is None:
+            s = self.init
 
-    def equals(self, other: "MDP") -> bool:
-        return (
-            self.transition_map == other.transition_map
-            and self.init == other.init
-        )
+        queue = SimpleQueue()
+        transition_map = {}
 
-    def enabled(self, s: State) -> set[State]:
-        s = state(s)
-        if s not in self.S:
-            return None
-        return set(self.__enabled_generator(s))
+        queue.put((s, 0))
 
-    def actions(self, s: State) -> ActionMap:
-        s = state(s)
-        if s not in self.S:
-            return None
-        return {a: self.dist(s, a) for a in self.__enabled_generator(s)}
-
-    def dist(self, s: State, a: Action) -> Distribution:
-        s = state(s)
-        if s in self.S and a in self.A:
-            return {
-                s_prime: self[s, a, s_prime]
-                for s_prime in self.S
-                if self[s, a, s_prime] > 0
-            }
-        return None
-
-    def validate(
-        self, force: bool = True, raise_exception: bool = False
-    ) -> bool:
-        if force or self._validate_on:
-            self.is_valid = validate(self, raise_exception)
-        return self.is_valid
+        while not queue.empty():
+            s, level = queue.get()
+            if s not in transition_map:
+                # Register the global state
+                transition_map[s] = {}
+                # Iterate transitions returned by callback
+                for tr in set_method(self, s):
+                    # Get the successor states for the transition
+                    successors = tr.successors(s)
+                    transition_map[s][tr.action] = successors
+                    # Add the discovered states to the stack
+                    for succ in successors.keys():
+                        queue.put((succ, level + 1))
+                yield (s, transition_map[s], level)
 
     def remake(
         self,
-        rename_states: RenameFunction = None,
-        rename_actions: RenameFunction = None,
+        state_fn: RenameFunction = None,
+        action_fn: RenameFunction = None,
         name: str = None,
     ) -> "MDP":
-        map_S = rename_map(self.S, rename_states)  # rename states
-        map_A = rename_map(self.A, rename_actions)  # rename actions
-        S, A = list(map_S.values()), list(map_A.values())  # apply new names
-        # Rename all keys in the transition map
-        tm = rename_transition_map(self.transition_map, map_S, map_A)
-        # Keep old name, if no new name is specified
+        states, actions = (
+            rename_map(self.states, state_fn),
+            rename_map(self.actions, action_fn),
+        )
+        if not self.is_single:
+            raise Exception("Can't remake composed MDP")
         if name is None:
             name = self.name
-        # Create an instance of `MDP` with the renamed data
-        return MarkovDecisionProcess(tm, S, A, map_S[self.init], name)
-
-    def graph(self, file_path: str, **kwargs) -> Digraph:
-        return graph(self, file_path, **kwargs)
-
-    # Private methods
-    # ---------------
-
-    def __resize(self):
-        shape = self.shape
-        for m in self.P:
-            m.resize(shape)
-
-    def __ref_matrix(self, s: State) -> lil_matrix:
-        return self.P[self.S[s]]
-
-    def __infer_states_and_actions(self, path, _):
-        s, a, s_prime = parse_indices(path)
-        self.__add_state(s)
-        if a is not None:
-            self.__add_action(a)
-        if s_prime is not None:
-            self.__add_state(s_prime)
-
-    def __add_state(self, s: State):
-        if s not in self.S:
-            self.S[s] = len(self.S)
-            if self._did_init:
-                self.__resize()
-                self.__reset(s)
-
-    def __add_action(self, a: Action):
-        if not a in self.A:
-            self.A[a] = len(self.A)
-            if self._did_init:
-                self.__resize()
-
-    def __set_special(self, path: list[StateOrAction], value):
-        self.__suspend_validation(
-            lambda: (
-                self.__reset(path),
-                tree_walker(value, self.__setitem__, path),
-            )
+        return MarkovDecisionProcess(
+            [tr.rename(states, actions) for tr in self.transitions],
+            name=name,
+            init=self.init.rename(states),
         )
 
-    def __suspend_validation(self, callback: Callable[[], None]):
-        validate_on, self._validate_on = self._validate_on, False
-        callback()
-        if validate_on:
-            self._validate_on = True
-            self.validate(force=False)
+    @property
+    def states(self) -> frozenset[str]:
+        if not self._states:
+            self.__set_states_and_actions()
+        return self._states
 
-    def __reset(self, path: list[StateOrAction] = None):
-        s, a, s_prime = parse_indices(path)
+    @property
+    def actions(self) -> frozenset[str]:
+        if not self._actions:
+            self.__set_states_and_actions()
+        return self._actions
 
-        if s is None:
-            # Reset all matrices
-            shape = self.shape
-            self.P = [lil_matrix(shape, dtype=float) for _ in self.S]
-        elif a is None:
-            # Add elements until index matches
-            while len(self.P) <= self.S[s]:
-                self.P.append(None)
-            # Reset the whole matrix
-            self.P[self.S[s]] = lil_matrix(self.shape, dtype=float)
-        elif s_prime is None:
-            # Reset a row of the matrix
-            for s_prime in self.S:
-                self.__reset([s, a, s_prime])
+    @property
+    def is_single(self) -> bool:
+        return len(self.processes) == 0
+
+    def __repr__(self) -> str:
+        return f"MDP({self.name})"
+
+    def __str__(self) -> str:
+        buffer = f"mdp {_h[_h.variable, self.name]}:\n"
+        buffer += f"  init := {self.init}\n"
+        buffer += "\n".join(f"  {tr}" for tr in self.transitions) + "\n"
+        return buffer
+
+    def __bind_transition(self, tr: TransitionDescription):
+        if isinstance(tr, Transition):
+            return tr.bind(self)
+        it = iter(tr)
+        action, pre, post = (next(it, None) for _ in range(3))
+        return transition(action, pre, post=post, active={self})
+
+    def __set_states_and_actions(self):
+        states, actions = set(), set()
+        for tr in self.transitions:
+            states = states.union(tr.pre.s)
+            for (s_, _), _ in tr.post.items():
+                states = states.union(s_.s)
+            actions = actions.union(set(tr.action))
+        self._states = frozenset(states)
+        self._actions = frozenset(actions)
+
+
+def combine_transitions(processes: list[MDP]) -> list[Transition]:
+    transitions = []
+
+    # List all process transitions
+    process_transitions = [
+        (pid, tr) for pid, p in enumerate(processes) for tr in p.transitions
+    ]
+    # Count the number of processes for each action
+    global_actions = Counter(
+        itertools.chain.from_iterable(
+            (tr.action for tr in p.transitions) for p in processes
+        )
+    )
+    # Create a dict of actions that appear in more than one process
+    synched_actions = {
+        a: defaultdict(list)
+        for a, count in global_actions.items()
+        if count > 1
+    }
+
+    for pid, tr in process_transitions:
+        if tr.action in synched_actions:
+            # Collect all transitions belonging to a synched action
+            synched_actions[tr.action][pid].append(tr)
         else:
-            # Reset a specific value
-            self[s, a, s_prime] = 0.0
+            transitions.append(tr)
 
-    def __enabled_generator(self, s: State) -> Iterable:
-        return (
-            a for a in self.A for s_prime in self.S if self[s, a, s_prime] > 0
-        )
+    # Generate all permutations of synched transitions
+    transitions += [
+        (t1 + t2)
+        for queue in synched_actions.values()
+        for t1, t2 in itertools.product(*queue.values())
+    ]
 
-    # Overrides
-    # ---------
-
-    def __getitem__(self, indices):
-        s, a, s_prime = parse_indices(indices)
-        if a is None:
-            return self.actions(s)
-        if s_prime is None:
-            return self.dist(s, a)
-        return self.__ref_matrix(s).__getitem__((self.A[a], self.S[s_prime]))
-
-    def __setitem__(self, indices, value):
-        s, a, s_prime = parse_indices(indices)
-
-        if self._did_init:
-            self.__add_state(s)
-
-        if a is None:
-            # Set the enabled actions of `s`
-            # Note: If a `set` is given, the target will be `s` with probability 1.
-            if isinstance(value, (dict, set)):
-                self.__set_special([s], value)
-                return
-            if isinstance(value, str):
-                # String is given, which is short for a transition to self
-                self.__set_special([s, value], s)
-            return
-
-        if self._did_init:
-            self.__add_action(a)
-
-        if s_prime is None:
-            # Set the `dist(s, a)`
-            if isinstance(value, (dict, str, State)):
-                # A `dict` describes the map of s' -> p.
-                # If a string is given, is must describe `s_prime`
-                self.__set_special([s, a], value)
-                return
-            if isinstance(value, set):
-                # We do not allow an action to have more than one non-probabilistic
-                # transition (multi-threading)
-                raise Exception(dist_wrong_value(s, a, value))
-            # A `p` value is given, representing the probability of transitioning to self
-            s_prime = s
-
-        if self._did_init:
-            self.__add_state(s_prime)
-
-        self.__ref_matrix(s).__setitem__((self.A[a], self.S[s_prime]), value)
-        self.validate(force=False)
-
-    def __repr__(self):
-        return stringify(self)
-
-    def __len__(self):
-        return len(self.S)
-
-    def __eq__(self, m2: "MDP") -> bool:
-        return self.equals(m2)
+    return transitions

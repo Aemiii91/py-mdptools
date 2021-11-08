@@ -1,20 +1,23 @@
-import itertools
-from functools import reduce
-import operator
-from numpy.core.fromnumeric import prod
-
-from .types import (
+from ..types import (
     dataclass,
     field,
     Action,
     Distribution,
     StateDescription,
     DistributionDescription,
-    MarkovDecisionProcess2 as MDP,
+    MarkovDecisionProcess as MDP,
     imdict,
 )
-from .utils import partition, is_guard, is_update, flatten
-from .commands import guard, Guard, update, Update
+from ..utils import (
+    itertools,
+    operator,
+    prod,
+    partition,
+    flatten,
+    format_str,
+    highlight as _h,
+)
+from .commands import guard, Guard, update, Update, is_guard, is_update
 from .state import state, State
 
 
@@ -29,15 +32,34 @@ class Transition:
     def enabled(self, s: State) -> bool:
         return all(ss in s for ss in self.pre) and self.guard(s.context)
 
-    def successors(self, s: State) -> list[State]:
+    def successors(self, s: State) -> dict[State, float]:
         if not self.enabled(s):
             raise ValueError
-        return [(s - self.pre) + apply_update(s_) for s_ in self.post.keys()]
+        return {
+            (s - self.pre) + apply_update(s_): p for s_, p in self.post.items()
+        }
 
-    def __repr__(self):
+    def rename(
+        self, states: dict[str, str], actions: dict[str, str]
+    ) -> "Transition":
+        action = self.action
+        if action in actions:
+            action = actions[action]
+        pre = self.pre.rename(states)
+        guard = self.guard
+        post = rename_post(self.post, states)
+        return Transition(action, pre, guard, post, self.active)
+
+    def bind(self, process: MDP) -> "Transition":
+        return Transition(*self, active={process})
+
+    def __repr__(self) -> str:
+        return f"Transition({self.action}, {self.pre.__repr__()})"
+
+    def __str__(self):
         pre = format_tup(self.pre, self.guard._repr, sep=" & ")
-        return f"[{self.action}] {pre} -> " + " + ".join(
-            f"{p}:{format_tup(*s_, sep=', ', wrap=True)}"
+        return f"[{_h[_h.action, self.action]}] {pre} -> " + " + ".join(
+            f"{format_str(p)}:{format_tup(*s_, sep=', ', wrap=True)}"
             if p != 1.0
             else f"{format_tup(*s_, sep=', ')}"
             for s_, p in self.post.items()
@@ -78,6 +100,7 @@ def structure_post(post) -> Distribution:
 def post_state(s_) -> tuple[State, Update]:
     if (
         isinstance(s_, tuple)
+        and len(s_) == 2
         and isinstance(s_[0], State)
         and isinstance(s_[1], Update)
     ):
@@ -86,6 +109,10 @@ def post_state(s_) -> tuple[State, Update]:
         s_, update_str = partition(is_update, list(flatten(s_)))
         upd = update(*update_str)
     return (state(s_), upd)
+
+
+def rename_post(post: Distribution, states: dict[str, str]) -> Distribution:
+    return {(s_[0].rename(states), s_[1]): p for s_, p in post.items()}
 
 
 def apply_update(

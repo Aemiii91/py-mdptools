@@ -1,11 +1,10 @@
 # pylint: disable=unused-import
 from dataclasses import dataclass, field
-import re
+from collections import defaultdict
 from typing import (
     Callable,
     Generator,
     Iterator,
-    NamedTuple,
     Optional,
     TypedDict,
     Union,
@@ -15,7 +14,6 @@ from typing import (
 
 Digraph = any
 MarkovDecisionProcess = any
-MarkovDecisionProcess2 = any
 State = any
 Transition = any
 Guard = any
@@ -24,10 +22,7 @@ Update = any
 if TYPE_CHECKING:
     from graphviz.dot import Digraph
     from .mdp import MarkovDecisionProcess
-    from .mdp2 import MarkovDecisionProcess2
-    from .state import State
-    from .transition import Transition
-    from .commands import Guard, Update
+    from .model import State, Transition, Guard, Update
 
 
 StateDescription = Union[str, tuple, set, "State"]
@@ -35,13 +30,6 @@ StateDescription = Union[str, tuple, set, "State"]
 Action = str
 StateOrAction = Union[State, Action]
 
-LooseTransitionMap = dict[
-    State,
-    Union[
-        set[Action],
-        dict[Action, Union[dict[State, float], float]],
-    ],
-]
 Distribution = dict[tuple[State, Update], float]
 ActionMap = dict[Action, Distribution]
 TransitionMap = dict[tuple[State, Guard], ActionMap]
@@ -53,14 +41,9 @@ TransitionDescription = tuple[
 ]
 
 
-class ProcessDescription(TypedDict, total=False):
-    name: Optional[str]
-    init: Optional[StateDescription]
-    transitions: list[TransitionDescription]
-
-
 ErrorCode = tuple[int, str]
 ColorMap = dict[str, list[str]]
+RenameMap = dict[tuple[str, ...], tuple[str, ...]]
 RenameFunction = Union[
     tuple[str, str], list[str], dict[str, str], Callable[[str], str]
 ]

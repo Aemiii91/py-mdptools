@@ -1,7 +1,7 @@
 from pytest_mock import MockerFixture
 
 from mdptools import MarkovDecisionProcess, use_colors
-from mdptools.utils import stringify, literal_string, to_prism
+from mdptools.utils import format_str, to_prism
 
 
 def test_stringify():
@@ -12,7 +12,7 @@ def test_stringify():
     )
 
     expected = "M -> MDP [Valid]:\n  S := (s0, s1), init := s0 // 2\n  A := (a, tau) // 2\n  en(s0) -> {a: {s0: .5, s1: .5}} // 1\n  en(s1) -> {tau: {s1: 1}} // 1"
-    actual = stringify(m)
+    actual = m.__str__()
 
     assert actual == expected
 
@@ -37,7 +37,7 @@ def test_stringify_with_colors():
         {"s0": {"a": {"s0": 0.5, "s1": 0.5}}, "s1": {"tau": {"s1": 1}}}
     )
 
-    s = stringify(m)
+    s = m.__str__()
 
     assert isinstance(s, str) and "\x1b[" in s
 
@@ -50,7 +50,7 @@ def test_literal_string():
     )
 
     expected = "{s0: {a: {s0: .5, s1: .5}}, s1: {tau: {s1: 1}}}"
-    actual = literal_string(m.transition_map, colors=False)
+    actual = format_str(m.transition_map, colors=False)
 
     assert actual == expected
 

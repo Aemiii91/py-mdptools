@@ -1,56 +1,56 @@
-from mdptools import MarkovDecisionProcess
-from mdptools.parallel import parallel, persistent_set
-from mdptools.utils.prism import to_prism
-
+from mdptools import MarkovDecisionProcess as MDP
 from helpers import at_root, display_graph
 
+
+def make_process(i: int):
+    return MDP(
+        [
+            # format: (action, pre, post)
+            (f"demand_{i}", f"noncrit_{i}", f"wait_{i}"),
+            (f"request_{i}", (f"wait_{i}", "x=0"), f"wait_{i}"),
+            (f"enter_{i}", (f"wait_{i}", f"x={i}"), f"crit_{i}"),
+            (f"exit_{i}", f"crit_{i}", (f"noncrit_{i}", "x:=0")),
+        ],
+        init=f"noncrit_{i}",
+        name=f"P{i}",
+    )
+
+
+def make_resource_manager(n: int):
+    trs = []
+    for i in range(1, n + 1):
+        trs += [
+            (f"request_{i}", "idle", {f"prepare_{i}": 0.9, "idle": 0.1}),
+            (f"grant_{i}", f"prepare_{i}", ("idle", f"x:={i}")),
+        ]
+    return MDP(trs, init=("idle", "x:=0"), name="RM")
+
+
 # %%
-m1 = MarkovDecisionProcess(
-    {
-        "noncrit_1": {"demand_1": "wait_1"},
-        "wait_1": {"request_1": "wait_1", "enter_1": "crit_1"},
-        "crit_1": {"exit_1": "noncrit_1"},
-    },
-    name="M1",
-)
+m1 = make_process(1)
 print(m1, "\n")
 
-mi = lambda i: m1.remake(("_1", f"_{i}"), ("_1", f"_{i}"), f"M{i}")
-
-m2 = mi(2)
+m2 = make_process(2)
 print(m2, "\n")
 
-rm = MarkovDecisionProcess(
-    {
-        "idle": {
-            "request_1": {"idle": 0.1, "prepare_1": 0.9},
-            "request_2": {"idle": 0.1, "prepare_2": 0.9},
-        },
-        "prepare_1": {"grant_1": "idle"},
-        "prepare_2": {"grant_2": "idle"},
-    },
-    name="RM",
-)
+rm = make_resource_manager(2)
 print(rm, "\n")
 
 # %%
-display_graph([m1, m2, rm], "out/graphs/graph_baier2004.gv")
+display_graph(m1, m2, rm, file_path="out/graphs/graph_baier2004.gv")
 
 # %%
-m = parallel(m1, m2, rm)
+m = MDP(m1, m2, rm)
 print(m, "\n")
 
 # %%
-display_graph(m, "out/graphs/graph_baier2004_parallel.gv")
+display_graph(m, file_path="out/graphs/graph_baier2004_parallel.gv")
 
 # %%
-print(to_prism(m, at_root("out/prism/baier2004.prism")), "\n")
+# print(to_prism(m, at_root("out/prism/baier2004.prism")), "\n")
 
 # %%
-m_ps = parallel(m1, m2, rm, callback=persistent_set)
-
-print(m_ps, "\n")
-print("\n".join(f"{tr.__repr__()}" for tr in m_ps.global_transitions), "\n")
+m_ps = MDP(m1, m2, rm)
 
 # %%
-display_graph(m_ps, "out/graphs/graph_baier2004_persistent_set.gv")
+display_graph(m_ps, file_path="out/graphs/graph_baier2004_persistent_set.gv")

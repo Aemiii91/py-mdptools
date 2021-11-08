@@ -1,45 +1,9 @@
-import re
-from ..types import ColorMap, MarkovDecisionProcess
+from ..types import ColorMap
+from .utils import re
 from .highlight import highlight as _h
-from .prompt import fail
 
 
-def stringify(mdp: MarkovDecisionProcess) -> str:
-    lines = []
-    # Name and validity
-    lines += [
-        f"{_h[_h.variable, mdp.name]} -> {_h[_h.types, 'MDP']} "
-        f"[{_h[_h.ok, 'Valid'] if mdp.is_valid else _h[_h.fail, 'Invalid']}]:"
-    ]
-    # States and start state
-    lines += [
-        f"  {_h[_h.variable, 'S']} := {literal_string(tuple(mdp.S), _h.state)},"
-        f" {_h[_h.variable, 'init']} := {literal_string(mdp.init, _h.state)} "
-        + _h[_h.comment, f"// {len(mdp.S)}"]
-    ]
-    # Actions
-    lines += [
-        f"  {_h[_h.variable, 'A']} := {literal_string(tuple(mdp.A), _h.action)} "
-        + _h[_h.comment, f"// {len(mdp.A)}"]
-    ]
-    # Enabled transitions
-    lines += [
-        (
-            en_s := mdp.actions(s),
-            f"  {_h[_h.function, 'en']}({literal_string(s, _h.state)}) ->"
-            f" {literal_string(en_s, __mdp_color_map(mdp))} "
-            + _h[_h.comment, f"// {len(en_s)}"],
-        )[-1]
-        for s in mdp.S
-    ]
-    # Errors
-    lines += [fail(msg, code) for (_, msg), code in mdp.errors]
-    return "\n".join(lines)
-
-
-def literal_string(
-    obj, color_map: ColorMap = None, colors: bool = True
-) -> str:
+def format_str(obj, color_map: ColorMap = None, colors: bool = True) -> str:
     return __format_strings(
         __format_floats(
             __round_floats(obj.__repr__() if colors else f"{obj}"), colors
@@ -51,12 +15,6 @@ def literal_string(
 
 def to_identifier(name: str) -> str:
     return re.sub(r"\W+|^(?=\d+)", "_", name)
-
-
-def __mdp_color_map(mdp: MarkovDecisionProcess) -> ColorMap:
-    if _h.state == "":
-        return {}
-    return {_h.state: list(mdp.S.keys()), _h.action: list(mdp.A.keys())}
 
 
 def __format_strings(

@@ -1,6 +1,5 @@
-from mdptools.commands import update
-from mdptools.mdp2 import MarkovDecisionProcess2 as MDP
-from mdptools.state import state
+from mdptools import MarkovDecisionProcess as MDP
+from mdptools.utils import highlight as _h
 
 
 def make_process(i: int):
@@ -41,12 +40,21 @@ m = MDP(*processes)
 print(m, "\n")
 
 trs = m.enabled(m.init)
-succ = [tr.successors(m.init) for tr in trs]
-print(trs, "\n")
+print(f"Enabled({m.init}):\n", trs, "\n")
+
+succ = [", ".join(str(s_) for s_ in tr.successors(m.init)) for tr in trs]
+print("Successors:")
+print("\n".join(succ), "\n")
 
 visited_states = []
 
-for s, action_map in processes[-1].search():
+for s, action_map in m.search():
     visited_states.append((s, action_map))
 
-print(visited_states, "\n")
+for s, action_map in visited_states:
+    print(s, "->")
+    print(
+        "\n".join(
+            f"  [{_h[_h.action, a]}] {s_}" for a, s_ in action_map.items()
+        )
+    )

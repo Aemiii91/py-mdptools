@@ -17,7 +17,7 @@ def display_dot(dot):
         display(Image(filename=image_path))
 
 
-def display_graph(mdp, file_path):
+def display_graph(*mdp, file_path: str):
     from mdptools import graph
 
-    display_dot(graph(mdp, at_root(file_path)))
+    display_dot(graph(*mdp, file_path=at_root(file_path)))

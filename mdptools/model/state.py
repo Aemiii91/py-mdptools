@@ -1,5 +1,5 @@
-from .types import dataclass, field, StateDescription, Iterator, imdict
-from .utils import flatten
+from ..types import dataclass, field, StateDescription, Iterator, imdict
+from ..utils import flatten, highlight as _h
 
 
 @dataclass(eq=True, frozen=True)
@@ -7,9 +7,22 @@ class State:
     s: frozenset[str] = field(compare=True)
     context: imdict[str, int] = field(compare=True)
 
+    def rename(self, states: dict[str, str]) -> "State":
+        def rename(ss: str) -> str:
+            if ss in states:
+                return states[ss]
+            return ss
+
+        return State(frozenset(rename(ss) for ss in self.s), self.context)
+
     def __repr__(self) -> str:
-        values = list(self.s)
-        values += [f"{k}={v}" for k, v in self.context.items()]
+        return f"State({','.join(self.s)})"
+
+    def __str__(self) -> str:
+        values = [_h[_h.state, ss] for ss in self.s]
+        values += [
+            _h[_h.variable, f"{k}={v}"] for k, v in self.context.items()
+        ]
         return (
             next(iter(values))
             if len(values) == 1

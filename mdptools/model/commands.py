@@ -1,7 +1,5 @@
-from dataclasses import field
-import re
-from functools import reduce
-from .types import dataclass, Union, Callable, Iterable
+from ..types import dataclass, field, Union, Callable, Iterable
+from ..utils import re, reduce, highlight as _h
 
 
 @dataclass(eq=True, frozen=True)
@@ -10,7 +8,10 @@ class Guard:
     conj: frozenset[Callable[[dict], bool]]
 
     def __repr__(self) -> str:
-        return self._repr or "True"
+        return f"Guard({self._repr or 'True'})"
+
+    def __str__(self) -> str:
+        return _h[_h.variable, self._repr]
 
     def __call__(self, context: dict[str, int]) -> bool:
         return all(p(context) for p in self.conj)
@@ -70,7 +71,10 @@ class Update:
     assignments: frozenset[Callable[[dict], dict]]
 
     def __repr__(self) -> str:
-        return self._repr or "None"
+        return f"Update({self._repr})"
+
+    def __str__(self) -> str:
+        return _h[_h.variable, self._repr]
 
     def __call__(self, context: dict[str, int]) -> dict[str, int]:
         if not self.assignments:
@@ -91,7 +95,7 @@ class Update:
 
 
 def update(*text: str) -> Update:
-    text = ", ".join(list(text)) or None
+    text = ", ".join(list(text))
     return Update(text, compile_update(text))
 
 
@@ -111,3 +115,11 @@ def simple_assignment(text: str) -> Callable[[dict], bool]:
     if op == ":=":
         return lambda _: {obj: value}
     return lambda _: None
+
+
+def is_guard(s: str) -> bool:
+    return any(c in s for c in "=<>")
+
+
+def is_update(s: str) -> bool:
+    return ":=" in s
