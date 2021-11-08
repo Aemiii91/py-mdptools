@@ -1,4 +1,4 @@
-from mdptools import MarkovDecisionProcess as MDP
+from mdptools import MarkovDecisionProcess as MDP, validate
 from helpers import at_root, display_graph
 
 
@@ -28,10 +28,8 @@ def make_resource_manager(n: int):
 
 # %%
 m1 = make_process(1)
-print(m1, "\n")
-
 m2 = make_process(2)
-print(m2, "\n")
+print(m1, "\n")
 
 rm = make_resource_manager(2)
 print(rm, "\n")
@@ -47,10 +45,4 @@ print(m, "\n")
 display_graph(m, file_path="out/graphs/graph_baier2004_parallel.gv")
 
 # %%
-# print(to_prism(m, at_root("out/prism/baier2004.prism")), "\n")
-
-# %%
-m_ps = MDP(m1, m2, rm)
-
-# %%
-display_graph(m_ps, file_path="out/graphs/graph_baier2004_persistent_set.gv")
+print(m.to_prism(at_root("out/prism/baier2004.prism")), "\n")

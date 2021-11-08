@@ -1,5 +1,6 @@
-from mdptools.utils.utils import rename_map
+from typing import Iterable
 from .types import (
+    Digraph,
     MarkovDecisionProcess as MDP,
     RenameFunction,
     State,
@@ -16,8 +17,12 @@ from .utils import (
     reduce,
     Counter,
     highlight as _h,
+    rename_map,
+    to_prism,
+    SimpleQueue,
 )
-from .model.transition import Transition, transition, post_state, apply_update
+from .model import Transition, transition, post_state, apply_update
+from .graph import graph
 
 
 DEFAULT_NAME = "M"
@@ -39,24 +44,40 @@ class MarkovDecisionProcess:
     ):
         self._states = None
         self._actions = None
-        if len(processes) == 1 and isinstance(processes[0], list):
-            self.transitions = list(map(self.__bind_transition, processes[0]))
-            if init is None:
-                init = next(iter(self.transitions)).pre
-            self.init = apply_update(post_state(init))
+        if len(processes) == 1:
+            self.__init_process(next(iter(processes), []), init)
         else:
-            self.processes = list(processes)
-            self.init = reduce(operator.add, (p.init for p in self.processes))
-            self.transitions = combine_transitions(self.processes)
-            self.name = "||".join(p.name for p in self.processes)
+            self.__init_system(processes)
 
         if name is not None:
             self.name = name
 
-    def enabled(self, s: State = None) -> list[Transition]:
+    def __init_process(
+        self, transitions: list[TransitionDescription], init: StateDescription
+    ):
+        if isinstance(transitions, MarkovDecisionProcess):
+            if init is None:
+                init = transitions.init
+            self.name = transitions.name
+            transitions = transitions.transitions
+
+        self.processes = [self]
+        self.transitions = list(map(self.__bind_transition, transitions))
+        if init is None and self.transitions:
+            init = next(iter(self.transitions)).pre
+        if init is not None:
+            self.init = apply_update(post_state(init))
+
+    def __init_system(self, processes: tuple[MDP]):
+        self.processes = list(processes)
+        self.init = reduce(operator.add, (p.init for p in self.processes))
+        self.transitions = combine_transitions(self.processes)
+        self.name = "||".join(p.name for p in self.processes)
+
+    def enabled(self, s: State = None) -> Iterable[Transition]:
         if s is None:
             s = self.init
-        return list(filter(lambda tr: tr.enabled(s), self.transitions))
+        return filter(lambda tr: tr.is_enabled(s), self.transitions)
 
     def search(
         self,
@@ -90,8 +111,6 @@ class MarkovDecisionProcess:
         s: State = None,
         set_method: Callable[[MDP, State], list[Transition]] = None,
     ) -> Generator:
-        from queue import SimpleQueue
-
         if set_method is None:
             set_method = MarkovDecisionProcess.enabled
         if s is None:
@@ -127,7 +146,7 @@ class MarkovDecisionProcess:
             rename_map(self.states, state_fn),
             rename_map(self.actions, action_fn),
         )
-        if not self.is_single:
+        if not self.is_process:
             raise Exception("Can't remake composed MDP")
         if name is None:
             name = self.name
@@ -136,6 +155,12 @@ class MarkovDecisionProcess:
             name=name,
             init=self.init.rename(states),
         )
+
+    def to_graph(self, file_path: str = None, **kw) -> Digraph:
+        return graph(self, file_path=file_path, **kw)
+
+    def to_prism(self, file_path: str = None) -> str:
+        return to_prism(self, file_path)
 
     @property
     def states(self) -> frozenset[str]:
@@ -150,8 +175,8 @@ class MarkovDecisionProcess:
         return self._actions
 
     @property
-    def is_single(self) -> bool:
-        return len(self.processes) == 0
+    def is_process(self) -> bool:
+        return len(self.processes) == 1
 
     def __repr__(self) -> str:
         return f"MDP({self.name})"
@@ -197,7 +222,7 @@ def combine_transitions(processes: list[MDP]) -> list[Transition]:
     synched_actions = {
         a: defaultdict(list)
         for a, count in global_actions.items()
-        if count > 1
+        if count > 1 and not a.startswith("tau")
     }
 
     for pid, tr in process_transitions:
@@ -209,9 +234,9 @@ def combine_transitions(processes: list[MDP]) -> list[Transition]:
 
     # Generate all permutations of synched transitions
     transitions += [
-        (t1 + t2)
+        reduce(operator.add, trs)
         for queue in synched_actions.values()
-        for t1, t2 in itertools.product(*queue.values())
+        for trs in itertools.product(*queue.values())
     ]
 
     return transitions

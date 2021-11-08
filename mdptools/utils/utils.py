@@ -4,6 +4,7 @@ import operator
 from functools import reduce
 from numpy.core.fromnumeric import prod
 from collections import Counter
+from queue import SimpleQueue
 
 from ..types import (
     MarkovDecisionProcess,
@@ -11,6 +12,7 @@ from ..types import (
     Callable,
     Iterable,
     Union,
+    Hashable,
 )
 
 
@@ -56,6 +58,40 @@ def __ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     elif rename is None or not isinstance(rename, Callable):
         return lambda s: s
     return rename
+
+
+def id_bank() -> Callable[[Hashable], int]:
+    _id = 0
+    _bank = {}
+
+    def get_id(key: Hashable = None) -> int:
+        nonlocal _id
+        if key is None:
+            return _id
+        if key not in _bank:
+            _bank[key] = _id
+            _id += 1
+        return _bank[key]
+
+    return get_id
+
+
+def minmax_bank() -> Callable[[str, int], dict]:
+    _bank = {}
+
+    def register(key: str = None, value: int = None):
+        if value is None:
+            if key is None:
+                return _bank
+            return _bank[key]
+        if key not in _bank:
+            _bank[key] = (value, value)
+        else:
+            c = _bank[key]
+            _bank[key] = (min(value, c[0]), max(value, c[1]))
+        return value
+
+    return register
 
 
 def write_file(filename: str, content: str):

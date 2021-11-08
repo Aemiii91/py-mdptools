@@ -29,11 +29,25 @@ class Transition:
     post: Distribution = field(compare=True)
     active: set[MDP] = None
 
-    def enabled(self, s: State) -> bool:
+    def is_enabled(self, s: State) -> bool:
         return all(ss in s for ss in self.pre) and self.guard(s.context)
 
+    def in_conflict(self, other: "Transition") -> bool:
+        return any(ss in other.pre for ss in self.pre)
+
+    def is_parallel(self, other: "Transition") -> bool:
+        return len(self.active.difference(other.active)) == 0
+
+    def can_be_dependent(self, other: "Transition") -> bool:
+        updates = used_objects(self.post).intersection(
+            used_objects(other.post)
+        )
+        if updates:
+            return True
+        return False
+
     def successors(self, s: State) -> dict[State, float]:
-        if not self.enabled(s):
+        if not self.is_enabled(s):
             raise ValueError
         return {
             (s - self.pre) + apply_update(s_): p for s_, p in self.post.items()
@@ -140,4 +154,10 @@ def dist_product(dist1: Distribution, dist2: Distribution) -> Distribution:
             (tuple(map(operator.add, *s_)) for s_ in s_primes),
             (prod(p) for p in p_values),
         )
+    )
+
+
+def used_objects(post: dict) -> set[str]:
+    return set(
+        itertools.chain.from_iterable(upd({}).keys() for _, upd in post.keys())
     )

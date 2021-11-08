@@ -20,12 +20,13 @@ MDP_REQ_SUM_TO_ONE: ErrorCode = (
 
 def validate(
     mdp: MarkovDecisionProcess, raise_exception: bool = False
-) -> bool:
-    mdp.errors = []
+) -> tuple[bool, list[tuple[ErrorCode, str]]]:
+    total_errors = []
     buffer = []
 
     def add_err(err_code: ErrorCode, err: str):
-        mdp.errors += [(err_code, err)]
+        nonlocal total_errors
+        total_errors += [(err_code, err)]
         return [fail(err_code[1], err)]
 
     en_s_nonempty, errors = __validate_enabled_nonempty(mdp)
@@ -46,7 +47,7 @@ def validate(
             sys.tracebacklimit = 0
             raise Exception(message)
 
-    return len(buffer) == 0
+    return (len(buffer) == 0, total_errors)
 
 
 def __validate_enabled_nonempty(
@@ -55,7 +56,7 @@ def __validate_enabled_nonempty(
     """Validate: 'forall s in S : en(s) != {}'"""
     errors = [
         f"{_h[_h.function, 'en']}({format_str(s, _h.state)}) -> {_h[_h.error, '{}']}"
-        for s in mdp.S
+        for s, _ in mdp.search()
         if len(mdp.enabled(s)) == 0
     ]
     return (len(errors) == 0, errors)
@@ -67,11 +68,10 @@ def __validate_sum_to_one(
     """Validate: 'forall s in S, a in en(s) : sum_(s' in S) P(s, a, s') = 1'"""
     errors = []
 
-    for s in mdp.S:
-        for a, dist in mdp.actions(s).items():
-            sum_a = _np.abs(sum(dist.values()))
-            if sum_a - 1.0 >= 10 * _np.spacing(_np.float64(1)):
-                errors += __format_sum_to_one(dist, s, a, sum_a)
+    for a, s, _, dist in mdp.transitions:
+        sum_a = _np.abs(sum(dist.values()))
+        if sum_a - 1.0 >= 10 * _np.spacing(_np.float64(1)):
+            errors += __format_sum_to_one(dist, s, a, sum_a)
 
     return (len(errors) == 0, errors)
 

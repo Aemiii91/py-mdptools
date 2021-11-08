@@ -33,6 +33,7 @@ def guard(pred: Union[str, Iterable[str]]) -> Guard:
 
 operations = {
     "=": lambda a, b: a == b,
+    "!=": lambda a, b: a != b,
     ">": lambda a, b: a > b,
     "<": lambda a, b: a < b,
     ">=": lambda a, b: a >= b,
@@ -55,7 +56,10 @@ def map_disjunction(disj: list[str]) -> Callable[[dict], bool]:
 
 
 def simple_pred(text: str) -> Callable[[dict], bool]:
-    match = re.match(r"([a-zA-Z_]\w*)\s*(=|>|<|>=|<=)\s*(\d+)", text)
+    match = re.match(
+        r"([a-zA-Z_]\w*)\s*(" + "|".join(operations.keys()) + r")\s*(\d+)",
+        text,
+    )
     if match is None:
         raise ValueError
     obj, op, value = match.groups()

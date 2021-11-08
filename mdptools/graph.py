@@ -1,5 +1,12 @@
 from .utils import re, format_str
-from .types import Action, MarkovDecisionProcess as MDP, Union, Digraph
+from .types import (
+    Action,
+    MarkovDecisionProcess as MDP,
+    Union,
+    Digraph,
+    Callable,
+    Transition,
+)
 from .model import State, state
 
 
@@ -10,6 +17,7 @@ def graph(
     engine: str = "dot",
     rankdir: str = "TB",
     size: float = 8.5,
+    set_method: Callable[[MDP, State], list[Transition]] = None,
 ) -> Digraph:
     """Renders the graph of a given MDP and saves it to `file_path`."""
     from graphviz import Digraph
@@ -27,9 +35,9 @@ def graph(
     if len(processes) > 1:
         for pid, process in enumerate(processes):
             with dot.subgraph() as subgraph:
-                __render_mdp(subgraph, process, pid)
+                __render_mdp(subgraph, process, pid, set_method)
     else:
-        __render_mdp(dot, processes[0], 0)
+        __render_mdp(dot, processes[0], 0, set_method)
 
     if file_path is not None:
         dot.render()
@@ -43,15 +51,19 @@ graph.p_color = None
 graph.label_padding = 2
 
 
-def __render_mdp(dot: Digraph, m: MDP, pid: int):
-    if m.is_single:
+def __render_mdp(
+    dot: Digraph,
+    m: MDP,
+    pid: int,
+    set_method: Callable[[MDP, State], list[Transition]],
+):
+    if m.is_process:
         __render_process(dot, m, pid)
     else:
-        __render_system(dot, m, pid)
+        __render_system(dot, m, pid, set_method)
 
 
 def __render_process(dot: Digraph, m: MDP, pid: int):
-
     # Add arrow pointing to the start state
     init = state(m.init, context={})
     init_name = f"mdp_{pid}_start"
@@ -72,7 +84,12 @@ def __render_process(dot: Digraph, m: MDP, pid: int):
         __add_edges(dot, s_name, a, dist, pid, m, second_line=guard._repr)
 
 
-def __render_system(dot: Digraph, m: MDP, pid: int):
+def __render_system(
+    dot: Digraph,
+    m: MDP,
+    pid: int,
+    set_method: Callable[[MDP, State], list[Transition]],
+):
     from graphviz import Digraph
 
     # Add arrow pointing to the start state
@@ -89,7 +106,7 @@ def __render_system(dot: Digraph, m: MDP, pid: int):
     same_rank = [[]]
     curr_level = 0
 
-    for s, act, level in m.bfs():
+    for s, act, level in m.bfs(set_method=set_method):
         if level > curr_level:
             same_rank.append([])
             curr_level = level
@@ -114,7 +131,7 @@ def __render_system(dot: Digraph, m: MDP, pid: int):
 
 
 def __ordered_state_str(s: State, m: MDP) -> str:
-    if m.is_single:
+    if m.is_process:
         return __str_tuple(s)
     return "_".join(ss for p in m.processes for ss in s.s if ss in p.states)
 

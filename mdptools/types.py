@@ -9,6 +9,7 @@ from typing import (
     TypedDict,
     Union,
     Iterable,
+    Hashable,
     TYPE_CHECKING,
 )
 
