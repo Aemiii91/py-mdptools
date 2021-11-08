@@ -69,7 +69,7 @@ def __render_process(dot: Digraph, m: MDP, pid: int):
         s_label = __ordered_state_str(s, m)
         s_name = __pf_s(s, pid, m)
         dot.node(s_name, __label_html(s_label))
-        __add_edges(dot, s_name, a, dist, pid, m, second_line=f"{guard}")
+        __add_edges(dot, s_name, a, dist, pid, m, second_line=guard._repr)
 
 
 def __render_system(dot: Digraph, m: MDP, pid: int):
@@ -134,7 +134,7 @@ def __add_edges(
         update = None
         if not isinstance(s_prime, State):
             s_prime, upd = s_prime
-            update = f"{upd}" or None
+            update = upd._repr or None
         s_prime_name = __pf_s(s_prime, pid, m)
 
         if p == 1:

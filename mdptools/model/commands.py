@@ -11,7 +11,7 @@ class Guard:
         return f"Guard({self._repr or 'True'})"
 
     def __str__(self) -> str:
-        return _h[_h.variable, self._repr]
+        return _h[_h.variable, self._repr] if self._repr else ""
 
     def __call__(self, context: dict[str, int]) -> bool:
         return all(p(context) for p in self.conj)

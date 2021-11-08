@@ -57,7 +57,7 @@ class Transition:
         return f"Transition({self.action}, {self.pre.__repr__()})"
 
     def __str__(self):
-        pre = format_tup(self.pre, self.guard._repr, sep=" & ")
+        pre = format_tup(self.pre, str(self.guard), sep=" & ")
         return f"[{_h[_h.action, self.action]}] {pre} -> " + " + ".join(
             f"{format_str(p)}:{format_tup(*s_, sep=', ', wrap=True)}"
             if p != 1.0
