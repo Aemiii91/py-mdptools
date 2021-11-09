@@ -1,14 +1,15 @@
 from .types import (
+    dataclass,
     Digraph,
     MarkovDecisionProcess as MDP,
     RenameFunction,
-    State,
     StateDescription,
     TransitionDescription,
     Union,
     Callable,
     Generator,
     defaultdict,
+    Iterable,
 )
 from .utils import (
     itertools,
@@ -20,7 +21,14 @@ from .utils import (
     to_prism,
     SimpleQueue,
 )
-from .model import Transition, transition, post_state, apply_update
+from .model import (
+    Transition,
+    transition,
+    post_state,
+    apply_update,
+    State,
+    state,
+)
 from .graph import graph
 
 
@@ -37,16 +45,25 @@ class MarkovDecisionProcess:
 
     def __init__(
         self,
-        *processes: Union[list[TransitionDescription], MDP],
+        *args: Union[list[TransitionDescription], MDP],
         init: StateDescription = None,
+        processes: dict[str, tuple[str]] = None,
         name: str = None,
     ):
         self._states = None
         self._actions = None
-        if len(processes) == 1:
-            self.__init_process(next(iter(processes), []), init)
+        if len(args) == 1:
+            transitions = next(iter(args), [])
+            if processes is None:
+                self.__init_process(transitions, init)
+            else:
+                processes = [
+                    _MDPShell(name, frozenset(states), state(states[0]))
+                    for name, states in processes.items()
+                ]
+                self.__init_system(processes, init, transitions)
         else:
-            self.__init_system(processes)
+            self.__init_system(args, init)
 
         if name is not None:
             self.name = name
@@ -62,16 +79,31 @@ class MarkovDecisionProcess:
 
         self.processes = [self]
         self.transitions = list(map(self.__bind_transition, transitions))
+
         if init is None and self.transitions:
             init = next(iter(self.transitions)).pre
         if init is not None:
             self.init = apply_update(post_state(init))
 
-    def __init_system(self, processes: tuple[MDP]):
+    def __init_system(
+        self,
+        processes: Iterable[MDP],
+        init: StateDescription,
+        transitions: list[TransitionDescription] = None,
+    ):
         self.processes = list(processes)
-        self.init = reduce(operator.add, (p.init for p in self.processes))
-        self.transitions = combine_transitions(self.processes)
+
+        if transitions is None:
+            self.transitions = combine_transitions(self.processes)
+        else:
+            self.transitions = list(map(self.__bind_transition, transitions))
+
         self.name = "||".join(p.name for p in self.processes)
+
+        if init is None:
+            self.init = reduce(operator.add, (p.init for p in self.processes))
+        else:
+            self.init = apply_update(post_state(init))
 
     def enabled(self, s: State = None) -> list[Transition]:
         if s is None:
@@ -82,7 +114,7 @@ class MarkovDecisionProcess:
         if s is None:
             s = self.init
         return next(
-            iter(filter(lambda tr: tr.is_enabled(s), self.transitions))
+            iter(filter(lambda tr: tr.is_enabled(s), self.transitions)), None
         )
 
     def search(
@@ -192,6 +224,9 @@ class MarkovDecisionProcess:
     def __hash__(self) -> int:
         return id(self)
 
+    def __contains__(self, key: str) -> bool:
+        return key in self.states
+
     def __repr__(self) -> str:
         return f"MDP({self.name})"
 
@@ -202,11 +237,19 @@ class MarkovDecisionProcess:
         return buffer
 
     def __bind_transition(self, tr: TransitionDescription):
-        if isinstance(tr, Transition):
-            return tr.bind(self)
-        it = iter(tr)
-        action, pre, post = (next(it, None) for _ in range(3))
-        return transition(action, pre, post=post, active={self})
+        if not isinstance(tr, Transition):
+            it = iter(tr)
+            action, pre, post = (next(it, None) for _ in range(3))
+            tr = transition(action, pre, post=post)
+
+        if self.is_process:
+            process = {self}
+        else:
+            process = set(
+                p for p in self.processes for ss in tr.pre.s if ss in p
+            )
+
+        return tr.bind(process)
 
     def __set_states_and_actions(self):
         states, actions = set(), set()
@@ -217,6 +260,16 @@ class MarkovDecisionProcess:
             actions = actions.union({tr.action})
         self._states = frozenset(states)
         self._actions = frozenset(actions)
+
+
+@dataclass(eq=True, frozen=True)
+class _MDPShell:
+    name: str
+    states: frozenset[str]
+    init: State
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.states
 
 
 def combine_transitions(processes: list[MDP]) -> list[Transition]:

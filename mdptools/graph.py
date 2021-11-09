@@ -132,7 +132,7 @@ def __add_node(dot: Digraph, s: State, pid: int, m: MDP) -> str:
         return _node_map[s]
     s_label = __ordered_state_str(s, m)
     s_name = __pf_s(s, pid, m)
-    s_ctx_label = ",".join(f"{k}={v}" for k, v in s.context.items())
+    s_ctx_label = ",&nbsp;".join(f"{k}={v}" for k, v in s.ctx.items())
     dot.node(s_name, __label_html(s_label, second_line=s_ctx_label or None))
     _node_map[s] = s_name
     return s_name
@@ -158,7 +158,7 @@ def __add_edges(
 
         if p == 1:
             second_line = (
-                ", ".join(filter(None, [second_line, update])) or None
+                ",&nbsp;".join(filter(None, [second_line, update])) or None
             )
             label = __label_html(a, second_line=second_line)
             # Add a transition arrow between two states (non-deterministic)
@@ -181,7 +181,7 @@ def __ordered_state_str(s: State, m: MDP) -> str:
 
 def __pf_s(s: State, pid: int, m: MDP) -> str:
     s_label = __ordered_state_str(s, m)
-    return f"mdp_{pid}_state_{s_label}_ctx_{__str_context(s.context)}"
+    return f"mdp_{pid}_state_{s_label}_ctx_{__str_context(s.ctx)}"
 
 
 def __str_tuple(s: Union[tuple, str]) -> str:
@@ -220,9 +220,7 @@ def __label_html(
     if color is not None:
         label = f'<font color="{color}">{label}</font>'
     if second_line:
-        second_line = __format_command(second_line)
-        second_line = __italicize_words(second_line)
-        label = f"{label}<br/>{second_line}"
+        label = f"{label}<br/>{__format_command(second_line)}"
     label = __html_padding(label, graph.label_padding)
     return f"<{label}>"
 
@@ -257,8 +255,11 @@ def __italicize_words(label: str) -> str:
 
 def __subscript_numerals(label: str, size: int) -> str:
     return re.sub(
-        r"(?!^|[.0-9])_?([0-9]+)(?![0-9])",
-        f'<sub><font point-size="{round(size, 2)}">' r"\1" "</font></sub>",
+        r"((?!^|[.0-9])|[a-z]|<\/i>)_?([0-9]+)(?![0-9])",
+        r"\1"
+        f'<sub><font point-size="{round(size, 2)}">'
+        r"\2"
+        "</font></sub>",
         label,
     )
 
@@ -271,4 +272,5 @@ _re_operator = re.compile(
 def __format_command(text: str) -> str:
     text = text.replace(":=", "≔")
     text = re.sub(_re_operator, r"&#8202;\1&#8202;", text)
+    text = __italicize_words(text)
     return text

@@ -30,13 +30,13 @@ class Transition:
     active: set[MDP] = None
 
     def is_enabled(self, s: State) -> bool:
-        return all(ss in s for ss in self.pre) and self.guard(s.context)
+        return all(ss in s for ss in self.pre) and self.guard(s.ctx)
 
     def in_conflict(self, other: "Transition") -> bool:
         return any(ss in other.pre for ss in self.pre)
 
     def is_parallel(self, other: "Transition") -> bool:
-        return len(self.active.difference(other.active)) == 0
+        return len(self.active.intersection(other.active)) == 0
 
     def can_be_dependent(self, other: "Transition") -> bool:
         updates = used_objects(self.post).intersection(
@@ -64,8 +64,8 @@ class Transition:
         post = rename_post(self.post, states)
         return Transition(action, pre, guard, post, self.active)
 
-    def bind(self, process: MDP) -> "Transition":
-        return Transition(*self, active={process})
+    def bind(self, processes: set[MDP]) -> "Transition":
+        return Transition(*self, active=processes)
 
     def __repr__(self) -> str:
         return f"Transition({self.action}, {self.pre.__repr__()})"

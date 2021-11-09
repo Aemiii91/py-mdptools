@@ -21,19 +21,22 @@ def make_resource_manager(n: int):
     trs = []
     for i in range(1, n + 1):
         trs += [
-            (f"request_{i}", "idle", {f"prepare_{i}": 0.9, "idle": 0.1}),
+            (f"request_{i}", "idle", {(f"prepare_{i}"): 0.9, "idle": 0.1}),
             (f"grant_{i}", f"prepare_{i}", ("idle", f"x:={i}")),
         ]
     return MDP(trs, init=("idle", "x:=0"), name="RM")
 
 
 # %%
-n = 2
-processes = [make_process(i) for i in range(1, n + 1)]
+n = 3
+processes = [make_process(i + 1) for i in range(n)]
 processes += [make_resource_manager(n)]
 
 m = MDP(*processes)
+print("Processes:", len(m.processes))
+print("Transitions:", len(m.transitions))
 
+# %%
 display_dot(
     m.to_graph(
         at_root("out/graphs/baier2004_persistent.gv"),

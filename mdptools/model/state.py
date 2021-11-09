@@ -5,7 +5,7 @@ from ..utils import flatten, highlight as _h
 @dataclass(eq=True, frozen=True)
 class State:
     s: frozenset[str] = field(compare=True)
-    context: imdict[str, int] = field(compare=True)
+    ctx: imdict[str, int] = field(compare=True)
 
     def rename(self, states: dict[str, str]) -> "State":
         def rename(ss: str) -> str:
@@ -13,16 +13,15 @@ class State:
                 return states[ss]
             return ss
 
-        return State(frozenset(rename(ss) for ss in self.s), self.context)
+        return State(frozenset(rename(ss) for ss in self.s), self.ctx)
 
     def __repr__(self) -> str:
-        return f"State({','.join(self.s)})"
+        ctx = [f"{k}={v}" for k, v in self.ctx.items()]
+        return "{" + ",".join(list(self.s) + ctx) + "}"
 
     def __str__(self) -> str:
         values = [_h[_h.state, ss] for ss in self.s]
-        values += [
-            _h[_h.variable, f"{k}={v}"] for k, v in self.context.items()
-        ]
+        values += [_h[_h.variable, f"{k}={v}"] for k, v in self.ctx.items()]
         return (
             next(iter(values))
             if len(values) == 1
@@ -43,12 +42,12 @@ class State:
 
     def __add__(self, other: "State") -> "State":
         s = self.s.union(other.s)
-        context = imdict({**self.context, **other.context})
+        context = imdict({**self.ctx, **other.ctx})
         return State(s, context)
 
     def __sub__(self, other: "State") -> "State":
         s = self.s.difference(other.s)
-        return State(s, self.context)
+        return State(s, self.ctx)
 
 
 def state(*s: StateDescription, context: dict[str, int] = None) -> State:

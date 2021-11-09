@@ -27,18 +27,15 @@ def make_resource_manager(n: int):
 
 
 # %%
-m1 = make_process(1)
-m2 = make_process(2)
-print(m1, "\n")
-
-rm = make_resource_manager(2)
-print(rm, "\n")
+n = 3
+processes = [make_process(i + 1) for i in range(n)]
+processes += [make_resource_manager(n)]
 
 # %%
-display_graph(m1, m2, rm, file_path="out/graphs/graph_baier2004.gv")
+display_graph(*processes, file_path="out/graphs/graph_baier2004.gv")
 
 # %%
-m = MDP(m1, m2, rm)
+m = MDP(*processes)
 
 m.to_prism(at_root("out/prism/baier2004.prism"))
 
