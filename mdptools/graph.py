@@ -185,7 +185,7 @@ def __str_tuple(s: Union[tuple, str]) -> str:
 
 
 def __str_context(ctx: dict[str, int]) -> str:
-    text = "_".join(f"{k}{v}" for k, v in ctx.items())
+    text = "_".join(f"{k}_{v}" for k, v in ctx.items())
     return f"_ctx_{text}" if text else ""
 
 
@@ -265,12 +265,15 @@ def __greek_letters(label: str) -> str:
     return re.sub(_re_greek, r"\1&\2;\3", label)
 
 
+_re_words = re.compile(r"(&.*?;)|([a-z]+)", re.IGNORECASE)
+
+
 def __italicize_words(label: str) -> str:
     def repl(m: re.Match) -> str:
         g1, g2 = m.groups()
         return g1 if g1 is not None else f"<i>{g2}</i>"
 
-    return re.sub(r"(&.*?;)|([a-z]+)", repl, label)
+    return re.sub(_re_words, repl, label)
 
 
 def __subscript_numerals(label: str, size: int) -> str:
@@ -293,4 +296,5 @@ def __format_command(text: str) -> str:
     text = text.replace(":=", "≔")
     text = re.sub(_re_operator, r"&#8202;\1&#8202;", text)
     text = __italicize_words(text)
+    text = __subscript_numerals(text, graph.point_size * 0.5)
     return text

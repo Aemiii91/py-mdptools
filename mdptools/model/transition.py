@@ -77,7 +77,8 @@ class Transition:
         return Transition(*self, active=processes)
 
     def __repr__(self) -> str:
-        return f"Transition({self.action}, {self.pre.__repr__()})"
+        guard = f", {self.guard.text}" if self.guard else ""
+        return f"Transition({self.action}, {self.pre.__repr__()}{guard})"
 
     def __str__(self):
         pre = format_tup(self.pre, str(self.guard), sep=" & ")
