@@ -32,7 +32,7 @@ def test_literal_string():
     test = {"s0": {"a": {"s0": 0.5, "s1": 0.5}}, "s1": {"tau": {"s1": 1}}}
 
     expected = "{s0: {a: {s0: .5, s1: .5}}, s1: {tau: {s1: 1}}}"
-    actual = format_str(test, colors=False)
+    actual = format_str(test, use_colors=False)
 
     assert actual == expected
 

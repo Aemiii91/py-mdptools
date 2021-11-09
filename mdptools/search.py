@@ -1,22 +1,26 @@
 from .types import (
+    MarkovDecisionProcess as MDP,
     ActionMap,
     State,
     SetMethod,
     Generator,
 )
-from .mdp import MarkovDecisionProcess as MDP
 from queue import Queue, LifoQueue, SimpleQueue
 
 
 def search(
     mdp: MDP,
     s: State = None,
-    set_method: SetMethod = MDP.enabled,
+    set_method: SetMethod = None,
     include_level: bool = False,
     queue: Queue = LifoQueue,
 ) -> Generator[tuple[State, ActionMap], SetMethod, None]:
+    from .mdp import MarkovDecisionProcess
+
     if s is None:
         s = mdp.init
+    if set_method is None:
+        set_method = MarkovDecisionProcess.enabled
 
     queue = queue()
     transition_map = {}

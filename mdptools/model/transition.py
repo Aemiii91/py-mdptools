@@ -12,7 +12,7 @@ from ..types import (
 from ..utils import (
     itertools,
     operator,
-    prod,
+    np,
     partition,
     flatten,
     Counter,
@@ -89,6 +89,8 @@ class Transition:
         )
 
     def __eq__(self, other: "Transition") -> bool:
+        if not isinstance(other, Transition):
+            other = transition(*other)
         return (*self,) == (*other,)
 
     def __hash__(self) -> int:
@@ -115,7 +117,7 @@ class Transition:
         return imdict(
             zip(
                 (tuple(map(operator.add, *s_)) for s_ in s_primes),
-                (prod(p) for p in p_values),
+                (np.prod(p) for p in p_values),
             )
         )
 
@@ -123,7 +125,7 @@ class Transition:
 def transition(
     action: str,
     pre: StateDescription,
-    post: DistributionDescription,
+    post: DistributionDescription = None,
     active: set[MDP] = None,
 ):
     pre, guards = partition(is_guard, list(flatten(pre)))

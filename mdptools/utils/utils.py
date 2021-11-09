@@ -2,7 +2,7 @@ import re
 import itertools
 import operator
 from functools import reduce
-from numpy.core.fromnumeric import prod
+import numpy as np
 from collections import Counter
 
 from ..types import (
@@ -12,6 +12,10 @@ from ..types import (
     Union,
     Hashable,
 )
+
+
+def float_is(n: float, target: float) -> bool:
+    return n - target < 10 * np.spacing(np.float64(1))
 
 
 def flatten(s: Union[tuple, set, list]):
@@ -74,32 +78,32 @@ def id_bank() -> Callable[[Hashable], int]:
     return get_id
 
 
-def minmax_bank() -> Callable[[str, int], dict]:
-    _bank = {}
+# def minmax_bank() -> Callable[[str, int], dict]:
+#     _bank = {}
 
-    def register(key: str = None, value: int = None):
-        if value is None:
-            if key is None:
-                return _bank
-            return _bank[key]
-        if key not in _bank:
-            _bank[key] = (value, value)
-        else:
-            c = _bank[key]
-            _bank[key] = (min(value, c[0]), max(value, c[1]))
-        return value
+#     def register(key: str = None, value: int = None):
+#         if value is None:
+#             if key is None:
+#                 return _bank
+#             return _bank[key]
+#         if key not in _bank:
+#             _bank[key] = (value, value)
+#         else:
+#             c = _bank[key]
+#             _bank[key] = (min(value, c[0]), max(value, c[1]))
+#         return value
 
-    return register
+#     return register
 
 
 def write_file(filename: str, content: str):
     """Safely writes to a file"""
     from os import makedirs, path
 
-    if filename is None or filename == "":
+    if not filename:
         return
 
-    if path.dirname(filename) != "":
+    if path.dirname(filename):
         makedirs(path.dirname(filename), exist_ok=True)
 
     with open(filename, "w+", encoding="utf-8") as f:

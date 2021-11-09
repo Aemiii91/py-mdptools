@@ -52,20 +52,20 @@ class State:
         return len(self.s)
 
     def __add__(self, other: "State") -> "State":
-        context = imdict({**self.ctx, **other.ctx})
-        return State(self.s.union(other.s), context)
+        ctx = imdict({**self.ctx, **other.ctx})
+        return State(self.s.union(other.s), ctx)
 
     def __sub__(self, other: "State") -> "State":
         return State(self.s.difference(other.s), self.ctx)
 
 
-def state(*s: StateDescription, context: dict[str, int] = None) -> State:
-    if context is None:
-        context = {}
-    context = imdict(context)
+def state(*s: StateDescription, ctx: dict[str, int] = None) -> State:
+    if ctx is None:
+        ctx = {}
+    ctx = imdict(ctx)
     if s[0] is None:
-        return State(frozenset(), context)
-    return State(frozenset(flatten(s)), context)
+        return State(frozenset(), ctx)
+    return State(frozenset(flatten(s)), ctx)
 
 
 def state_update(s: StateDescription) -> tuple[State, Update]:

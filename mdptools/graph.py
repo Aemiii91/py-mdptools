@@ -1,12 +1,11 @@
-from .utils import re, format_str
 from .types import (
     Action,
     MarkovDecisionProcess as MDP,
+    SetMethod,
     Union,
     Digraph,
-    Callable,
-    Transition,
 )
+from .utils import re, format_str
 from .model import State, state
 
 
@@ -17,7 +16,8 @@ def graph(
     engine: str = "dot",
     rankdir: str = "TB",
     size: float = 8.5,
-    set_method: Callable[[MDP, State], list[Transition]] = None,
+    set_method: SetMethod = None,
+    highlight: bool = None,
 ) -> Digraph:
     """Renders the graph of a given MDP and saves it to `file_path`."""
     from graphviz import Digraph
@@ -32,12 +32,9 @@ def graph(
     )
     dot.attr(size=f"{size}", rankdir=rankdir, ranksep="0.25", margin="0.1")
 
-    if len(processes) > 1:
-        for pid, process in enumerate(processes):
-            with dot.subgraph() as subgraph:
-                __render_mdp(subgraph, process, pid, set_method)
-    else:
-        __render_mdp(dot, processes[0], 0, set_method)
+    for pid, process in enumerate(processes):
+        with dot.subgraph() as subgraph:
+            __render_mdp(subgraph, process, pid, set_method, highlight)
 
     if file_path is not None:
         dot.render()
@@ -54,17 +51,16 @@ def __render_mdp(
     dot: Digraph,
     m: MDP,
     pid: int,
-    set_method: Callable[[MDP, State], list[Transition]],
+    set_method: SetMethod,
+    highlight: bool,
 ):
-    if m.is_process:
-        __render_process(dot, m, pid)
-    else:
-        __render_system(dot, m, pid, set_method)
+    global _node_map
+    _node_map = {}
 
-
-def __render_process(dot: Digraph, m: MDP, pid: int):
     # Add arrow pointing to the start state
-    init = state(m.init, context={})
+    init = m.init
+    if m.is_process:
+        init = state(init, ctx={})
     init_name = f"mdp_{pid}_start"
     init_label = f"<<b>{m.name}</b>>"
     dot.node(
@@ -75,6 +71,13 @@ def __render_process(dot: Digraph, m: MDP, pid: int):
     )
     dot.edge(init_name, __pf_s(init, pid, m))
 
+    if m.is_process:
+        __render_process(dot, m, pid)
+    else:
+        __render_system(dot, m, pid, set_method, highlight)
+
+
+def __render_process(dot: Digraph, m: MDP, pid: int):
     for a, s, guard, dist in m.transitions:
         # Add a state node to the graph
         s_name = __add_node(dot, s, pid, m)
@@ -82,31 +85,16 @@ def __render_process(dot: Digraph, m: MDP, pid: int):
 
 
 def __render_system(
-    dot: Digraph,
-    m: MDP,
-    pid: int,
-    set_method: Callable[[MDP, State], list[Transition]],
+    dot: Digraph, m: MDP, pid: int, set_method: SetMethod, highlight: bool
 ):
     from graphviz import Digraph
 
-    global _node_map
-
-    # Add arrow pointing to the start state
-    init_name = f"mdp_{pid}_start"
-    init_label = f"<<b>{m.name}</b>>"
-    dot.node(
-        init_name,
-        label=init_label,
-        shape="none",
-        fontsize=f"{round(graph.point_size * 1.2, 2)}",
-    )
-    dot.edge(init_name, __pf_s(m.init, pid, m))
-
     same_rank = [[]]
     curr_level = 0
-    _node_map = {}
 
-    for s, act, level in m.bfs(set_method=set_method):
+    search = m.bfs() if highlight else m.bfs(set_method=set_method)
+
+    for s, act, level in search:
         if level > curr_level:
             same_rank.append([])
             curr_level = level
@@ -116,6 +104,11 @@ def __render_system(
 
         for a, dist in act.items():
             __add_edges(dot, s_name, a, dist, pid, m)
+
+    if highlight:
+        for s, act, level in m.bfs(set_method=set_method):
+            if s in _node_map:
+                dot.node(_node_map[s], style="filled")
 
     for nodes in same_rank:
         sg = Digraph(graph_attr={"rank": "same"})
@@ -133,7 +126,8 @@ def __add_node(dot: Digraph, s: State, pid: int, m: MDP) -> str:
     s_label = __ordered_state_str(s, m)
     s_name = __pf_s(s, pid, m)
     s_ctx_label = ",&nbsp;".join(f"{k}={v}" for k, v in s.ctx.items())
-    dot.node(s_name, __label_html(s_label, second_line=s_ctx_label or None))
+    label = __label_html(s_label, second_line=s_ctx_label or None)
+    dot.node(s_name, label)
     _node_map[s] = s_name
     return s_name
 
@@ -153,7 +147,7 @@ def __add_edges(
         update = None
         if not isinstance(s_prime, State):
             s_prime, upd = s_prime
-            update = upd._repr or None
+            update = upd.text or None
         s_prime_name = __add_node(dot, s_prime, pid, m)
 
         if p == 1:
@@ -181,7 +175,7 @@ def __ordered_state_str(s: State, m: MDP) -> str:
 
 def __pf_s(s: State, pid: int, m: MDP) -> str:
     s_label = __ordered_state_str(s, m)
-    return f"mdp_{pid}_state_{s_label}_ctx_{__str_context(s.ctx)}"
+    return f"mdp_{pid}_state_{s_label}{__str_context(s.ctx)}"
 
 
 def __str_tuple(s: Union[tuple, str]) -> str:
@@ -191,7 +185,8 @@ def __str_tuple(s: Union[tuple, str]) -> str:
 
 
 def __str_context(ctx: dict[str, int]) -> str:
-    return "_".join(f"{k}{v}" for k, v in ctx.items())
+    text = "_".join(f"{k}{v}" for k, v in ctx.items())
+    return f"_ctx_{text}" if text else ""
 
 
 def __create_p_point(
@@ -211,7 +206,7 @@ def __label_html(
     label: str, color: str = None, second_line: str = None
 ) -> str:
     if isinstance(label, float):
-        label = format_str(label, colors=False)
+        label = format_str(label, use_colors=False)
     label = __str_tuple(label)
     label = __greek_letters(label)
     label = __italicize_words(label)
@@ -234,9 +229,34 @@ def __html_padding(label: str, padding: int):
     )
 
 
-# pylint: disable=line-too-long
+_greek_letters = [
+    "alpha",
+    "beta",
+    "gamma",
+    "delta",
+    "epsilon",
+    "zeta",
+    "eta",
+    "theta",
+    "iota",
+    "kappa",
+    "lambda",
+    "mu",
+    "nu",
+    "xi",
+    "omicron",
+    "pi",
+    "rho",
+    "sigma",
+    "tau",
+    "upsilon",
+    "phi",
+    "chi",
+    "psi",
+    "omega",
+]
 _re_greek = re.compile(
-    r"(^|[\b_])(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|omicron|pi|rho|sigma|tau|upsilon|phi|chi|psi|omegamxsm)([\b_]|$)",
+    r"(^|[\b_])(" + "|".join(_greek_letters) + r")([\b_]|$)",
     re.IGNORECASE,
 )
 

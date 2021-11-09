@@ -3,41 +3,74 @@ from ..utils import re, reduce, highlight as _h
 
 
 @dataclass(eq=True, frozen=True)
-class Guard:
-    text: str = field(compare=True)
-    conj: frozenset[Callable[[dict], bool]]
+class Op:
+    obj: str = field(compare=True)
+    op: str = field(compare=True)
+    value: str
+    _type: str
+    _call: Callable[[dict[str, int]], any]
 
     def __repr__(self) -> str:
-        return f"Guard({self.text or 'True'})"
+        return f"{self.obj}{self.op}{self.value}"
+
+    def __call__(self, ctx: dict[str, int]) -> any:
+        return self._call(ctx)
+
+
+@dataclass(eq=True, frozen=True)
+class Command:
+    content: frozenset[any] = field(compare=True)
+
+    @property
+    def text(self) -> str:
+        return ", ".join(map(str, self.content))
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.text})"
 
     def __str__(self) -> str:
         return _h[_h.variable, self.text] if self.text else ""
 
-    def __eq__(self, other: "Guard") -> bool:
-        return self.text == other.text  # TODO make comparable
-
-    def __hash__(self) -> int:
-        return hash((self.text,))
-
-    def __call__(self, context: dict[str, int]) -> bool:
-        return all(p(context) for p in self.conj)
-
-    def __add__(self, other: "Guard") -> "Guard":
-        _repr = " & ".join(filter(None, [self.text, other.text]))
-        conj = self.conj.union(other.conj)
-        return Guard(_repr, conj)
+    def __add__(self, other: "Command") -> "Command":
+        content = self.content.union(other.content)
+        return self.__class__(content)
 
     def __bool__(self) -> bool:
-        return bool(self.text)
+        return bool(self.content)
+
+
+class Guard(Command):
+    @property
+    def text(self) -> str:
+        return " & ".join(" | ".join(map(str, disj)) for disj in self.content)
+
+    def __repr__(self) -> str:
+        return f"Guard({self.text or 'True'})"
+
+    def __call__(self, ctx: dict[str, int]) -> bool:
+        if not self.content:
+            return True
+        return all(any(pred(ctx) for pred in disj) for disj in self.content)
 
 
 def guard(pred: Union[str, Iterable[str]]) -> Guard:
     if not isinstance(pred, str):
         pred = " & ".join(pred)
-    return Guard(pred, compile_guard(pred))
+    return Guard(__compile_guard(pred))
 
 
-operations = {
+def __compile_guard(text: str) -> frozenset[frozenset[Op]]:
+    if not text:
+        return frozenset()
+    conj = (
+        re.split(r"\s*\|\s*", disj) for disj in re.split(r"\s*\&\s*", text)
+    )
+    return frozenset(
+        frozenset(__simple_pred(expr) for expr in disj) for disj in conj
+    )
+
+
+_operations = {
     "=": lambda a, b: a == b,
     "!=": lambda a, b: a != b,
     ">": lambda a, b: a > b,
@@ -47,84 +80,51 @@ operations = {
 }
 
 
-def compile_guard(text: str) -> frozenset[Callable[[dict], bool]]:
-    if not text:
-        return frozenset([lambda _: True])
-    nodes = (
-        re.split(r"\s*\|\s*", disj) for disj in re.split(r"\s*\&\s*", text)
-    )
-    return frozenset(map(map_disjunction, nodes))
-
-
-def map_disjunction(disj: list[str]) -> Callable[[dict], bool]:
-    disj = frozenset(map(simple_pred, disj))
-    return lambda context: any(p(context) for p in disj)
-
-
-def simple_pred(text: str) -> Callable[[dict], bool]:
+def __simple_pred(text: str) -> Callable[[dict], bool]:
     match = re.match(
-        r"([a-zA-Z_]\w*)\s*(" + "|".join(operations.keys()) + r")\s*(\d+)",
+        r"([a-zA-Z_]\w*)\s*(" + "|".join(_operations.keys()) + r")\s*(\d+)",
         text,
     )
     if match is None:
         raise ValueError
     obj, op, value = match.groups()
-    value = int(value)
-    return lambda context: operations[op](
-        context[obj] if obj in context else 0, value
+    _call = lambda ctx: _operations[op](
+        ctx[obj] if obj in ctx else 0, int(value)
     )
+    return Op(obj, op, value, "r", _call)
 
 
-@dataclass(eq=True, frozen=True)
-class Update:
-    _repr: str = field(compare=True)
-    assignments: frozenset[Callable[[dict], dict]]
-
-    def __repr__(self) -> str:
-        return f"Update({self._repr})"
-
-    def __str__(self) -> str:
-        return _h[_h.variable, self._repr]
-
-    def __call__(self, context: dict[str, int]) -> dict[str, int]:
-        if not self.assignments:
-            return context
+class Update(Command):
+    def __call__(self, ctx: dict[str, int]) -> dict[str, int]:
+        if not self.content:
+            return ctx
         return reduce(
             lambda ctx, assign: {**ctx, **assign(ctx)},
-            self.assignments,
-            context,
+            self.content,
+            ctx,
         )
-
-    def __add__(self, other: "Update") -> "Update":
-        _repr = ", ".join(filter(None, [self._repr, other._repr]))
-        assignments = self.assignments.union(other.assignments)
-        return Update(_repr, assignments)
-
-    def __bool__(self) -> bool:
-        return bool(self._repr)
 
 
 def update(*text: str) -> Update:
     text = ", ".join(list(text))
-    return Update(text, compile_update(text))
+    return Update(__compile_update(text))
 
 
-def compile_update(text: str) -> set[Callable[[dict], dict]]:
+def __compile_update(text: str) -> set[Callable[[dict], dict]]:
     if not text:
         return frozenset()
     nodes = re.split(r"\s*,\s*", text)
-    return frozenset(map(simple_assignment, nodes))
+    return frozenset(filter(None, map(__simple_assignment, nodes)))
 
 
-def simple_assignment(text: str) -> Callable[[dict], bool]:
+def __simple_assignment(text: str) -> Callable[[dict], bool]:
     match = re.match(r"([a-zA-Z_]\w*)\s*(:=)\s*(\d+)", text)
     if match is None:
         raise ValueError
     obj, op, value = match.groups()
-    value = int(value)
     if op == ":=":
-        return lambda _: {obj: value}
-    return lambda _: None
+        return Op(obj, op, value, "w", lambda _: {obj: int(value)})
+    return None
 
 
 def is_guard(s: str) -> bool:

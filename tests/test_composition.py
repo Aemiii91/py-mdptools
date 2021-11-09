@@ -17,8 +17,16 @@ def test_simple_composition():
 
     m = MDP(m1, m2, name="M")
 
-    # assert m.is_valid
-    # assert len(m.S) == 9
+    assert m.states == {"s0", "s1", "s2", "t0", "t1", "t2"}
+    assert m.actions == {"a", "b", "c", "x", "y", "z"}
+    assert m.transitions == [
+        ("a", "s0", "s1"),
+        ("b", "s1", {"s0": 0.5, "s2": 0.5}),
+        ("c", "s2"),
+        ("x", "t0", "t1"),
+        ("y", "t1", {"t0": 0.5, "t2": 0.5}),
+        ("z", "t2"),
+    ]
     assert m.name == "M"
 
 

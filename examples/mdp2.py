@@ -41,5 +41,6 @@ display_dot(
     m.to_graph(
         at_root("out/graphs/baier2004_persistent.gv"),
         set_method=persistent_set,
+        highlight=True,
     )
 )

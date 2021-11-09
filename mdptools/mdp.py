@@ -24,7 +24,9 @@ from .model import (
     state,
     state_apply,
 )
+from .search import search, bfs
 from .graph import graph
+from .validate import validate
 
 
 DEFAULT_NAME = "M"
@@ -53,7 +55,7 @@ class MarkovDecisionProcess:
                 self.__init_process(transitions, init)
             else:
                 processes = [
-                    _MDPShell(name, frozenset(states), state(states[0]))
+                    _MDP(name, frozenset(states), state(states[0]))
                     for name, states in processes.items()
                 ]
                 self.__init_system(processes, init, transitions)
@@ -67,10 +69,7 @@ class MarkovDecisionProcess:
         self, transitions: list[TransitionDescription], init: StateDescription
     ):
         if isinstance(transitions, MarkovDecisionProcess):
-            if init is None:
-                init = transitions.init
-            self.name = transitions.name
-            transitions = transitions.transitions
+            raise ValueError
 
         self.processes = [self]
         self.transitions = list(map(self.__bind_transition, transitions))
@@ -113,13 +112,9 @@ class MarkovDecisionProcess:
         )
 
     def search(self, s: State = None, **kw) -> Generator:
-        from .search import search
-
         return search(self, s, **kw)
 
     def bfs(self, s: State = None, **kw) -> Generator:
-        from .search import bfs
-
         return bfs(self, s, **kw)
 
     def remake(
@@ -133,7 +128,9 @@ class MarkovDecisionProcess:
             rename_map(self.actions, action_fn),
         )
         if not self.is_process:
-            raise Exception("Can't remake composed MDP")
+            return MarkovDecisionProcess(
+                *(p.remake(state_fn, action_fn) for p in self.processes)
+            )
         if name is None:
             name = self.name
         return MarkovDecisionProcess(
@@ -164,6 +161,10 @@ class MarkovDecisionProcess:
     def is_process(self) -> bool:
         return len(self.processes) == 1
 
+    @property
+    def is_valid(self) -> bool:
+        return validate(self)[0]
+
     def __eq__(self, other: MDP) -> bool:
         init = self.init == other.init
         trs = all(tr in other.transitions for tr in self.transitions)
@@ -171,9 +172,6 @@ class MarkovDecisionProcess:
 
     def __hash__(self) -> int:
         return id(self)
-
-    def __contains__(self, key: str) -> bool:
-        return key in self.states
 
     def __repr__(self) -> str:
         return f"MDP({self.name})"
@@ -186,15 +184,13 @@ class MarkovDecisionProcess:
 
     def __bind_transition(self, tr: TransitionDescription):
         if not isinstance(tr, Transition):
-            it = iter(tr)
-            action, pre, post = (next(it, None) for _ in range(3))
-            tr = transition(action, pre, post=post)
+            tr = transition(*tr)
 
         if self.is_process:
             process = {self}
         else:
             process = set(
-                p for p in self.processes for ss in tr.pre.s if ss in p
+                p for p in self.processes for ss in tr.pre.s if ss in p.states
             )
 
         return tr.bind(process)
@@ -211,10 +207,13 @@ class MarkovDecisionProcess:
 
 
 @dataclass(eq=True, frozen=True)
-class _MDPShell:
+class _MDP:
     name: str
     states: frozenset[str]
     init: State
 
-    def __contains__(self, key: str) -> bool:
-        return key in self.states
+    def remake(self, state_fn, _) -> "_MDP":
+        states = rename_map(self.states, state_fn)
+        return _MDP(
+            self.name, frozenset(states.values()), self.init.rename(states)
+        )

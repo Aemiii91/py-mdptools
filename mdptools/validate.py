@@ -1,5 +1,4 @@
 import sys
-import numpy as _np
 
 from .types import (
     Action,
@@ -8,7 +7,7 @@ from .types import (
     MarkovDecisionProcess,
     State,
 )
-from .utils import highlight as _h, format_str
+from .utils import np, highlight as _h, format_str, float_is
 
 
 MDP_REQ_EN_S_NONEMPTY: ErrorCode = (0, "forall s in S : en(s) != {}")
@@ -69,8 +68,8 @@ def __validate_sum_to_one(
     errors = []
 
     for a, s, _, dist in mdp.transitions:
-        sum_a = _np.abs(sum(dist.values()))
-        if sum_a - 1.0 >= 10 * _np.spacing(_np.float64(1)):
+        sum_a = np.abs(sum(dist.values()))
+        if not float_is(sum_a, 1.0):
             errors += __format_sum_to_one(dist, s, a, sum_a)
 
     return (len(errors) == 0, errors)
