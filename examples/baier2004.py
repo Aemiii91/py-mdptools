@@ -1,4 +1,4 @@
-from mdptools import MarkovDecisionProcess as MDP, validate
+from mdptools import MarkovDecisionProcess as MDP
 from helpers import at_root, display_graph
 
 
@@ -39,10 +39,10 @@ display_graph(m1, m2, rm, file_path="out/graphs/graph_baier2004.gv")
 
 # %%
 m = MDP(m1, m2, rm)
+
+m.to_prism(at_root("out/prism/baier2004.prism"))
+
 print(m, "\n")
 
 # %%
 display_graph(m, file_path="out/graphs/graph_baier2004_parallel.gv")
-
-# %%
-print(m.to_prism(at_root("out/prism/baier2004.prism")), "\n")

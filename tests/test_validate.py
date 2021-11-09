@@ -2,7 +2,6 @@
 """
 import pytest
 from mdptools import MarkovDecisionProcess as MDP, validate
-from mdptools.types import State
 
 from .helpers import error_code
 

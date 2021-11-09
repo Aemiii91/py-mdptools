@@ -45,7 +45,6 @@ def graph(
     return dot
 
 
-graph.re_sep = "_"
 graph.point_size = 18
 graph.p_color = None
 graph.label_padding = 2
@@ -78,9 +77,7 @@ def __render_process(dot: Digraph, m: MDP, pid: int):
 
     for a, s, guard, dist in m.transitions:
         # Add a state node to the graph
-        s_label = __ordered_state_str(s, m)
-        s_name = __pf_s(s, pid, m)
-        dot.node(s_name, __label_html(s_label))
+        s_name = __add_node(dot, s, pid, m)
         __add_edges(dot, s_name, a, dist, pid, m, second_line=guard.text)
 
 
@@ -91,6 +88,8 @@ def __render_system(
     set_method: Callable[[MDP, State], list[Transition]],
 ):
     from graphviz import Digraph
+
+    global _node_map
 
     # Add arrow pointing to the start state
     init_name = f"mdp_{pid}_start"
@@ -105,20 +104,15 @@ def __render_system(
 
     same_rank = [[]]
     curr_level = 0
+    _node_map = {}
 
     for s, act, level in m.bfs(set_method=set_method):
         if level > curr_level:
             same_rank.append([])
             curr_level = level
         # Add a state node to the graph
-        s_label = __ordered_state_str(s, m)
-        s_name = __pf_s(s, pid, m)
+        s_name = __add_node(dot, s, pid, m)
         same_rank[-1].append(s_name)
-        s_ctx_label = ",".join(f"{k}={v}" for k, v in s.context.items())
-
-        dot.node(
-            s_name, __label_html(s_label, second_line=s_ctx_label or None)
-        )
 
         for a, dist in act.items():
             __add_edges(dot, s_name, a, dist, pid, m)
@@ -130,10 +124,18 @@ def __render_system(
         dot.subgraph(sg)
 
 
-def __ordered_state_str(s: State, m: MDP) -> str:
-    if m.is_process:
-        return __str_tuple(s)
-    return "_".join(ss for p in m.processes for ss in s.s if ss in p.states)
+_node_map: dict[State, str] = {}
+
+
+def __add_node(dot: Digraph, s: State, pid: int, m: MDP) -> str:
+    if s in _node_map:
+        return _node_map[s]
+    s_label = __ordered_state_str(s, m)
+    s_name = __pf_s(s, pid, m)
+    s_ctx_label = ",".join(f"{k}={v}" for k, v in s.context.items())
+    dot.node(s_name, __label_html(s_label, second_line=s_ctx_label or None))
+    _node_map[s] = s_name
+    return s_name
 
 
 def __add_edges(
@@ -152,33 +154,29 @@ def __add_edges(
         if not isinstance(s_prime, State):
             s_prime, upd = s_prime
             update = upd._repr or None
-        s_prime_name = __pf_s(s_prime, pid, m)
-
-        # TODO maybe collect and add all nodes first
-        dot.node(s_prime_name, __label_html(__ordered_state_str(s_prime, m)))
+        s_prime_name = __add_node(dot, s_prime, pid, m)
 
         if p == 1:
             second_line = (
                 ", ".join(filter(None, [second_line, update])) or None
             )
+            label = __label_html(a, second_line=second_line)
             # Add a transition arrow between two states (non-deterministic)
-            dot.edge(
-                s_name,
-                s_prime_name,
-                __label_html(a, second_line=second_line),
-                minlen="2",
-            )
+            dot.edge(s_name, s_prime_name, label, minlen="2")
         else:
             if p_point is None:
                 p_label = __label_html(f"{a}", second_line=second_line)
                 # Create a shared point for the probabilistic outcome of action `a`
                 p_point = __create_p_point(dot, s_name, a, p_label, pid)
+            label = __label_html(p, color=graph.p_color, second_line=update)
             # Add a transition arrow between the shared point and the next state
-            dot.edge(
-                p_point,
-                s_prime_name,
-                __label_html(p, color=graph.p_color, second_line=update),
-            )
+            dot.edge(p_point, s_prime_name, label)
+
+
+def __ordered_state_str(s: State, m: MDP) -> str:
+    if m.is_process:
+        return __str_tuple(s)
+    return "_".join(ss for p in m.processes for ss in s.s if ss in p.states)
 
 
 def __pf_s(s: State, pid: int, m: MDP) -> str:
@@ -215,16 +213,18 @@ def __label_html(
     if isinstance(label, float):
         label = format_str(label, colors=False)
     label = __str_tuple(label)
-    label = __subscript_numerals(label, graph.point_size * 0.5)
     label = __greek_letters(label)
-    label = __remove_separators(label, graph.re_sep)
+    label = __italicize_words(label)
+    label = __subscript_numerals(label, graph.point_size * 0.5)
+    label = label.replace("_", "&nbsp;")
     if color is not None:
         label = f'<font color="{color}">{label}</font>'
-    if second_line is not None:
-        second_line = second_line.replace(":=", "≔")
+    if second_line:
+        second_line = __format_command(second_line)
+        second_line = __italicize_words(second_line)
         label = f"{label}<br/>{second_line}"
     label = __html_padding(label, graph.label_padding)
-    return f"<<i>{label}</i>>"
+    return f"<{label}>"
 
 
 def __html_padding(label: str, padding: int):
@@ -237,23 +237,38 @@ def __html_padding(label: str, padding: int):
 
 
 # pylint: disable=line-too-long
-_re_greek = r"\b(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|omicron|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega)(?![a-z])"
+_re_greek = re.compile(
+    r"(^|[\b_])(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|omicron|pi|rho|sigma|tau|upsilon|phi|chi|psi|omegamxsm)([\b_]|$)",
+    re.IGNORECASE,
+)
 
 
 def __greek_letters(label: str) -> str:
-    return re.sub(_re_greek, r"&\1;", label)
+    return re.sub(_re_greek, r"\1&\2;\3", label)
+
+
+def __italicize_words(label: str) -> str:
+    def repl(m: re.Match) -> str:
+        g1, g2 = m.groups()
+        return g1 if g1 is not None else f"<i>{g2}</i>"
+
+    return re.sub(r"(&.*?;)|([a-z]+)", repl, label)
 
 
 def __subscript_numerals(label: str, size: int) -> str:
     return re.sub(
-        r"([a-z])_?([0-9]+)(?![0-9])",
-        r"\1"
-        f'<sub><font point-size="{round(size, 2)}">'
-        r"\2"
-        "</font></sub>",
+        r"(?!^|[.0-9])_?([0-9]+)(?![0-9])",
+        f'<sub><font point-size="{round(size, 2)}">' r"\1" "</font></sub>",
         label,
     )
 
 
-def __remove_separators(label: str, sep: str) -> str:
-    return label.replace(sep, "&#8201;")
+_re_operator = re.compile(
+    r"\s*(" + "|".join([">=", "<=", "!=", "=", ">", "<", "≔"]) + r")\s*"
+)
+
+
+def __format_command(text: str) -> str:
+    text = text.replace(":=", "≔")
+    text = re.sub(_re_operator, r"&#8202;\1&#8202;", text)
+    return text
