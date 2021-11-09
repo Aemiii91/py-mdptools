@@ -154,6 +154,9 @@ def __add_edges(
             update = upd._repr or None
         s_prime_name = __pf_s(s_prime, pid, m)
 
+        # TODO maybe collect and add all nodes first
+        dot.node(s_prime_name, __label_html(__ordered_state_str(s_prime, m)))
+
         if p == 1:
             second_line = (
                 ", ".join(filter(None, [second_line, update])) or None
