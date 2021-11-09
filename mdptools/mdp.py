@@ -6,28 +6,23 @@ from .types import (
     StateDescription,
     TransitionDescription,
     Union,
-    Callable,
     Generator,
-    defaultdict,
     Iterable,
 )
 from .utils import (
-    itertools,
     operator,
     reduce,
-    Counter,
     highlight as _h,
     rename_map,
     to_prism,
-    SimpleQueue,
 )
 from .model import (
     Transition,
     transition,
-    post_state,
-    apply_update,
+    compose_transitions,
     State,
     state,
+    state_apply,
 )
 from .graph import graph
 
@@ -83,7 +78,7 @@ class MarkovDecisionProcess:
         if init is None and self.transitions:
             init = next(iter(self.transitions)).pre
         if init is not None:
-            self.init = apply_update(post_state(init))
+            self.init = state_apply(init)
 
     def __init_system(
         self,
@@ -94,7 +89,7 @@ class MarkovDecisionProcess:
         self.processes = list(processes)
 
         if transitions is None:
-            self.transitions = combine_transitions(self.processes)
+            self.transitions = compose_transitions(self.processes)
         else:
             self.transitions = list(map(self.__bind_transition, transitions))
 
@@ -103,7 +98,7 @@ class MarkovDecisionProcess:
         if init is None:
             self.init = reduce(operator.add, (p.init for p in self.processes))
         else:
-            self.init = apply_update(post_state(init))
+            self.init = state_apply(init)
 
     def enabled(self, s: State = None) -> list[Transition]:
         if s is None:
@@ -117,62 +112,15 @@ class MarkovDecisionProcess:
             iter(filter(lambda tr: tr.is_enabled(s), self.transitions)), None
         )
 
-    def search(
-        self,
-        s: State = None,
-        set_method: Callable[[MDP, State], list[Transition]] = None,
-    ) -> Generator:
-        if set_method is None:
-            set_method = MarkovDecisionProcess.enabled
-        if s is None:
-            s = self.init
+    def search(self, s: State = None, **kw) -> Generator:
+        from .search import search
 
-        stack = [s]
-        transition_map = {}
+        return search(self, s, **kw)
 
-        while len(stack) > 0:
-            s = stack.pop()
-            if s not in transition_map:
-                # Register the global state
-                transition_map[s] = {}
-                # Iterate transitions returned by callback
-                for tr in set_method(self, s):
-                    # Get the successor states for the transition
-                    succ = tr.successors(s)
-                    transition_map[s][tr.action] = succ
-                    # Add the discovered states to the stack
-                    stack += list(succ.keys())
-                yield (s, transition_map[s])
+    def bfs(self, s: State = None, **kw) -> Generator:
+        from .search import bfs
 
-    def bfs(
-        self,
-        s: State = None,
-        set_method: Callable[[MDP, State], list[Transition]] = None,
-    ) -> Generator:
-        if set_method is None:
-            set_method = MarkovDecisionProcess.enabled
-        if s is None:
-            s = self.init
-
-        queue = SimpleQueue()
-        transition_map = {}
-
-        queue.put((s, 0))
-
-        while not queue.empty():
-            s, level = queue.get()
-            if s not in transition_map:
-                # Register the global state
-                transition_map[s] = {}
-                # Iterate transitions returned by callback
-                for tr in set_method(self, s):
-                    # Get the successor states for the transition
-                    successors = tr.successors(s)
-                    transition_map[s][tr.action] = successors
-                    # Add the discovered states to the stack
-                    for succ in successors.keys():
-                        queue.put((succ, level + 1))
-                yield (s, transition_map[s], level)
+        return bfs(self, s, **kw)
 
     def remake(
         self,
@@ -270,40 +218,3 @@ class _MDPShell:
 
     def __contains__(self, key: str) -> bool:
         return key in self.states
-
-
-def combine_transitions(processes: list[MDP]) -> list[Transition]:
-    transitions = []
-
-    # List all process transitions
-    process_transitions = [
-        (pid, tr) for pid, p in enumerate(processes) for tr in p.transitions
-    ]
-    # Count the number of processes for each action
-    global_actions = Counter(
-        itertools.chain.from_iterable(
-            (tr.action for tr in p.transitions) for p in processes
-        )
-    )
-    # Create a dict of actions that appear in more than one process
-    synched_actions = {
-        a: defaultdict(list)
-        for a, count in global_actions.items()
-        if count > 1 and not a.startswith("tau")
-    }
-
-    for pid, tr in process_transitions:
-        if tr.action in synched_actions:
-            # Collect all transitions belonging to a synched action
-            synched_actions[tr.action][pid].append(tr)
-        else:
-            transitions.append(tr)
-
-    # Generate all permutations of synched transitions
-    transitions += [
-        reduce(operator.add, trs)
-        for queue in synched_actions.values()
-        for trs in itertools.product(*queue.values())
-    ]
-
-    return transitions

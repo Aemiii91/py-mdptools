@@ -4,10 +4,8 @@ import operator
 from functools import reduce
 from numpy.core.fromnumeric import prod
 from collections import Counter
-from queue import SimpleQueue
 
 from ..types import (
-    MarkovDecisionProcess,
     RenameFunction,
     Callable,
     Iterable,

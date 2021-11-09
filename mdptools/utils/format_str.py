@@ -13,6 +13,11 @@ def format_str(obj, color_map: ColorMap = None, colors: bool = True) -> str:
     )
 
 
+def format_tup(f, s, sep: str, wrap: bool = False) -> str:
+    ss = f"{f}{sep}{s}" if s else f"{f}"
+    return f"({ss})" if s and wrap else ss
+
+
 def to_identifier(name: str) -> str:
     return re.sub(r"\W+|^(?=\d+)", "_", name)
 

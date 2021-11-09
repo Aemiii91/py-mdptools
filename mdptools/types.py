@@ -64,3 +64,5 @@ RenameMap = dict[tuple[str, ...], tuple[str, ...]]
 RenameFunction = Union[
     tuple[str, str], list[str], dict[str, str], Callable[[str], str]
 ]
+
+SetMethod = Callable[[MarkovDecisionProcess, State], list[Transition]]

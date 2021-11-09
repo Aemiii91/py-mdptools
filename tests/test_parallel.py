@@ -62,4 +62,4 @@ def test_custom_transition_function(
 def test_persistent_set(baier_p1: MDP, baier_p2: MDP, baier_rm: MDP):
     m = MDP(baier_p1, baier_p2, baier_rm)
     state_space_ps = [s for s, _ in m.search(set_method=persistent_set)]
-    assert len(state_space_ps) == 4
+    assert len(state_space_ps) == 5

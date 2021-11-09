@@ -27,7 +27,7 @@ def make_resource_manager(n: int):
 
 
 # %%
-n = 3
+n = 2
 processes = [make_process(i + 1) for i in range(n)]
 processes += [make_resource_manager(n)]
 
@@ -43,3 +43,5 @@ print(m, "\n")
 
 # %%
 display_graph(m, file_path="out/graphs/graph_baier2004_parallel.gv")
+
+# %%
