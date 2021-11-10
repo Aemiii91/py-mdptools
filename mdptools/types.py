@@ -1,33 +1,65 @@
 # pylint: disable=unused-import
-from typing import Callable, Union, Iterable, TYPE_CHECKING
+from dataclasses import dataclass, field
+from collections import defaultdict
+from typing import (
+    Callable,
+    Generator,
+    Iterator,
+    Union,
+    Iterable,
+    Hashable,
+    TYPE_CHECKING,
+)
 
 Digraph = any
 MarkovDecisionProcess = any
+State = any
+Transition = any
+Guard = any
+Command = any
 
 if TYPE_CHECKING:
     from graphviz.dot import Digraph
     from .mdp import MarkovDecisionProcess
+    from .model import State, Transition, Guard, Command
 
 
-States = tuple[str]
-State = Union[str, States]
+class imdict(dict):
+    def __hash__(self):
+        return hash(frozenset(self.items()))
+
+    def _immutable(self, *a, **kw):
+        raise TypeError("object is immutable")
+
+    __setitem__ = _immutable
+    __delitem__ = _immutable
+
+
+StateDescription = Union[str, tuple, set, "State"]
+
 Action = str
-StateOrAction = Union[State, Action]
-Transition = tuple[States, Action, dict[States, float]]
 
-LooseTransitionMap = dict[
-    State,
-    Union[
-        set[Action],
-        dict[Action, Union[dict[State, float], float]],
-    ],
+Distribution = imdict[tuple[State, Command], float]
+ActionMap = dict[Action, Distribution]
+# TransitionMap = dict[tuple[State, Guard], ActionMap]
+
+
+DistributionDescription = dict[StateDescription, float]
+TransitionDescription = tuple[
+    str, StateDescription, Union[StateDescription, DistributionDescription]
 ]
-DistributionMap = dict[State, float]
-ActionMap = dict[Action, DistributionMap]
-TransitionMap = dict[State, ActionMap]
+
 
 ErrorCode = tuple[int, str]
-ColorMap = dict[str, list[str]]
-RenameFunction = Union[
-    tuple[str, str], list[str], dict[str, str], Callable[[str], str]
+
+RenameFn = Union[
+    tuple[str, str],
+    dict[str, str],
+    Callable[[str], str],
 ]
+RenameFunction = Union[
+    RenameFn,
+    list[RenameFn],
+]
+
+SetMethod = Callable[[MarkovDecisionProcess, State], list[Transition]]

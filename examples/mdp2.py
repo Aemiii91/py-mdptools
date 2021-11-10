@@ -1,5 +1,6 @@
 from mdptools import MarkovDecisionProcess as MDP
-from helpers import at_root, display_graph
+from mdptools.set_methods import persistent_set
+from helpers import at_root, display_dot
 
 
 def make_process(i: int):
@@ -20,28 +21,29 @@ def make_resource_manager(n: int):
     trs = []
     for i in range(1, n + 1):
         trs += [
-            (f"request_{i}", "idle", {f"prepare_{i}": 0.9, "idle": 0.1}),
+            (f"request_{i}", "idle", {(f"prepare_{i}"): 0.9, "idle": 0.1}),
             (f"grant_{i}", f"prepare_{i}", ("idle", f"x:={i}")),
         ]
     return MDP(trs, init=("idle", "x:=0"), name="RM")
 
 
-# %%
-n = 2
-processes = [make_process(i + 1) for i in range(n)]
-processes += [make_resource_manager(n)]
+def make_system(n: int):
+    processes = [make_process(i + 1) for i in range(n)]
+    rm = make_resource_manager(n)
+    return MDP(*processes, rm, set_method=persistent_set)
+
 
 # %%
-display_graph(*processes, file_path="out/graphs/graph_baier2004.gv")
+m = make_system(2)
+print("Transitions:", len(m.transitions))
+print("State space:", len(list(m.search())))
+
+print(m.to_prism(at_root("out/prism/baier2004_persistent.prism")))
 
 # %%
-m = MDP(*processes)
-
-m.to_prism(at_root("out/prism/baier2004.prism"))
-
-print(m, "\n")
-
-# %%
-display_graph(m, file_path="out/graphs/graph_baier2004_parallel.gv")
-
-# %%
+display_dot(
+    m.to_graph(
+        at_root("out/graphs/baier2004_persistent.gv"),
+        highlight=True,
+    )
+)

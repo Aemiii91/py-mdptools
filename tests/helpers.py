@@ -1,7 +1,8 @@
 """ Test helpers
 """
 from mdptools import MarkovDecisionProcess
+from mdptools.types import ErrorCode
 
 
-def error_code(mdp: MarkovDecisionProcess, idx: int = 0) -> int:
-    return mdp.errors[idx][0][0]
+def error_code(errors: list[tuple[ErrorCode, str]], idx: int = 0) -> int:
+    return errors[idx][0][0]

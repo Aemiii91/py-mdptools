@@ -81,7 +81,7 @@ confidence=
 disable=locally-disabled,
         trailing-whitespace,
         fixme,
-        missing-docstring,
+        missing-module-docstring,
         protected-access,
         invalid-name,
         super-init-not-called,
@@ -111,7 +111,8 @@ disable=locally-disabled,
         unused-import,
         wildcard-import,
         unused-wildcard-import,
-        wrong-import-order
+        wrong-import-order,
+        unbalanced-tuple-unpacking
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

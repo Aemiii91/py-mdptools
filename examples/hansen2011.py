@@ -1,47 +1,49 @@
-from mdptools import MarkovDecisionProcess, parallel
-from mdptools.utils.prism import to_prism
+from mdptools import MarkovDecisionProcess as MDP
+from mdptools.set_methods import persistent_set
 
-from helpers import at_root, display_graph
+from helpers import at_root, display_graph, display_dot
+from mdptools.utils import highlight
 
 # %%
-m1 = MarkovDecisionProcess(
-    {
-        "s0": {"a": {"s1": 0.2, "s2": 0.8}, "b": {"s2": 0.7, "s3": 0.3}},
-        "s1": "tau_1",
-        "s2": {"x", "y", "z"},
-        "s3": {"x", "z"},
-    },
-    S="s0,s1,s2,s3",
-    A="a,b,x,y,z,tau_1",
+m1 = MDP(
+    [
+        ("a", "s0", {"s1": 0.2, "s2": 0.8}),
+        ("b", "s0", {"s2": 0.7, "s3": 0.3}),
+        ("tau", "s1"),
+        ("x", "s2"),
+        ("y", "s2"),
+        ("z", "s2"),
+        ("x", "s3"),
+        ("z", "s3"),
+    ],
     name="M1",
 )
 print(m1, "\n")
 
-m2 = MarkovDecisionProcess(
-    {"r0": {"x": "r1"}, "r1": {"y": "r0", "z": "r1"}}, name="M2"
-)
+m2 = MDP([("x", "r0", "r1"), ("y", "r1", "r0"), ("z", "r1")], name="M2")
 print(m2, "\n")
 
-m3 = MarkovDecisionProcess(
-    {"w0": {"c": "w1", "y": "w0"}, "w1": "tau_2"}, name="M3"
-)
+m3 = MDP([("c", "w0", "w1"), ("y", "w0"), ("tau", "w1")], name="M3")
 print(m3, "\n")
 
-m4 = MarkovDecisionProcess(
-    {"v0": {"z": "v1", "y": "v0"}, "v1": "z"}, name="M4"
-)
+m4 = MDP([("z", "v0", "v1"), ("y", "v0"), ("z", "v1")], name="M4")
 print(m4, "\n")
 
-m = parallel(m1, m2, m3, m4)
-
-print(m)
-
-# %%
-display_graph([m1, m2, m3, m4], "out/graphs/hansen2011_mdps.gv")
-display_graph(m, "out/graphs/hansen2011_combined.gv")
+m = MDP(m1, m2, m3, m4)
+print(m, "\n")
 
 # %%
-to_prism(m1, at_root("out/prism/generated.prism"))
-to_prism(m, at_root("out/prism/testing.prism"))
+display_graph(m1, m2, m3, m4, file_path="out/graphs/hansen2011_mdps.gv")
+display_dot(
+    m.to_graph(
+        at_root("out/graphs/hansen2011_combined.gv"),
+        set_method=persistent_set,
+        highlight=True,
+    )
+)
+
+# %%
+print(m1.to_prism(at_root("out/prism/generated.prism")), "\n")
+print(m.to_prism(at_root("out/prism/testing.prism")), "\n")
 
 # %%
