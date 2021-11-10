@@ -1,5 +1,4 @@
 from mdptools import MarkovDecisionProcess as MDP
-from mdptools import set_methods
 from mdptools.set_methods import persistent_set
 from helpers import at_root, display_dot
 

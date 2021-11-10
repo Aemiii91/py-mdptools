@@ -16,12 +16,12 @@ MarkovDecisionProcess = any
 State = any
 Transition = any
 Guard = any
-Update = any
+Command = any
 
 if TYPE_CHECKING:
     from graphviz.dot import Digraph
     from .mdp import MarkovDecisionProcess
-    from .model import State, Transition, Guard, Update
+    from .model import State, Transition, Guard, Command
 
 
 class imdict(dict):
@@ -39,7 +39,7 @@ StateDescription = Union[str, tuple, set, "State"]
 
 Action = str
 
-Distribution = imdict[tuple[State, Update], float]
+Distribution = imdict[tuple[State, Command], float]
 ActionMap = dict[Action, Distribution]
 # TransitionMap = dict[tuple[State, Guard], ActionMap]
 

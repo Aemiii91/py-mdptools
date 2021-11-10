@@ -20,6 +20,7 @@ from ..utils import (
     format_str,
     format_tup,
     highlight as _h,
+    items_union,
 )
 from .commands import guard, Guard, is_guard
 from .state import state, State, state_update
@@ -43,7 +44,18 @@ class Transition:
         return len(self.active.intersection(other.active)) == 0
 
     def can_be_dependent(self, other: "Transition") -> bool:
-        return bool(self.used().intersection(other.used()))
+        used, other_used = self.used(), other.used()
+        # Collect operations on same objects
+        rel = {
+            obj: (rw, other_used[obj])
+            for obj, rw in used.items()
+            if obj in other_used
+        }
+        # Check if one operation has a write while the other is nonempty
+        return any(
+            ("w" in op1 and op2) or ("w" in op2 and op1)
+            for op1, op2 in rel.values()
+        )
 
     def successors(self, s: State) -> dict[State, float]:
         if not self.is_enabled(s):
@@ -53,13 +65,12 @@ class Transition:
             for (s_, upd), p in self.post.items()
         }
 
-    def used(self) -> set[str]:
-        # commands = [upd for _, upd in self.post.keys()]
-        return set(
-            itertools.chain.from_iterable(
-                upd({}).keys() for _, upd in self.post.keys()
-            )
+    def used(self) -> imdict[str, set[str]]:
+        commands = [self.guard] + [upd for _, upd in self.post.keys()]
+        operations = itertools.chain.from_iterable(
+            cmd.used.items() for cmd in commands
         )
+        return items_union(operations)
 
     def rename(
         self, states: dict[str, str], actions: dict[str, str]
@@ -78,8 +89,8 @@ class Transition:
         return Transition(*self, active=processes)
 
     def __repr__(self) -> str:
-        guard = f", {self.guard.text}" if self.guard else ""
-        return f"Transition({self.action}, {self.pre.__repr__()}{guard})"
+        guard = f" & {self.guard.text}" if self.guard else ""
+        return f"[{self.action}] {self.pre.__repr__()}{guard}"
 
     def __str__(self):
         pre = format_tup(self.pre, str(self.guard), sep=" & ")

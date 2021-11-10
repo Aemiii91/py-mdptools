@@ -1,5 +1,5 @@
 from ..types import (
-    Update,
+    Command,
     dataclass,
     field,
     StateDescription,
@@ -7,7 +7,7 @@ from ..types import (
     imdict,
 )
 from ..utils import flatten, highlight as _h, partition
-from .commands import update, is_update
+from .commands import command, is_update
 
 
 @dataclass(eq=True, frozen=True)
@@ -23,7 +23,7 @@ class State:
 
         return State(frozenset(rename(ss) for ss in self.s), self.ctx)
 
-    def apply(self, upd: Update) -> "State":
+    def apply(self, upd: Command) -> "State":
         return State(self.s, imdict(upd(self.ctx)))
 
     def __repr__(self) -> str:
@@ -68,17 +68,17 @@ def state(*s: StateDescription, ctx: dict[str, int] = None) -> State:
     return State(frozenset(flatten(s)), ctx)
 
 
-def state_update(s: StateDescription) -> tuple[State, Update]:
+def state_update(s: StateDescription) -> tuple[State, Command]:
     if (
         isinstance(s, tuple)
         and len(s) == 2
         and isinstance(s[0], State)
-        and isinstance(s[1], Update)
+        and isinstance(s[1], Command)
     ):
         s, upd = s
     else:
         s, update_str = partition(is_update, list(flatten(s)))
-        upd = update(*update_str)
+        upd = command(update_str)
     return (state(s), upd)
 
 

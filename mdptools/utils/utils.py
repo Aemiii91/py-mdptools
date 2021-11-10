@@ -12,11 +12,22 @@ from ..types import (
     Union,
     Hashable,
     MarkovDecisionProcess as MDP,
+    imdict,
+    defaultdict,
 )
 
 
 def float_is(n: float, target: float) -> bool:
     return n - target < 10 * np.spacing(np.float64(1))
+
+
+def items_union(
+    items: Iterable[tuple[str, frozenset]]
+) -> imdict[str, frozenset]:
+    ret = defaultdict(frozenset)
+    for key, value in items:
+        ret[key] = ret[key].union(value)
+    return imdict(ret)
 
 
 def flatten(s: Union[tuple, set, list]):

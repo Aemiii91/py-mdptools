@@ -1,32 +1,52 @@
-from ..types import dataclass, field, Union, Callable, Iterable
-from ..utils import re, reduce, highlight as _h, operator
+from mdptools.utils.utils import items_union
+from ..types import (
+    dataclass,
+    field,
+    Union,
+    Callable,
+    Iterable,
+    imdict,
+    defaultdict,
+)
+from ..utils import re, reduce, highlight as _h
 
 
 @dataclass(eq=True, frozen=True)
 class Op:
-    obj: str = field(compare=True)
+    left: str = field(compare=True)
     op: str = field(compare=True)
-    value: str
-    _type: str
-    _call: Callable[[dict[str, int]], any]
+    right: str
+    rw: frozenset[str]
+    call: Callable[[dict[str, int]], tuple[bool, dict[str, int]]]
 
     def __repr__(self) -> str:
-        return f"{self.obj}{self.op}{self.value}"
+        return f"{self.left}{self.op}{self.right}"
 
-    def __call__(self, ctx: dict[str, int]) -> any:
-        return self._call(ctx)
+    def __call__(self, ctx: dict[str, int]) -> tuple[bool, dict[str, int]]:
+        return self.call(ctx)
 
 
 @dataclass(eq=True, frozen=True)
 class Command:
-    operations: frozenset[Op] = field(compare=True)
+    expr: frozenset[Op] = field(compare=True)
+    used: imdict[str, frozenset[str]]
 
     @property
     def text(self) -> str:
-        return ", ".join(map(str, self.operations))
+        return " & ".join(map(str, self.expr))
 
-    def used(self) -> set[str]:
-        return set(reduce(operator.add, (op._type for op in self.operations)))
+    def __call__(
+        self, old_ctx: dict[str, int]
+    ) -> Union[bool, imdict[str, int]]:
+        new_ctx = old_ctx
+
+        def apply(expr: Op) -> dict:
+            nonlocal new_ctx
+            out, ctx = expr(old_ctx)
+            new_ctx = {**new_ctx, **ctx}
+            return out
+
+        return all(apply(expr) for expr in self.expr) and imdict(new_ctx)
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.text})"
@@ -35,33 +55,48 @@ class Command:
         return _h[_h.variable, self.text] if self.text else ""
 
     def __add__(self, other: "Command") -> "Command":
-        content = self.operations.union(other.operations)
-        return self.__class__(content)
+        expr = self.expr.union(other.expr)
+        used = items_union((e.left, e.rw) for e in expr)
+        return self.__class__(expr, used)
 
     def __bool__(self) -> bool:
-        return bool(self.operations)
+        return bool(self.expr)
+
+
+def command(text: Union[str, Iterable[str]]) -> Command:
+    text = " & ".join(list(text))
+    expr = __compile_update(text)
+    used = items_union((e.left, e.rw) for e in expr)
+    return Command(expr, used)
 
 
 class Guard(Command):
+    expr: frozenset[frozenset[Op]] = field(compare=True)
+
     @property
     def text(self) -> str:
-        return " & ".join(
-            " | ".join(map(str, disj)) for disj in self.operations
-        )
+        return " & ".join(" | ".join(map(str, disj)) for disj in self.expr)
 
     def __repr__(self) -> str:
         return f"Guard({self.text or 'True'})"
 
     def __call__(self, ctx: dict[str, int]) -> bool:
-        if not self.operations:
+        if not self.expr:
             return True
-        return all(any(pred(ctx) for pred in disj) for disj in self.operations)
+        return all(any(pred(ctx) for pred in disj) for disj in self.expr)
+
+    def __add__(self, other: "Guard") -> "Guard":
+        expr = self.expr.union(other.expr)
+        used = items_union((e.left, e.rw) for c in expr for e in c)
+        return Guard(expr, used)
 
 
 def guard(pred: Union[str, Iterable[str]]) -> Guard:
     if not isinstance(pred, str):
         pred = " & ".join(pred)
-    return Guard(__compile_guard(pred))
+    expr = __compile_guard(pred)
+    used = items_union((e.left, e.rw) for c in expr for e in c)
+    return Guard(expr, used)
 
 
 def __compile_guard(text: str) -> frozenset[frozenset[Op]]:
@@ -77,12 +112,12 @@ def __compile_guard(text: str) -> frozenset[frozenset[Op]]:
 
 
 _operations = {
-    "=": lambda a, b: a == b,
     "!=": lambda a, b: a != b,
-    ">": lambda a, b: a > b,
-    "<": lambda a, b: a < b,
     ">=": lambda a, b: a >= b,
     "<=": lambda a, b: a <= b,
+    "=": lambda a, b: a == b,
+    ">": lambda a, b: a > b,
+    "<": lambda a, b: a < b,
 }
 
 
@@ -97,31 +132,7 @@ def __simple_pred(text: str) -> Callable[[dict], bool]:
     _call = lambda ctx: _operations[op](
         ctx[obj] if obj in ctx else 0, int(value)
     )
-    return Op(obj, op, value, "r", _call)
-
-
-class Update(Command):
-    def __call__(self, ctx: dict[str, int]) -> dict[str, int]:
-        if not self.operations:
-            return ctx
-
-        # def reducer(curr: tuple[any, dict], op: Op) -> dict:
-        #     value, ctx = curr
-        #     out, ctx_ = op(ctx)
-        #     if out is None:
-        #         return {**ctx, **ctx_}
-        #     return out
-
-        return reduce(
-            lambda ctx, assign: {**ctx, **assign(ctx)},
-            self.operations,
-            ctx,
-        )
-
-
-def update(*text: str) -> Update:
-    text = ", ".join(list(text))
-    return Update(__compile_update(text))
+    return Op(obj, op, value, frozenset("r"), _call)
 
 
 def __compile_update(text: str) -> set[Callable[[dict], dict]]:
@@ -137,7 +148,9 @@ def __simple_assignment(text: str) -> Callable[[dict], bool]:
         raise ValueError
     obj, op, value = match.groups()
     if op == ":=":
-        return Op(obj, op, value, "w", lambda _: {obj: int(value)})
+        return Op(
+            obj, op, value, frozenset("w"), lambda _: (True, {obj: int(value)})
+        )
     return None
 
 

@@ -148,15 +148,15 @@ def __add_edges(
     # p_point is used to create a shared point for probabilistic actions
     p_point = None
     for s_prime, p in dist.items():
-        update = None
+        cmd_text = None
         if not isinstance(s_prime, State):
             s_prime, upd = s_prime
-            update = upd.text or None
+            cmd_text = upd.text or None
         s_prime_name = __add_node(dot, s_prime, pid, m)
 
         if p == 1:
             second_line = (
-                ",&nbsp;".join(filter(None, [second_line, update])) or None
+                ",&nbsp;".join(filter(None, [second_line, cmd_text])) or None
             )
             label = __label_html(a, second_line=second_line)
             # Add a transition arrow between two states (non-deterministic)
@@ -166,7 +166,7 @@ def __add_edges(
                 p_label = __label_html(f"{a}", second_line=second_line)
                 # Create a shared point for the probabilistic outcome of action `a`
                 p_point = __create_p_point(dot, s_name, a, p_label, pid)
-            label = __label_html(p, color=graph.p_color, second_line=update)
+            label = __label_html(p, color=graph.p_color, second_line=cmd_text)
             # Add a transition arrow between the shared point and the next state
             dot.edge(p_point, s_prime_name, label)
 
