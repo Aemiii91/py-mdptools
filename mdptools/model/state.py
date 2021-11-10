@@ -6,8 +6,8 @@ from ..types import (
     Iterator,
     imdict,
 )
-from ..utils import flatten, highlight as _h, partition
-from .commands import command, is_update
+from ..utils import flatten, highlight as _h, partition, itertools
+from .commands import command, is_update, is_guard
 
 
 @dataclass(eq=True, frozen=True)
@@ -23,16 +23,16 @@ class State:
 
         return State(frozenset(rename(ss) for ss in self.s), self.ctx)
 
-    def apply(self, upd: Command) -> "State":
-        return State(self.s, imdict(upd(self.ctx)))
+    def apply(self, update: Command) -> "State":
+        return State(self.s, imdict(update(self.ctx)))
 
     def __repr__(self) -> str:
         ctx = [f"{k}={v}" for k, v in self.ctx.items()]
         return "{" + ",".join(list(self.s) + ctx) + "}"
 
     def __str__(self) -> str:
-        values = [_h[_h.state, ss] for ss in self.s]
-        values += [_h[_h.variable, f"{k}={v}"] for k, v in self.ctx.items()]
+        values = [_h(_h.state, ss) for ss in self.s]
+        values += [_h(_h.variable, f"{k}={v}") for k, v in self.ctx.items()]
         return (
             next(iter(values))
             if len(values) == 1
@@ -77,11 +77,14 @@ def state_update(s: StateDescription) -> tuple[State, Command]:
     ):
         s, upd = s
     else:
-        s, update_str = partition(is_update, list(flatten(s)))
+        s, update_str = partition(
+            is_update, itertools.filterfalse(is_guard, list(flatten(s)))
+        )
         upd = command(update_str)
     return (state(s), upd)
 
 
 def state_apply(s: StateDescription) -> State:
+    """Create the initial state, applying any updates given"""
     s, upd = state_update(s)
     return s.apply(upd)

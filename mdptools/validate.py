@@ -10,23 +10,40 @@ from .types import (
 from .utils import np, highlight as _h, format_str, float_is
 
 
-MDP_REQ_EN_S_NONEMPTY: ErrorCode = (0, "forall s in S : en(s) != {}")
+MDP_REQ_EN_S_NONEMPTY: ErrorCode = (0, "∀ s ∈S : en(s) != Ø")
 MDP_REQ_SUM_TO_ONE: ErrorCode = (
     1,
-    "forall s in S, a in en(s) : sum_(s' in S) P(s, a, s') = 1",
+    "∀ s ∈ S, a ∈ en(s) : Σ_(s' ∈ S) P(s,a,s') = 1",
 )
 
 
 def validate(
     mdp: MarkovDecisionProcess, raise_exception: bool = False
 ) -> tuple[bool, list[tuple[ErrorCode, str]]]:
+    """Validates a MDP based on the defined conditions:
+
+    1. ∀ s ∈ S : en(s) != Ø
+    2. ∀ s ∈ S, a ∈ en(s) : Σ_(s' ∈ S) P(s,a,s') = 1
+
+    Args:
+        mdp (MarkovDecisionProcess): The MDP process to validate
+        raise_exception (bool, optional): Raise an exception if the MDP is invalid. Defaults to False.
+
+    Raises:
+        Exception: Invalid MDP
+
+    Returns:
+        tuple[bool, list[tuple[ErrorCode, str]]]: (is_valid, errors)
+    """
     total_errors = []
     buffer = []
 
     def add_err(err_code: ErrorCode, err: str):
         nonlocal total_errors
         total_errors += [(err_code, err)]
-        return [fail(err_code[1], err)]
+        return [
+            f"[{_h(_h.fail, 'Failed')}] {_h(_h.note, err_code[1])}\n{' '*9}>> {err}"
+        ]
 
     en_s_nonempty, errors = __validate_enabled_nonempty(mdp)
     if not en_s_nonempty:
@@ -39,7 +56,7 @@ def validate(
             buffer += add_err(MDP_REQ_SUM_TO_ONE, err)
 
     if len(buffer) != 0:
-        message = _h[_h.error, f"Not a valid MDP [{mdp.name}]:\n"] + "\n".join(
+        message = _h(_h.error, f"Not a valid MDP [{mdp.name}]:\n") + "\n".join(
             buffer
         )
         if raise_exception:
@@ -54,7 +71,7 @@ def __validate_enabled_nonempty(
 ) -> tuple[bool, list[str]]:
     """Validate: 'forall s in S : en(s) != {}'"""
     errors = [
-        f"{_h[_h.function, 'en']}({format_str(s, _h.state)}) -> {_h[_h.error, '{}']}"
+        f"{_h(_h.function, 'en')}({format_str(s, _h.state)}) -> {_h(_h.error, '{}')}"
         for s, _ in mdp.search()
         if len(mdp.enabled(s)) == 0
     ]
@@ -79,13 +96,7 @@ def __format_sum_to_one(
     dist: Distribution, s: State, a: Action, sum_a: float
 ) -> list[str]:
     return [
-        f"{_h[_h.function, 'Dist']}({format_str(s, _h.state)}, "
-        f"{_h[_h.action, a]}) -> {format_str(dist)} "
-        f"{_h[_h.comment, '// sum -> '] + _h[_h.error, str(sum_a)]}"
+        f"{_h(_h.function, 'Dist')}({format_str(s, _h.state)}, "
+        f"{_h(_h.action, a)}) -> {format_str(dist)} "
+        f"{_h(_h.comment, '// sum -> ') + _h(_h.error, str(sum_a))}"
     ]
-
-
-def fail(message, code) -> str:
-    return (
-        f"[{_h[_h.fail, 'Failed']}] {_h[_h.note, message]}\n{' '*9}>> {code}"
-    )

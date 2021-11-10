@@ -3,6 +3,7 @@ from .highlight import highlight as _h
 
 
 def format_str(obj, color: str = "", use_colors: bool = True) -> str:
+    """Pretty prints objects"""
     return __format_strings(
         __format_floats(
             __round_floats(obj.__repr__() if use_colors else f"{obj}"),
@@ -14,6 +15,7 @@ def format_str(obj, color: str = "", use_colors: bool = True) -> str:
 
 
 def format_tup(f, s, sep: str, wrap: bool = False) -> str:
+    """Stringify a 2-tuple (with the second element optional)"""
     ss = f"{f}{sep}{s}" if s else f"{f}"
     return f"({ss})" if s and wrap else ss
 

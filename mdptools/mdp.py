@@ -52,11 +52,15 @@ class MarkovDecisionProcess:
     ):
         self._states = None
         self._actions = None
+
         if len(args) == 1:
+            # If only 1 argument is given, it must be a TransitionDescription
             transitions = next(iter(args), [])
+            # If no processes are supplied, must be a process
             if processes is None:
                 self.__init_process(transitions, init)
             else:
+                # Create "hollow" MDP for each process
                 processes = [
                     _MDP(name, frozenset(states), state(states[0]))
                     for name, states in processes.items()
@@ -77,6 +81,7 @@ class MarkovDecisionProcess:
             raise ValueError
 
         if init is None:
+            # Set initial state to be the first transition's preset
             _, init, _ = next(iter(transitions))
 
         self.processes = [self]
@@ -106,15 +111,19 @@ class MarkovDecisionProcess:
             self.init = state_apply(init)
 
     def enabled(self, s: State = None) -> list[Transition]:
+        """Returns a list of transitions enabled in state `s`"""
         return list(self.__enabled(s))
 
     def enabled_take_one(self, s: State = None) -> Transition:
+        """Returns the first enabled transition in state `s`"""
         return next(iter(self.__enabled(s)), None)
 
     def search(self, s: State = None, **kw) -> Generator:
+        """Performs a depth-first-search of the state space"""
         return search(self, s, **kw)
 
     def bfs(self, s: State = None, **kw) -> Generator:
+        """Performs a breadth-first-search of the state space"""
         return bfs(self, s, **kw)
 
     def remake(
@@ -123,6 +132,7 @@ class MarkovDecisionProcess:
         action_fn: RenameFunction = None,
         name: str = None,
     ) -> "MDP":
+        """Clones the MDP, renaming states and actions using supplied rename functions"""
         states, actions = (
             rename_map(self.states, state_fn),
             rename_map(self.actions, action_fn),
@@ -140,29 +150,37 @@ class MarkovDecisionProcess:
         )
 
     def to_graph(self, file_path: str = None, **kw) -> Digraph:
+        """Compiles the MDP to a Digraph using Graphviz"""
         return graph(self, file_path=file_path, **kw)
 
     def to_prism(self, file_path: str = None, **kw) -> str:
+        """Compiles the MDP to the Prism Model Checler language"""
         return to_prism(self, file_path, **kw)
 
     @property
     def states(self) -> frozenset[str]:
+        """The set of local states in the MDP"""
         if not self._states:
             self.__set_states_and_actions()
         return self._states
 
     @property
     def actions(self) -> frozenset[str]:
+        """The set of actions in the MDP"""
         if not self._actions:
             self.__set_states_and_actions()
         return self._actions
 
     @property
     def is_process(self) -> bool:
+        """Boolean value describing if the MDP is a process
+        (if false, the MDP is a system)
+        """
         return len(self.processes) == 1
 
     @property
     def is_valid(self) -> bool:
+        """Boolean value describing if the MDP is valid"""
         is_valid, _ = validate(self)
         return is_valid
 
@@ -178,7 +196,7 @@ class MarkovDecisionProcess:
         return f"MDP({self.name})"
 
     def __str__(self) -> str:
-        buffer = f"mdp {_h[_h.variable, self.name]}:\n"
+        buffer = f"mdp {_h(_h.variable, self.name)}:\n"
         buffer += f"  init := {self.init}\n"
         buffer += "\n".join(f"  {tr}" for tr in self.transitions) + "\n"
         return buffer

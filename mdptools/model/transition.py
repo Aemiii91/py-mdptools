@@ -28,6 +28,10 @@ from .state import state, State, state_update
 
 @dataclass(eq=True, frozen=True)
 class Transition:
+    """The data class used for Transitions, please use the `transition` function to
+    create new instances
+    """
+
     action: Action
     pre: State = field(compare=True)
     guard: Guard = field(compare=True)
@@ -38,12 +42,17 @@ class Transition:
         return all(ss in s for ss in self.pre) and self.guard(s.ctx)
 
     def in_conflict(self, other: "Transition") -> bool:
+        """pre(t1) ∩ pre(t2) != Ø"""
         return any(ss in other.pre for ss in self.pre)
 
     def is_parallel(self, other: "Transition") -> bool:
+        """active(t1) ∩ active(t2) == Ø"""
         return len(self.active.intersection(other.active)) == 0
 
     def can_be_dependent(self, other: "Transition") -> bool:
+        """For all op1 in used(t1) and for all op2 in used(t2),
+        there exists a pair op1, op2 that can-be-dependent
+        """
         used, other_used = self.used(), other.used()
         # Collect operations on same objects
         rel = {
@@ -58,14 +67,16 @@ class Transition:
         )
 
     def successors(self, s: State) -> dict[State, float]:
+        """Return the possible successors after taking the transition in state `s`"""
         if not self.is_enabled(s):
-            raise ValueError
+            return {}
         return {
             (s - self.pre) + s_.apply(upd): p
             for (s_, upd), p in self.post.items()
         }
 
     def used(self) -> imdict[str, set[str]]:
+        """Returns a dict mapping used objects with r/w operations"""
         commands = [self.guard] + [upd for _, upd in self.post.keys()]
         operations = itertools.chain.from_iterable(
             cmd.used.items() for cmd in commands
@@ -75,17 +86,19 @@ class Transition:
     def rename(
         self, states: dict[str, str], actions: dict[str, str]
     ) -> "Transition":
+        """Renames the action label and states in the transition"""
         action = self.action
         if action in actions:
             action = actions[action]
         pre = self.pre.rename(states)
         guard = self.guard
         post = imdict(
-            {(s_[0].rename(states), s_[1]): p for s_, p in self.post.items()}
+            {(s_.rename(states), upd): p for (s_, upd), p in self.post.items()}
         )
         return Transition(action, pre, guard, post, self.active)
 
     def bind(self, processes: set[MDP]) -> "Transition":
+        """Binds the transition to another set of processes"""
         return Transition(*self, active=processes)
 
     def __repr__(self) -> str:
@@ -94,7 +107,7 @@ class Transition:
 
     def __str__(self):
         pre = format_tup(self.pre, str(self.guard), sep=" & ")
-        return f"[{_h[_h.action, self.action]}] {pre} -> " + " + ".join(
+        return f"[{_h(_h.action, self.action)}] {pre} -> " + " + ".join(
             f"{format_str(p)}:{format_tup(*s_, sep=', ', wrap=True)}"
             if p != 1.0
             else f"{format_tup(*s_, sep=', ')}"
@@ -116,23 +129,9 @@ class Transition:
         action = self.action
         pre = self.pre + other.pre
         guard = self.guard + other.guard
-        post = self.__dist_product(other)
+        post = dist_product(self.post, other.post)
         active = self.active.union(other.active)
         return Transition(action, pre, guard, post, active)
-
-    def __dist_product(self, other: "Transition") -> Distribution:
-        """Calculates the product of two distributions"""
-        dist1, dist2 = self.post, other.post
-        # Split the list of distributions into two generators
-        s_primes = itertools.product(dist1.keys(), dist2.keys())
-        p_values = itertools.product(dist1.values(), dist2.values())
-        # Calculate the product of all permutations of the distributions
-        return imdict(
-            zip(
-                (tuple(map(operator.add, *s_)) for s_ in s_primes),
-                (np.prod(p) for p in p_values),
-            )
-        )
 
 
 def transition(
@@ -140,7 +139,18 @@ def transition(
     pre: StateDescription,
     post: DistributionDescription = None,
     active: set[MDP] = None,
-):
+) -> Transition:
+    """Create an instance of a Transition object
+
+    Args:
+        action (str): action label
+        pre (StateDescription): the preset and optionally guards
+        post (DistributionDescription, optional): a dict describing the probability distribution, in the form `{(s', [update]): p}`. If not supplied the postset will be the same as the preset. Defaults to None.
+        active (set[MDP], optional): a set of processes which are active in the transition. Defaults to None.
+
+    Returns:
+        [Transition]: an instance of Transition
+    """
     pre, guards = partition(is_guard, list(flatten(pre)))
     pre = state(pre)
 
@@ -155,7 +165,24 @@ def transition(
     return Transition(action, pre, guard(guards), imdict(post), active)
 
 
+def dist_product(dist1: Distribution, dist2: Distribution) -> Distribution:
+    """Calculates the product of two distributions"""
+    # Split the list of distributions into two generators
+    s_primes = itertools.product(dist1.keys(), dist2.keys())
+    p_values = itertools.product(dist1.values(), dist2.values())
+    # Calculate the product of all permutations of the distributions
+    return imdict(
+        zip(
+            (tuple(map(operator.add, *s_)) for s_ in s_primes),
+            (np.prod(p) for p in p_values),
+        )
+    )
+
+
 def compose_transitions(processes: list[MDP]) -> list[Transition]:
+    """Composes the transitions of multiple processes,
+    merging transitions that needs to be synchronized
+    """
     transitions = []
 
     # List all process transitions

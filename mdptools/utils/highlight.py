@@ -1,12 +1,51 @@
-from . import bcolors
+# pylint: disable=too-few-public-methods,missing-docstring
+class COLORS_ENABLED:
+    RESET = "\033[0m"
+    BOLD = "\033[01m"
+
+    BLACK = "\033[30m"
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    ORANGE = "\033[33m"
+    BLUE = "\033[34m"
+    PURPLE = "\033[35m"
+    CYAN = "\033[36m"
+    LIGHTGREY = "\033[37m"
+    DARKGREY = "\033[90m"
+    LIGHTRED = "\033[91m"
+    LIGHTGREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    LIGHTBLUE = "\033[94m"
+    PINK = "\033[95m"
+    LIGHTCYAN = "\033[96m"
+
+
+class COLORS_DISABLED:
+    RESET = ""
+    BOLD = ""
+
+    BLACK = ""
+    RED = ""
+    GREEN = ""
+    ORANGE = ""
+    BLUE = ""
+    PURPLE = ""
+    CYAN = ""
+    LIGHTGREY = ""
+    DARKGREY = ""
+    LIGHTRED = ""
+    LIGHTGREEN = ""
+    YELLOW = ""
+    LIGHTBLUE = ""
+    PINK = ""
+    LIGHTCYAN = ""
 
 
 class Highlight:
     def __init__(self):
-        self.bc = bcolors.disabled
+        self.bc = COLORS_DISABLED
 
-    def __getitem__(self, indices) -> str:
-        color, text = indices
+    def __call__(self, color: str, text: str) -> str:
         return color + f"{text}" + self.bc.RESET
 
     @property
@@ -63,9 +102,9 @@ class Highlight:
 
     def use_colors(self, value: bool = True):
         if value:
-            self.bc = bcolors.enabled
+            self.bc = COLORS_ENABLED
         else:
-            self.bc = bcolors.disabled
+            self.bc = COLORS_DISABLED
 
 
 highlight = Highlight()
