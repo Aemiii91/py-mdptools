@@ -1,3 +1,4 @@
+from mdptools.utils.utils import ordered_state_str
 from .types import (
     Action,
     MarkovDecisionProcess as MDP,
@@ -5,7 +6,7 @@ from .types import (
     Union,
     Digraph,
 )
-from .utils import re, format_str
+from .utils import re, format_str, ordered_state_str, tuple_str
 from .model import State, state
 
 
@@ -92,7 +93,10 @@ def __render_system(
     same_rank = [[]]
     curr_level = 0
 
-    search = m.bfs() if highlight else m.bfs(set_method=set_method)
+    if highlight:
+        search = m.bfs(set_method=False)
+    else:
+        search = m.bfs(set_method=set_method)
 
     for s, act, level in search:
         if level > curr_level:
@@ -123,7 +127,7 @@ _node_map: dict[State, str] = {}
 def __add_node(dot: Digraph, s: State, pid: int, m: MDP) -> str:
     if s in _node_map:
         return _node_map[s]
-    s_label = __ordered_state_str(s, m)
+    s_label = ordered_state_str(s, m)
     s_name = __pf_s(s, pid, m)
     s_ctx_label = ",&nbsp;".join(f"{k}={v}" for k, v in s.ctx.items())
     label = __label_html(s_label, second_line=s_ctx_label or None)
@@ -167,21 +171,9 @@ def __add_edges(
             dot.edge(p_point, s_prime_name, label)
 
 
-def __ordered_state_str(s: State, m: MDP) -> str:
-    if m.is_process:
-        return __str_tuple(s)
-    return "_".join(ss for p in m.processes for ss in s.s if ss in p.states)
-
-
 def __pf_s(s: State, pid: int, m: MDP) -> str:
-    s_label = __ordered_state_str(s, m)
+    s_label = ordered_state_str(s, m)
     return f"mdp_{pid}_state_{s_label}{__str_context(s.ctx)}"
-
-
-def __str_tuple(s: Union[tuple, str]) -> str:
-    if isinstance(s, str):
-        return s
-    return "_".join(__str_tuple(sb) for sb in s)
 
 
 def __str_context(ctx: dict[str, int]) -> str:
@@ -207,7 +199,7 @@ def __label_html(
 ) -> str:
     if isinstance(label, float):
         label = format_str(label, use_colors=False)
-    label = __str_tuple(label)
+    label = tuple_str(label)
     label = __greek_letters(label)
     label = __italicize_words(label)
     label = __subscript_numerals(label, graph.point_size * 0.5)

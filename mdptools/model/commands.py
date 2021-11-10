@@ -1,5 +1,5 @@
 from ..types import dataclass, field, Union, Callable, Iterable
-from ..utils import re, reduce, highlight as _h
+from ..utils import re, reduce, highlight as _h, operator
 
 
 @dataclass(eq=True, frozen=True)
@@ -19,11 +19,14 @@ class Op:
 
 @dataclass(eq=True, frozen=True)
 class Command:
-    content: frozenset[any] = field(compare=True)
+    operations: frozenset[Op] = field(compare=True)
 
     @property
     def text(self) -> str:
-        return ", ".join(map(str, self.content))
+        return ", ".join(map(str, self.operations))
+
+    def used(self) -> set[str]:
+        return set(reduce(operator.add, (op._type for op in self.operations)))
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.text})"
@@ -32,25 +35,27 @@ class Command:
         return _h[_h.variable, self.text] if self.text else ""
 
     def __add__(self, other: "Command") -> "Command":
-        content = self.content.union(other.content)
+        content = self.operations.union(other.operations)
         return self.__class__(content)
 
     def __bool__(self) -> bool:
-        return bool(self.content)
+        return bool(self.operations)
 
 
 class Guard(Command):
     @property
     def text(self) -> str:
-        return " & ".join(" | ".join(map(str, disj)) for disj in self.content)
+        return " & ".join(
+            " | ".join(map(str, disj)) for disj in self.operations
+        )
 
     def __repr__(self) -> str:
         return f"Guard({self.text or 'True'})"
 
     def __call__(self, ctx: dict[str, int]) -> bool:
-        if not self.content:
+        if not self.operations:
             return True
-        return all(any(pred(ctx) for pred in disj) for disj in self.content)
+        return all(any(pred(ctx) for pred in disj) for disj in self.operations)
 
 
 def guard(pred: Union[str, Iterable[str]]) -> Guard:
@@ -62,6 +67,7 @@ def guard(pred: Union[str, Iterable[str]]) -> Guard:
 def __compile_guard(text: str) -> frozenset[frozenset[Op]]:
     if not text:
         return frozenset()
+    text = re.sub(r"\s*[\(\)]\s*", " ", text)
     conj = (
         re.split(r"\s*\|\s*", disj) for disj in re.split(r"\s*\&\s*", text)
     )
@@ -96,11 +102,19 @@ def __simple_pred(text: str) -> Callable[[dict], bool]:
 
 class Update(Command):
     def __call__(self, ctx: dict[str, int]) -> dict[str, int]:
-        if not self.content:
+        if not self.operations:
             return ctx
+
+        # def reducer(curr: tuple[any, dict], op: Op) -> dict:
+        #     value, ctx = curr
+        #     out, ctx_ = op(ctx)
+        #     if out is None:
+        #         return {**ctx, **ctx_}
+        #     return out
+
         return reduce(
             lambda ctx, assign: {**ctx, **assign(ctx)},
-            self.content,
+            self.operations,
             ctx,
         )
 

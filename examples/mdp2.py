@@ -1,4 +1,5 @@
 from mdptools import MarkovDecisionProcess as MDP
+from mdptools import set_methods
 from mdptools.set_methods import persistent_set
 from helpers import at_root, display_dot
 
@@ -27,20 +28,23 @@ def make_resource_manager(n: int):
     return MDP(trs, init=("idle", "x:=0"), name="RM")
 
 
-# %%
-n = 2
-processes = [make_process(i + 1) for i in range(n)]
-processes += [make_resource_manager(n)]
+def make_system(n: int):
+    processes = [make_process(i + 1) for i in range(n)]
+    rm = make_resource_manager(n)
+    return MDP(*processes, rm, set_method=persistent_set)
 
-m = MDP(*processes)
-print("Processes:", len(m.processes))
+
+# %%
+m = make_system(2)
 print("Transitions:", len(m.transitions))
+print("State space:", len(list(m.search())))
+
+print(m.to_prism(at_root("out/prism/baier2004_persistent.prism")))
 
 # %%
 display_dot(
     m.to_graph(
         at_root("out/graphs/baier2004_persistent.gv"),
-        set_method=persistent_set,
         highlight=True,
     )
 )

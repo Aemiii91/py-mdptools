@@ -25,3 +25,17 @@ def persistent_set(mdp: MDP, s: State) -> list[Transition]:
                 T.append(t_)
 
     return T
+
+
+def stubborn_set(mdp: MDP, s: State) -> list[Transition]:
+    T = [mdp.enabled_take_one(s)]
+
+    for t in T:
+        if t is None:
+            return []
+        if not t.is_enabled(s):
+            pass
+        else:
+            pass
+
+    return list(filter(T))

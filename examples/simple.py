@@ -1,6 +1,7 @@
 from mdptools import MarkovDecisionProcess as MDP
 from mdptools.set_methods import persistent_set
 from helpers import display_graph
+from mdptools.utils.highlight import Highlight
 
 # %%
 ms = MDP(

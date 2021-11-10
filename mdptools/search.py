@@ -1,3 +1,4 @@
+from typing import Callable
 from .types import (
     MarkovDecisionProcess as MDP,
     ActionMap,
@@ -20,6 +21,8 @@ def search(
     if s is None:
         s = mdp.init
     if set_method is None:
+        set_method = mdp.set_method
+    if not isinstance(set_method, Callable):
         set_method = MarkovDecisionProcess.enabled
 
     queue = queue()
@@ -53,4 +56,5 @@ def search(
 def bfs(
     mdp: MDP, s: State = None, **kw
 ) -> Generator[tuple[State, ActionMap, int], SetMethod, None,]:
-    return search(mdp, s, include_level=True, **kw, queue=SimpleQueue)
+    kw = {"include_level": True, **kw, "queue": SimpleQueue}
+    return search(mdp, s, **kw)

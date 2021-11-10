@@ -54,6 +54,7 @@ class Transition:
         }
 
     def used(self) -> set[str]:
+        # commands = [upd for _, upd in self.post.keys()]
         return set(
             itertools.chain.from_iterable(
                 upd({}).keys() for _, upd in self.post.keys()
@@ -68,9 +69,9 @@ class Transition:
             action = actions[action]
         pre = self.pre.rename(states)
         guard = self.guard
-        post = {
-            (s_[0].rename(states), s_[1]): p for s_, p in self.post.items()
-        }
+        post = imdict(
+            {(s_[0].rename(states), s_[1]): p for s_, p in self.post.items()}
+        )
         return Transition(action, pre, guard, post, self.active)
 
     def bind(self, processes: set[MDP]) -> "Transition":
@@ -136,11 +137,11 @@ def transition(
         post = state(pre)
 
     if isinstance(post, (str, set, tuple, State)):
-        post = imdict({state_update(post): 1.0})
+        post = {state_update(post): 1.0}
     else:
-        post = imdict({state_update(s_): p for s_, p in post.items()})
+        post = {state_update(s_): p for s_, p in post.items()}
 
-    return Transition(action, pre, guard(guards), post, active)
+    return Transition(action, pre, guard(guards), imdict(post), active)
 
 
 def compose_transitions(processes: list[MDP]) -> list[Transition]:

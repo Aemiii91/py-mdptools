@@ -11,6 +11,7 @@ from ..types import (
     Iterable,
     Union,
     Hashable,
+    MarkovDecisionProcess as MDP,
 )
 
 
@@ -62,6 +63,18 @@ def __ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     return rename
 
 
+def ordered_state_str(s: Iterable[str], m: MDP, sep: str = "_") -> str:
+    if m.is_process:
+        return tuple_str(s, sep)
+    return sep.join(ss for p in m.processes for ss in s if ss in p.states)
+
+
+def tuple_str(tup: Union[tuple, str], sep: str = "_") -> str:
+    if isinstance(tup, str):
+        return tup
+    return sep.join(tuple_str(s) for s in tup)
+
+
 def id_bank() -> Callable[[Hashable], int]:
     _id = 0
     _bank = {}
@@ -69,7 +82,7 @@ def id_bank() -> Callable[[Hashable], int]:
     def get_id(key: Hashable = None) -> int:
         nonlocal _id
         if key is None:
-            return _id
+            return (_id - 1, _bank)
         if key not in _bank:
             _bank[key] = _id
             _id += 1
@@ -78,22 +91,22 @@ def id_bank() -> Callable[[Hashable], int]:
     return get_id
 
 
-# def minmax_bank() -> Callable[[str, int], dict]:
-#     _bank = {}
+def minmax_bank() -> Callable[[str, int], dict]:
+    _bank = {}
 
-#     def register(key: str = None, value: int = None):
-#         if value is None:
-#             if key is None:
-#                 return _bank
-#             return _bank[key]
-#         if key not in _bank:
-#             _bank[key] = (value, value)
-#         else:
-#             c = _bank[key]
-#             _bank[key] = (min(value, c[0]), max(value, c[1]))
-#         return value
+    def register(key: str = None, value: int = None):
+        if value is None:
+            if key is None:
+                return _bank
+            return _bank[key]
+        if key not in _bank:
+            _bank[key] = (value, value)
+        else:
+            c = _bank[key]
+            _bank[key] = (min(value, c[0]), max(value, c[1]))
+        return value
 
-#     return register
+    return register
 
 
 def write_file(filename: str, content: str):

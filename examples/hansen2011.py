@@ -1,7 +1,8 @@
 from mdptools import MarkovDecisionProcess as MDP
-from mdptools.utils.prism import to_prism
+from mdptools.set_methods import persistent_set
 
 from helpers import at_root, display_graph, display_dot
+from mdptools.utils import highlight
 
 # %%
 m1 = MDP(
@@ -33,7 +34,13 @@ print(m, "\n")
 
 # %%
 display_graph(m1, m2, m3, m4, file_path="out/graphs/hansen2011_mdps.gv")
-display_dot(m.to_graph(at_root("out/graphs/hansen2011_combined.gv")))
+display_dot(
+    m.to_graph(
+        at_root("out/graphs/hansen2011_combined.gv"),
+        set_method=persistent_set,
+        highlight=True,
+    )
+)
 
 # %%
 print(m1.to_prism(at_root("out/prism/generated.prism")), "\n")

@@ -17,9 +17,11 @@ def test_simple_composition():
 
     m = MDP(m1, m2, name="M")
 
+    assert m.name == "M"
     assert m.states == {"s0", "s1", "s2", "t0", "t1", "t2"}
     assert m.actions == {"a", "b", "c", "x", "y", "z"}
-    assert m.transitions == [
+
+    expected = [
         ("a", "s0", "s1"),
         ("b", "s1", {"s0": 0.5, "s2": 0.5}),
         ("c", "s2"),
@@ -27,7 +29,7 @@ def test_simple_composition():
         ("y", "t1", {"t0": 0.5, "t2": 0.5}),
         ("z", "t2"),
     ]
-    assert m.name == "M"
+    assert all(tr in expected for tr in m.transitions)
 
 
 def test_example_kwiatkowska2013(

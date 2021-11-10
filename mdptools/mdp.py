@@ -1,4 +1,5 @@
 from .types import (
+    SetMethod,
     dataclass,
     Digraph,
     MarkovDecisionProcess as MDP,
@@ -39,6 +40,7 @@ class MarkovDecisionProcess:
     init: State = None
     processes: list[MDP] = []
     transitions: list[Transition] = []
+    set_method: SetMethod = None
 
     def __init__(
         self,
@@ -46,6 +48,7 @@ class MarkovDecisionProcess:
         init: StateDescription = None,
         processes: dict[str, tuple[str]] = None,
         name: str = None,
+        set_method: SetMethod = None,
     ):
         self._states = None
         self._actions = None
@@ -64,6 +67,8 @@ class MarkovDecisionProcess:
 
         if name is not None:
             self.name = name
+        if set_method is not None:
+            self.set_method = set_method
 
     def __init_process(
         self, transitions: list[TransitionDescription], init: StateDescription
@@ -71,11 +76,12 @@ class MarkovDecisionProcess:
         if isinstance(transitions, MarkovDecisionProcess):
             raise ValueError
 
+        if init is None:
+            _, init, _ = next(iter(transitions))
+
         self.processes = [self]
         self.transitions = list(map(self.__bind_transition, transitions))
 
-        if init is None and self.transitions:
-            init = next(iter(self.transitions)).pre
         if init is not None:
             self.init = state_apply(init)
 
@@ -100,16 +106,10 @@ class MarkovDecisionProcess:
             self.init = state_apply(init)
 
     def enabled(self, s: State = None) -> list[Transition]:
-        if s is None:
-            s = self.init
-        return list(filter(lambda tr: tr.is_enabled(s), self.transitions))
+        return list(self.__enabled(s))
 
     def enabled_take_one(self, s: State = None) -> Transition:
-        if s is None:
-            s = self.init
-        return next(
-            iter(filter(lambda tr: tr.is_enabled(s), self.transitions)), None
-        )
+        return next(iter(self.__enabled(s)), None)
 
     def search(self, s: State = None, **kw) -> Generator:
         return search(self, s, **kw)
@@ -142,8 +142,8 @@ class MarkovDecisionProcess:
     def to_graph(self, file_path: str = None, **kw) -> Digraph:
         return graph(self, file_path=file_path, **kw)
 
-    def to_prism(self, file_path: str = None) -> str:
-        return to_prism(self, file_path)
+    def to_prism(self, file_path: str = None, **kw) -> str:
+        return to_prism(self, file_path, **kw)
 
     @property
     def states(self) -> frozenset[str]:
@@ -163,7 +163,8 @@ class MarkovDecisionProcess:
 
     @property
     def is_valid(self) -> bool:
-        return validate(self)[0]
+        is_valid, _ = validate(self)
+        return is_valid
 
     def __eq__(self, other: MDP) -> bool:
         init = self.init == other.init
@@ -181,6 +182,11 @@ class MarkovDecisionProcess:
         buffer += f"  init := {self.init}\n"
         buffer += "\n".join(f"  {tr}" for tr in self.transitions) + "\n"
         return buffer
+
+    def __enabled(self, s: State = None) -> Iterable[Transition]:
+        if s is None:
+            s = self.init
+        return filter(lambda tr: tr.is_enabled(s), self.transitions)
 
     def __bind_transition(self, tr: TransitionDescription):
         if not isinstance(tr, Transition):
