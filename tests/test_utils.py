@@ -40,7 +40,7 @@ def test_literal_string():
 def test_to_prism(mocker: MockerFixture, hansen_m1: MDP):
     mck = mocker.patch("builtins.open", mocker.mock_open())
 
-    expected = "mdp\n\nmodule M1\n  s : [0..4] init 4;\n\n  [a] s=0 -> 0.2:(s'=1) + 0.8:(s'=2);\n  [b] s=0 -> 0.7:(s'=2) + 0.3:(s'=3);\n  [x] s=3 -> (s'=3);\n  [z] s=3 -> (s'=3);\n  [x] s=2 -> (s'=2);\n  [y] s=2 -> (s'=2);\n  [z] s=2 -> (s'=2);\n  [tau] s=1 -> (s'=1);\nendmodule"
+    expected = "mdp\n\nmodule M1\n  s : [0..3] init 0;\n  // 0 : s0\n  // 1 : s1\n  // 2 : s2\n  // 3 : s3\n\n  [a] s=0 -> 0.2 : (s'=1) + 0.8 : (s'=2);\n  [b] s=0 -> 0.7 : (s'=2) + 0.3 : (s'=3);\n  [tau] s=1 -> (s'=1);\n  [x] s=2 -> (s'=2);\n  [y] s=2 -> (s'=2);\n  [z] s=2 -> (s'=2);\n  [x] s=3 -> (s'=3);\n  [z] s=3 -> (s'=3);\nendmodule"
 
     actual = hansen_m1.to_prism("some_file.prism")
 
