@@ -62,9 +62,12 @@ def __choose_process(s: State, t: Transition) -> MDP:
     )
 
 
-def __choose_condition(s: State, t: Transition) -> Op:
+def __choose_condition(s: State, t: Transition) -> frozenset[Op]:
     """Choose a condition cj in the guard G of t that evaluates to false in s"""
-    return next(filter(lambda cj: not cj(s.ctx), t.guard.used()), None)
+    return next(
+        filter(lambda cj: not any(pred(s.ctx) for pred in cj), t.guard.expr),
+        None,
+    )
 
 
 def __cond_enabled_in(t1: Transition, p: MDP) -> Callable[[Transition], bool]:
@@ -72,11 +75,13 @@ def __cond_enabled_in(t1: Transition, p: MDP) -> Callable[[Transition], bool]:
     return lambda t2: t1.pre.intersection(p) in t2.post
 
 
-def __cond_op_dependent(op1: Op) -> Callable[[Transition], bool]:
+def __cond_op_dependent(cj: frozenset[Op]) -> Callable[[Transition], bool]:
     """For all operations op used to evaluate cj, add all transitions t'
     such that there exists op' ∈ used(t') : op and op' can-be-dependent
     """
-    return lambda t2: any(op1.can_be_dependent(op2) for op2 in t2.used())
+    return lambda t2: any(
+        op1.can_be_dependent(op2) for op1 in cj for op2 in t2.used()
+    )
 
 
 def __cond_dependent(t1: Transition) -> Callable[[Transition], bool]:
