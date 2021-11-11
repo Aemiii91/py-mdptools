@@ -8,7 +8,7 @@ ms = MDP(
     name="Ms",
 )
 
-mt = ms.remake((r"[a-z]([0-9])", r"t\1"), {"a": "x", "b": "y"}, "Mt")
+mt = ms.rename((r"[a-z]([0-9])", r"t\1"), {"a": "x", "b": "y"}, "Mt")
 
 display_graph(
     ms, mt, MDP(ms, mt), file_path="out/graphs/graph_simple_composition.gv"

@@ -17,11 +17,11 @@ def overmans_algorithm(
     # 2. For all processes Pi ∈ P
     for Pi in P:
         # for all transitions t such that s(i) ∈ pre(t)
-        for t in __trs_local_state_in_pre(s, Pi, mdp):
+        for t1 in __trs_local_state_in_pre(s, Pi, mdp):
             for Pj in mdp.processes:
                 if Pj in P:
                     continue
-                if Pj in t.active or __active_in_dependent_tr(Pj, t, mdp):
+                if Pj in t1.active or __active_in_dependent_tr(Pj, t1, mdp):
                     P.append(Pj)
 
     P = set(P)

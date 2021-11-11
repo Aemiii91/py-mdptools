@@ -57,7 +57,7 @@ def stubborn_sets(
 def __choose_process(s: State, t: Transition) -> MDP:
     """Choose a process Pj ∈ active(t) such that s(j) != (pre(t) ∩ Pj)"""
     return next(
-        filter(lambda p: {s(p)} != t.pre.s.intersection(p.states), t.active),
+        filter(lambda p: {s(p)} != t.pre.intersection(p), t.active),
         None,
     )
 
@@ -69,7 +69,7 @@ def __choose_condition(s: State, t: Transition) -> Op:
 
 def __cond_enabled_in(t1: Transition, p: MDP) -> Callable[[Transition], bool]:
     """(pre(t) ∩ Pj) ∈ post(t')"""
-    return lambda t2: t1.pre.s.intersection(p.states) in t2.post
+    return lambda t2: t1.pre.intersection(p) in t2.post
 
 
 def __cond_op_dependent(op1: Op) -> Callable[[Transition], bool]:

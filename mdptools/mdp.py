@@ -9,6 +9,7 @@ from .types import (
     Union,
     Generator,
     Iterable,
+    Iterator,
 )
 from .utils import (
     operator,
@@ -126,7 +127,7 @@ class MarkovDecisionProcess:
         """Performs a breadth-first-search of the state space"""
         return bfs(self, s, **kw)
 
-    def remake(
+    def rename(
         self,
         state_fn: RenameFunction = None,
         action_fn: RenameFunction = None,
@@ -139,7 +140,7 @@ class MarkovDecisionProcess:
         )
         if not self.is_process:
             return MarkovDecisionProcess(
-                *(p.remake(state_fn, action_fn) for p in self.processes)
+                *(p.rename(state_fn, action_fn) for p in self.processes)
             )
         if name is None:
             name = self.name
@@ -201,6 +202,12 @@ class MarkovDecisionProcess:
         buffer += "\n".join(f"  {tr}" for tr in self.transitions) + "\n"
         return buffer
 
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.states)
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.states
+
     def __enabled(self, s: State = None) -> Iterable[Transition]:
         if s is None:
             s = self.init
@@ -220,9 +227,9 @@ class MarkovDecisionProcess:
     def __set_states_and_actions(self):
         states, actions = set(), set()
         for tr in self.transitions:
-            states = states.union(tr.pre.s)
-            for (s_, _), _ in tr.post.items():
-                states = states.union(s_.s)
+            states = states.union(tr.pre)
+            for (s_prime, _), _ in tr.post.items():
+                states = states.union(s_prime)
             actions = actions.union({tr.action})
         self._states = frozenset(states)
         self._actions = frozenset(actions)
@@ -234,8 +241,15 @@ class _MDP:
     states: frozenset[str]
     init: State
 
-    def remake(self, state_fn, _) -> "_MDP":
+    def rename(self, state_fn, _) -> "_MDP":
+        """Clone and rename states"""
         states = rename_map(self.states, state_fn)
         return _MDP(
             self.name, frozenset(states.values()), self.init.rename(states)
         )
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.states)
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.states

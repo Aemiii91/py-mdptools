@@ -11,14 +11,14 @@ def test_simple_composition():
         name="M1",
     )
 
-    m2 = m1.remake(
+    m2 = m1.rename(
         (r"[a-z]([0-9])", r"t\1"), {"a": "x", "b": "y", "c": "z"}, "M2"
     )
 
     m = MDP(m1, m2, name="M")
 
     assert m.name == "M"
-    assert m.states == {"s0", "s1", "s2", "t0", "t1", "t2"}
+    assert set(iter(m)) == {"s0", "s1", "s2", "t0", "t1", "t2"}
     assert m.actions == {"a", "b", "c", "x", "y", "z"}
 
     expected = [
