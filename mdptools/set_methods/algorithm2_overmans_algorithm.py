@@ -24,12 +24,11 @@ def overmans_algorithm(
                 if Pj in t1.active or __active_in_dependent_tr(Pj, t1, mdp):
                     P.append(Pj)
 
-    P = set(P)
-    T = list(
-        filter(lambda t: t.active <= P and t.is_enabled(s), mdp.transitions)
+    _P = set(P)
+    # Return all transitions t such that active(t) ⊆ P and t is enabled in s
+    return list(
+        filter(lambda t: t.active <= _P and t.is_enabled(s), mdp.transitions)
     )
-
-    return T
 
 
 def __trs_local_state_in_pre(
