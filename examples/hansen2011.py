@@ -1,5 +1,5 @@
 from mdptools import MarkovDecisionProcess as MDP
-from mdptools.set_methods import persistent_set
+from mdptools.set_methods import conflicting_transitions
 
 from helpers import at_root, display_graph, display_dot
 from mdptools.utils import highlight
@@ -37,7 +37,7 @@ display_graph(m1, m2, m3, m4, file_path="out/graphs/hansen2011_mdps.gv")
 display_dot(
     m.to_graph(
         at_root("out/graphs/hansen2011_combined.gv"),
-        set_method=persistent_set,
+        set_method=conflicting_transitions,
         highlight=True,
     )
 )

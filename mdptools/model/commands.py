@@ -7,7 +7,7 @@ from ..types import (
     Iterable,
     imdict,
 )
-from ..utils import re, highlight as _h
+from ..utils import re, highlight as _h, itertools
 
 
 @dataclass(eq=True, frozen=True)
@@ -17,6 +17,12 @@ class Op:
     right: str
     rw: frozenset[str]
     call: Callable[[dict[str, int]], tuple[bool, dict[str, int]]]
+
+    def can_be_dependent(self, other: "Op") -> bool:
+        if self.left != other.left:
+            return False
+        # Check if one operation has a write while the other is nonempty
+        return ("w" in self.rw and other.rw) or ("w" in other.rw and self.rw)
 
     def __repr__(self) -> str:
         return f"{self.left}{self.op}{self.right}"
@@ -28,7 +34,9 @@ class Op:
 @dataclass(eq=True, frozen=True)
 class Command:
     expr: frozenset[Op] = field(compare=True)
-    used: imdict[str, frozenset[str]]
+
+    def used(self) -> frozenset[Op]:
+        return self.expr
 
     @property
     def text(self) -> str:
@@ -50,6 +58,12 @@ class Command:
         )
         return ret
 
+    def __eq__(self, other: "Command") -> bool:
+        return set(map(str, self.expr)) == set(map(str, other.expr))
+
+    def __hash__(self) -> int:
+        return hash(frozenset(map(str, self.expr)))
+
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.text})"
 
@@ -57,9 +71,7 @@ class Command:
         return _h(_h.variable, self.text) if self.text else ""
 
     def __add__(self, other: "Command") -> "Command":
-        expr = self.expr.union(other.expr)
-        used = items_union((e.left, e.rw) for e in expr)
-        return self.__class__(expr, used)
+        return self.__class__(self.expr.union(other.expr))
 
     def __bool__(self) -> bool:
         return bool(self.expr)
@@ -67,13 +79,14 @@ class Command:
 
 def command(text: Union[str, Iterable[str]]) -> Command:
     text = " & ".join(list(text))
-    expr = __compile_update(text)
-    used = items_union((e.left, e.rw) for e in expr)
-    return Command(expr, used)
+    return Command(__compile_update(text))
 
 
 class Guard(Command):
     expr: frozenset[frozenset[Op]] = field(compare=True)
+
+    def used(self) -> frozenset[Op]:
+        return frozenset(itertools.chain.from_iterable(self.expr))
 
     @property
     def text(self) -> str:
@@ -88,17 +101,13 @@ class Guard(Command):
         return all(any(pred(ctx) for pred in disj) for disj in self.expr)
 
     def __add__(self, other: "Guard") -> "Guard":
-        expr = self.expr.union(other.expr)
-        used = items_union((e.left, e.rw) for c in expr for e in c)
-        return Guard(expr, used)
+        return Guard(self.expr.union(other.expr))
 
 
 def guard(pred: Union[str, Iterable[str]]) -> Guard:
     if not isinstance(pred, str):
         pred = " & ".join(pred)
-    expr = __compile_guard(pred)
-    used = items_union((e.left, e.rw) for c in expr for e in c)
-    return Guard(expr, used)
+    return Guard(__compile_guard(pred))
 
 
 def __compile_guard(text: str) -> frozenset[frozenset[Op]]:

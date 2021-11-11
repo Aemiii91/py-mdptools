@@ -1,7 +1,7 @@
 """Parallel composition tests"""
 from mdptools import MarkovDecisionProcess as MDP
 from mdptools.types import State
-from mdptools.set_methods import persistent_set
+from mdptools.set_methods import conflicting_transitions
 
 
 def test_simple_composition():
@@ -76,6 +76,6 @@ def test_persistent_set(baier_p1: MDP, baier_p2: MDP, baier_rm: MDP):
     """Persistent set algorithm"""
     m = MDP(baier_p1, baier_p2, baier_rm)
     state_space = list(m.search())
-    state_space_ps = list(m.search(set_method=persistent_set))
+    state_space_ps = list(m.search(set_method=conflicting_transitions))
     assert len(state_space) == 16
     assert len(state_space_ps) == 10

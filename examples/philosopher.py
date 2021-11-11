@@ -1,5 +1,5 @@
 from mdptools import MarkovDecisionProcess as MDP
-from mdptools.set_methods import persistent_set
+from mdptools.set_methods import conflicting_transitions
 from helpers import at_root, display_dot
 
 system = MDP(
@@ -22,7 +22,7 @@ system = MDP(
 display_dot(
     system.to_graph(
         at_root("out/graphs/baier2004_persistent.gv"),
-        set_method=persistent_set,
+        set_method=conflicting_transitions,
         highlight=True,
     )
 )

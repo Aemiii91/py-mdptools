@@ -1,5 +1,9 @@
 from mdptools import MarkovDecisionProcess as MDP
-from mdptools.set_methods import persistent_set
+from mdptools.set_methods import (
+    conflicting_transitions,
+    overmans_algorithm,
+    stubborn_sets,
+)
 from helpers import at_root, display_dot
 
 
@@ -30,7 +34,7 @@ def make_resource_manager(n: int):
 def make_system(n: int):
     processes = [make_process(i + 1) for i in range(n)]
     rm = make_resource_manager(n)
-    return MDP(*processes, rm, set_method=persistent_set)
+    return MDP(*processes, rm)
 
 
 # %%
@@ -38,12 +42,39 @@ m = make_system(2)
 print("Transitions:", len(m.transitions))
 print("State space:", len(list(m.search())))
 
-print(m.to_prism(at_root("out/prism/baier2004_persistent.prism")))
+print(
+    m.to_prism(
+        at_root("out/prism/baier2004_persistent.prism"),
+        set_method=conflicting_transitions,
+    )
+)
 
 # %%
+# Conflicting transitions
 display_dot(
     m.to_graph(
-        at_root("out/graphs/baier2004_persistent.gv"),
+        at_root("out/graphs/baier2004_conflicting_transitions.gv"),
+        set_method=conflicting_transitions,
+        highlight=True,
+    )
+)
+
+# %%
+# Overman's algorithm
+display_dot(
+    m.to_graph(
+        at_root("out/graphs/baier2004_overmans_algorithm.gv"),
+        set_method=overmans_algorithm,
+        highlight=True,
+    )
+)
+
+# %%
+# Stubborn sets
+display_dot(
+    m.to_graph(
+        at_root("out/graphs/baier2004_overmans_algorithm.gv"),
+        set_method=stubborn_sets,
         highlight=True,
     )
 )
