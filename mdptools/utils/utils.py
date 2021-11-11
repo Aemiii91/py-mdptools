@@ -13,6 +13,7 @@ from ..types import (
     Union,
     Hashable,
     MarkovDecisionProcess as MDP,
+    State,
     imdict,
     defaultdict,
 )
@@ -76,7 +77,7 @@ def __ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     return rename
 
 
-def ordered_state_str(s: Iterable[str], m: MDP, sep: str = "_") -> str:
+def ordered_state_str(s: State, m: MDP, sep: str = "_") -> str:
     """Stringify a collection of local state names, ordered by process"""
     if m.is_process:
         return tuple_str(s, sep)
