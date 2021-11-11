@@ -80,7 +80,7 @@ def ordered_state_str(s: Iterable[str], m: MDP, sep: str = "_") -> str:
     """Stringify a collection of local state names, ordered by process"""
     if m.is_process:
         return tuple_str(s, sep)
-    return sep.join(ss for p in m.processes for ss in s if ss in p.states)
+    return sep.join(s(p) for p in m.processes)
 
 
 def tuple_str(tup: Union[tuple, str], sep: str = "_") -> str:

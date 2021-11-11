@@ -59,8 +59,8 @@ class State:
     def __sub__(self, other: "State") -> "State":
         return State(self.s.difference(other.s), self.ctx)
 
-    def __call__(self, p: MDP) -> "State":
-        return state(*(ss for ss in p.states if ss in self.s))
+    def __call__(self, p: MDP) -> str:
+        return next((ss for ss in self.s if ss in p.states), "")
 
 
 def state(*s: StateDescription, ctx: dict[str, int] = None) -> State:

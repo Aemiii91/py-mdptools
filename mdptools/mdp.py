@@ -213,9 +213,7 @@ class MarkovDecisionProcess:
         if self.is_process:
             process = {self}
         else:
-            process = set(
-                p for p in self.processes for ss in tr.pre.s if ss in p.states
-            )
+            process = set(p for p in self.processes if tr.pre(p))
 
         return tr.bind(process)
 
