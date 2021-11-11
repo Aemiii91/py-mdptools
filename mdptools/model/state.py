@@ -77,9 +77,8 @@ def state_update(s: StateDescription) -> tuple[State, Command]:
     ):
         s, upd = s
     else:
-        s, update_str = partition(
-            is_update, itertools.filterfalse(is_guard, list(flatten(s)))
-        )
+        ff = list(itertools.filterfalse(is_guard, flatten(s)))
+        s, update_str = partition(is_update, ff)
         upd = command(update_str)
     return (state(s), upd)
 

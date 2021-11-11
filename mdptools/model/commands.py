@@ -6,9 +6,8 @@ from ..types import (
     Callable,
     Iterable,
     imdict,
-    defaultdict,
 )
-from ..utils import re, reduce, highlight as _h
+from ..utils import re, highlight as _h
 
 
 @dataclass(eq=True, frozen=True)
@@ -38,7 +37,7 @@ class Command:
     def __call__(
         self, old_ctx: dict[str, int]
     ) -> Union[bool, imdict[str, int]]:
-        new_ctx = old_ctx
+        new_ctx = {}
 
         def apply(expr: Op) -> dict:
             nonlocal new_ctx
@@ -46,7 +45,10 @@ class Command:
             new_ctx = {**new_ctx, **ctx}
             return out
 
-        return all(apply(expr) for expr in self.expr) and imdict(new_ctx)
+        ret = all(apply(expr) for expr in self.expr) and imdict(
+            {**old_ctx, **new_ctx}
+        )
+        return ret
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.text})"
@@ -121,11 +123,14 @@ _operations = {
 }
 
 
+_re_comparison = re.compile(
+    r"([a-zA-Z_]\w*)\s*(" + "|".join(_operations.keys()) + r")\s*(\d+)",
+    re.IGNORECASE,
+)
+
+
 def __simple_pred(text: str) -> Callable[[dict], bool]:
-    match = re.match(
-        r"([a-zA-Z_]\w*)\s*(" + "|".join(_operations.keys()) + r")\s*(\d+)",
-        text,
-    )
+    match = re.match(_re_comparison, text)
     if match is None:
         raise ValueError
     obj, op, value = match.groups()
@@ -142,8 +147,11 @@ def __compile_update(text: str) -> set[Callable[[dict], dict]]:
     return frozenset(filter(None, map(__simple_assignment, nodes)))
 
 
+_re_assign = re.compile(r"([a-z_]\w*)\s*(:=)\s*(\d+)", re.IGNORECASE)
+
+
 def __simple_assignment(text: str) -> Callable[[dict], bool]:
-    match = re.match(r"([a-zA-Z_]\w*)\s*(:=)\s*(\d+)", text)
+    match = re.match(_re_assign, text)
     if match is None:
         raise ValueError
     obj, op, value = match.groups()
@@ -155,8 +163,8 @@ def __simple_assignment(text: str) -> Callable[[dict], bool]:
 
 
 def is_guard(s: str) -> bool:
-    return any(c in s for c in "=<>")
+    return re.match(_re_comparison, s) is not None
 
 
 def is_update(s: str) -> bool:
-    return ":=" in s
+    return re.match(_re_assign, s) is not None

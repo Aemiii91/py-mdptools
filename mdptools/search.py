@@ -15,7 +15,7 @@ def search(
     set_method: SetMethod = None,
     include_level: bool = False,
     queue: Queue = LifoQueue,
-) -> Generator[tuple[State, ActionMap], SetMethod, None]:
+) -> Generator[tuple[State, ActionMap], None, None]:
     """Performs a classic search on an MDP, or optionally a selective search if
     `set_method` is supplied
     """
@@ -54,7 +54,7 @@ def search(
 
 def bfs(
     mdp: MDP, s: State = None, **kw
-) -> Generator[tuple[State, ActionMap, int], SetMethod, None,]:
+) -> Generator[tuple[State, ActionMap, int], None, None,]:
     """Performs a breadth-first-search on an MDP"""
     kw = {"include_level": True, **kw, "queue": SimpleQueue}
     return search(mdp, s, **kw)
