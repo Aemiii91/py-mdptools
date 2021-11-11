@@ -59,7 +59,6 @@ def baier_p1():
 def baier_p2():
     return MDP(
         [
-            # format: (action, pre, post)
             ("demand_2", "noncrit_2", "wait_2"),
             ("request_2", ("wait_2", "x=0"), "wait_2"),
             ("enter_2", ("wait_2", "x=2"), "crit_2"),
@@ -76,8 +75,8 @@ def baier_rm():
         [
             ("request_1", "idle", {"prepare_1": 0.9, "idle": 0.1}),
             ("request_2", "idle", {"prepare_2": 0.9, "idle": 0.1}),
-            ("grant_1", "prepare_1", "idle"),
-            ("grant_2", "prepare_2", "idle"),
+            ("grant_1", "prepare_1", ("idle", "x:=1")),
+            ("grant_2", "prepare_2", ("idle", "x:=2")),
         ],
         init=("idle", "x:=0"),
         name="RM",

@@ -1,11 +1,11 @@
-"""Unit-tests for the `parallel` module
-"""
+"""Parallel composition tests"""
 from mdptools import MarkovDecisionProcess as MDP
 from mdptools.types import State
 from mdptools.set_methods import persistent_set
 
 
 def test_simple_composition():
+    """Simple composition of two MDPs"""
     m1 = MDP(
         [("a", "s0", "s1"), ("b", "s1", {"s0": 0.5, "s2": 0.5}), ("c", "s2")],
         name="M1",
@@ -35,6 +35,7 @@ def test_simple_composition():
 def test_example_kwiatkowska2013(
     kwiatkowska_ms: MDP, kwiatkowska_md: MDP, kwiatkowska_pc: MDP
 ):
+    """Composition of the example from [kwiatkowska2013]"""
     expected = kwiatkowska_pc
     actual = MDP(kwiatkowska_ms, kwiatkowska_md, name="Ms||Md (Actual)")
     assert actual == expected
@@ -43,6 +44,7 @@ def test_example_kwiatkowska2013(
 def test_complex_composition(
     hansen_m1: MDP, hansen_m2: MDP, hansen_m3: MDP, hansen_m4: MDP
 ):
+    """Composition of the example from [hansen2011]"""
     m = MDP(hansen_m1, hansen_m2, hansen_m3, hansen_m4)
 
     assert m is not None
@@ -51,7 +53,8 @@ def test_complex_composition(
 def test_custom_transition_function(
     baier_p1: MDP, baier_p2: MDP, baier_rm: MDP
 ):
-    count = 10
+    """Custom set method for choosing transitions"""
+    count = 3
 
     def custom_transition_function(mdp: MDP, s: State):
         nonlocal count
@@ -66,10 +69,13 @@ def test_custom_transition_function(
         s for s, _ in m.search(set_method=custom_transition_function)
     ]
 
-    assert len(state_space) == 8
+    assert len(state_space) == 7
 
 
 def test_persistent_set(baier_p1: MDP, baier_p2: MDP, baier_rm: MDP):
+    """Persistent set algorithm"""
     m = MDP(baier_p1, baier_p2, baier_rm)
-    state_space_ps = [s for s, _ in m.search(set_method=persistent_set)]
-    assert len(state_space_ps) == 5
+    state_space = list(m.search())
+    state_space_ps = list(m.search(set_method=persistent_set))
+    assert len(state_space) == 16
+    assert len(state_space_ps) == 10
