@@ -20,7 +20,7 @@ def conflicting_transitions(
 
     if log_info_enabled():
         logger.info(
-            "[Conflicting transitions]\n  s = %s\n  T = {<%s>}",
+            "[Conflicting transitions]\n  s = {%s}\n  T = {<%s>}",
             ordered_state_str(s, mdp, ",", lambda st: _h(_h.state, st)),
             t,
         )

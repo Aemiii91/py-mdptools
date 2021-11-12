@@ -21,7 +21,7 @@ def overmans_algorithm(
 
     if log_info_enabled():
         logger.info(
-            "[Overman's algorithm]\n  s = %s\n  t = <%s>\n  P = {%s}",
+            "[Overman's algorithm]\n  s = {%s}\n  t = <%s>\n  P = {%s}",
             ordered_state_str(s, mdp, ",", lambda st: _h(_h.state, st)),
             t,
             ", ".join(map(lambda p: _h(_h.fail, p.name), P)),

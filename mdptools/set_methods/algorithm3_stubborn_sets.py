@@ -38,7 +38,7 @@ def stubborn_sets(
                 continue
             if condition(t):
                 if log_info_enabled():
-                    logger.info("     + <%s> (%s)", t, condition.__name__)
+                    logger.info("     +  <%s> (%s)", t, condition.__name__)
                 Ts.append(t)
 
     # 2. For all transitions t in Ts
@@ -92,7 +92,7 @@ def __choose_condition(s: State, t: Transition) -> frozenset[Op]:
 def __cond_enabled_in(t1: Transition, p: MDP) -> Callable[[Transition], bool]:
     """(pre(t) ∩ Pj) ∈ post(t')"""
     condition = lambda t2: t1.pre.intersection(p) in [s_ for s_, _ in t2.post]
-    condition.__name__ = f"enables <{t1}> [rule a.i]"
+    condition.__name__ = f"enables <{_h(_h.action, t1.action)}> [rule a.i]"
     return condition
 
 
@@ -103,7 +103,7 @@ def __cond_op_dependent(cj: frozenset[Op]) -> Callable[[Transition], bool]:
     condition = lambda t2: any(
         op1.can_be_dependent(op2) for op1 in cj for op2 in t2.used()
     )
-    condition.__name__ = "dependent on {cj} [rule a.ii]"
+    condition.__name__ = "dependent on ({cj}) [rule a.ii]"
     return condition
 
 
@@ -113,5 +113,7 @@ def __cond_dependent(t1: Transition) -> Callable[[Transition], bool]:
         t1.is_parallel(t2)
         and t1.can_be_dependent(t2)  # TODO implement do-not-accord
     )
-    condition.__name__ = f"dependent with <{t1}> [rule b]"
+    condition.__name__ = (
+        f"dependent with <{_h(_h.action, t1.action)}> [rule b]"
+    )
     return condition
