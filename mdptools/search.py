@@ -19,12 +19,8 @@ def search(
     """Performs a classic search on an MDP, or optionally a selective search if
     `set_method` is supplied
     """
-    from .mdp import MarkovDecisionProcess
-
     if set_method is None:
         set_method = mdp.set_method
-    if not isinstance(set_method, Callable):
-        set_method = MarkovDecisionProcess.enabled
 
     queue = queue()
     transition_map = {}
@@ -37,8 +33,13 @@ def search(
         if s not in transition_map:
             # Register the global state
             transition_map[s] = {}
-            # Iterate all transitions returned by `set_method`
-            for tr in set_method(mdp, s):
+            # Check if s has enabled transitions
+            trs = mdp.enabled(s)
+            # Apply set_method if available and more than one transition is enabled in s
+            if isinstance(set_method, Callable) and len(trs) > 1:
+                trs = set_method(mdp, s)
+            # Expand the transitions
+            for tr in trs:
                 # Get the successor states for the transition
                 successors = tr.successors(s)
                 transition_map[s][tr.action] = successors

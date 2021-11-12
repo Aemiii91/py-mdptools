@@ -69,7 +69,7 @@ def test_custom_transition_function(
         s for s, _ in m.search(set_method=custom_transition_function)
     ]
 
-    assert len(state_space) == 7
+    assert len(state_space) == 9
 
 
 def test_persistent_set(baier_p1: MDP, baier_p2: MDP, baier_rm: MDP):

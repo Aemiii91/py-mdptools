@@ -1,6 +1,7 @@
 import re
 import itertools
 import operator
+import logging
 from functools import reduce
 from typing import Generator
 import numpy as np
@@ -17,6 +18,20 @@ from ..types import (
     imdict,
     defaultdict,
 )
+
+
+logger = logging.getLogger()
+logger.addHandler(logging.StreamHandler())
+
+
+def set_logging_level(level):
+    """Set the global logging level"""
+    logger.setLevel(level)
+
+
+def log_info_enabled() -> bool:
+    """Whether info logging is enabled"""
+    return logger.isEnabledFor(logging.INFO)
 
 
 def float_is(n: float, target: float) -> bool:
@@ -77,11 +92,15 @@ def __ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     return rename
 
 
-def ordered_state_str(s: State, m: MDP, sep: str = "_") -> str:
+def ordered_state_str(
+    s: State, m: MDP, sep: str = "_", formatter: Callable[[str], str] = None
+) -> str:
     """Stringify a collection of local state names, ordered by process"""
     if m.is_process:
         return tuple_str(s, sep)
-    return sep.join(s(p) for p in m.processes)
+    if formatter is None:
+        formatter = lambda s: s
+    return sep.join(formatter(s(p)) for p in m.processes)
 
 
 def tuple_str(tup: Union[tuple, str], sep: str = "_") -> str:

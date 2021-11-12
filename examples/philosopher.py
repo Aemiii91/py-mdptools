@@ -1,5 +1,9 @@
 from mdptools import MarkovDecisionProcess as MDP
-from mdptools.set_methods import conflicting_transitions
+from mdptools.set_methods import (
+    conflicting_transitions,
+    overmans_algorithm,
+    stubborn_sets,
+)
 from helpers import at_root, display_dot
 
 system = MDP(

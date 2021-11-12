@@ -248,6 +248,9 @@ class _MDP:
             self.name, frozenset(states.values()), self.init.rename(states)
         )
 
+    def __repr__(self) -> str:
+        return f"MDP({self.name})"
+
     def __iter__(self) -> Iterator[str]:
         return iter(self.states)
 
