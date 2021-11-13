@@ -94,7 +94,7 @@ def __render_system(
     curr_level = 0
 
     if highlight:
-        search = m.bfs(set_method=False)
+        search = m.bfs(set_method=False, logging_enabled=False)
     else:
         search = m.bfs(set_method=set_method)
 

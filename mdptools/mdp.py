@@ -197,7 +197,7 @@ class MarkovDecisionProcess:
         return f"MDP({self.name})"
 
     def __str__(self) -> str:
-        buffer = f"mdp {_h(_h.variable, self.name)}:\n"
+        buffer = f"mdp {_h.variable(self.name)}:\n"
         buffer += f"  init := {self.init}\n"
         buffer += "\n".join(f"  {tr}" for tr in self.transitions) + "\n"
         return buffer

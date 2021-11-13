@@ -1,3 +1,4 @@
+from mdptools.mdp import MarkovDecisionProcess
 from ..types import MarkovDecisionProcess as MDP, State, Transition
 from ..utils import (
     highlight as _h,
@@ -18,12 +19,7 @@ def conflicting_transitions(
     # Let T = {t}.
     T = [t]
 
-    if log_info_enabled():
-        logger.info(
-            "[Conflicting transitions]\n  s = {%s}\n  T = {<%s>}",
-            ordered_state_str(s, mdp, ",", lambda st: _h(_h.state, st)),
-            t,
-        )
+    __log_begin(mdp, s, t)
 
     # 2. For all transitions t in T
     for t1 in T:
@@ -37,32 +33,49 @@ def conflicting_transitions(
                 t1.is_parallel(t2)
                 and t1.can_be_dependent(t2)
             ):
-                if log_info_enabled():
-                    logger.info(
-                        "    + <%s> [%s]",
-                        t2,
-                        _h(
-                            _h.fail,
-                            "conflict"
-                            if t1.in_conflict(t2)
-                            else "parallel + can-be-dependent",
-                        ),
-                    )
+                __log_append(t1, t2, s)
                 # If a disabled transition is introduced,
                 if not t2.is_enabled(s):
-                    en = mdp.enabled(s)
-                    if log_info_enabled():
-                        logger.info(
-                            "    ! [%s] %s\n  return {<%s>}",
-                            _h(_h.fail, "transition disabled"),
-                            _h(_h.comment, "// return enabled(s)"),
-                            ">,\n          <".join(map(str, en)),
-                        )
                     # return all enabled transitions
-                    return en
+                    T = mdp.enabled(s)
+                    break
                 T.append(t2)
 
-    if log_info_enabled():
-        logger.info("  return {<%s>}", ">,\n          <".join(map(str, T)))
+    __log_end(T)
 
     return T
+
+
+def __log_begin(mdp: MDP, s: State, t: Transition):
+    if log_info_enabled():
+        logger.info(
+            "%s %s\n  s := {%s}\n  T := {<%s>}",
+            _h.comment("begin"),
+            _h.function("conflicting_transitions"),
+            ordered_state_str(s, mdp, ",", lambda st: _h.state(st)),
+            t,
+        )
+
+
+def __log_append(t1: Transition, t2: Transition, s: State):
+    if log_info_enabled():
+        logger.info(
+            "    + <%s> [%s%s]",
+            t2,
+            _h.error(
+                "conflict"
+                if t1.in_conflict(t2)
+                else "parallel + can-be-dependent",
+            ),
+            "" if t2.is_enabled(s) else ", " + _h.fail("disabled"),
+        )
+
+
+def __log_end(T: list[Transition]):
+    if log_info_enabled():
+        logger.info(
+            "\n  %s {<%s>}\n%s",
+            _h.variable("return"),
+            ">,\n          <".join(map(str, T)),
+            _h.comment("end"),
+        )

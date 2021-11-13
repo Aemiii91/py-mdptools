@@ -48,57 +48,41 @@ class Highlight:
     def __call__(self, color: str, text: str) -> str:
         return color + f"{text}" + self.bc.RESET
 
-    @property
-    def state(self):
-        return self.bc.LIGHTCYAN
+    def state(self, text: str):
+        return self.__call__(self.bc.LIGHTCYAN, text)
 
-    @property
-    def action(self):
-        return self.bc.LIGHTGREEN
+    def action(self, text: str):
+        return self.__call__(self.bc.LIGHTGREEN, text)
 
-    @property
-    def function(self):
-        return self.bc.LIGHTBLUE
+    def function(self, text: str):
+        return self.__call__(self.bc.LIGHTBLUE, text)
 
-    @property
-    def variable(self):
-        return self.bc.PINK
+    def variable(self, text: str):
+        return self.__call__(self.bc.PINK, text)
 
-    @property
-    def string(self):
-        return self.bc.YELLOW
+    def string(self, text: str):
+        return self.__call__(self.bc.YELLOW, text)
 
-    @property
-    def comment(self):
-        return self.bc.LIGHTGREY
+    def comment(self, text: str):
+        return self.__call__(self.bc.LIGHTGREY, text)
 
-    @property
-    def ok(self):
-        return self.bc.LIGHTGREEN
+    def ok(self, text: str):
+        return self.__call__(self.bc.LIGHTGREEN, text)
 
-    @property
-    def fail(self):
-        return self.bc.LIGHTRED
+    def fail(self, text: str):
+        return self.__call__(self.bc.LIGHTRED, text)
 
-    @property
-    def error(self):
-        return self.bc.RED
+    def error(self, text: str):
+        return self.__call__(self.bc.RED, text)
 
-    @property
-    def numeral(self):
-        return self.bc.ORANGE
+    def numeral(self, text: str):
+        return self.__call__(self.bc.ORANGE, text)
 
-    @property
-    def types(self):
-        return self.bc.GREEN
+    def types(self, text: str):
+        return self.__call__(self.bc.GREEN, text)
 
-    @property
-    def note(self):
-        return self.bc.PURPLE
-
-    @property
-    def reset(self):
-        return self.bc.RESET
+    def note(self, text: str):
+        return self.__call__(self.bc.PURPLE, text)
 
     def use_colors(self, value: bool = True):
         if value:

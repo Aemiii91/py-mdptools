@@ -40,8 +40,8 @@ class State:
         return "{" + ",".join(list(self.s) + ctx) + "}"
 
     def __str__(self) -> str:
-        values = [_h(_h.state, ss) for ss in self.s]
-        values += [_h(_h.variable, f"{k}={v}") for k, v in self.ctx.items()]
+        values = [_h.state(ss) for ss in self.s]
+        values += [_h.variable(f"{k}={v}") for k, v in self.ctx.items()]
         return (
             next(iter(values))
             if len(values) == 1

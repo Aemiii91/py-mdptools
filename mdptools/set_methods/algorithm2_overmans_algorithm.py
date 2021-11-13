@@ -19,13 +19,7 @@ def overmans_algorithm(
     # Let P = active(t)
     P = list(t.active)
 
-    if log_info_enabled():
-        logger.info(
-            "[Overman's algorithm]\n  s = {%s}\n  t = <%s>\n  P = {%s}",
-            ordered_state_str(s, mdp, ",", lambda st: _h(_h.state, st)),
-            t,
-            ", ".join(map(lambda p: _h(_h.fail, p.name), P)),
-        )
+    __log_begin(mdp, s, t, P)
 
     # 2. For all processes Pi ∈ P
     for Pi in P:
@@ -35,15 +29,8 @@ def overmans_algorithm(
                 if Pj in P:
                     continue
                 if Pj in t1.active or __active_in_dependent_tr(Pj, t1, mdp):
-                    if log_info_enabled():
-                        logger.info(
-                            "  P += %s %s",
-                            _h(_h.fail, Pj.name),
-                            f"[in active({t1})]"
-                            if Pj in t1.active
-                            else "[in active(t')]",
-                        )
                     P.append(Pj)
+                    __log_append(Pj, t1)
 
     _P = set(P)
     # Return all transitions t such that active(t) ⊆ P and t is enabled in s
@@ -51,8 +38,7 @@ def overmans_algorithm(
         filter(lambda t: t.active <= _P and t.is_enabled(s), mdp.transitions)
     )
 
-    if log_info_enabled():
-        logger.info("  T = {<%s>}", ">,\n       <".join(map(str, T)))
+    __log_end(T)
 
     return T
 
@@ -72,3 +58,36 @@ def __active_in_dependent_tr(p: MDP, t1: Transition, mdp: MDP) -> bool:
         for t2 in mdp.transitions
         if t1.is_parallel(t2) and t1.can_be_dependent(t2)
     )
+
+
+def __log_begin(mdp: MDP, s: State, t: Transition, P: list[MDP]):
+    if log_info_enabled():
+        logger.info(
+            "%s %s\n  s := {%s}\n  t := <%s>\n  P := {%s}",
+            _h.comment("begin"),
+            _h.function("overmans_algorithm"),
+            ordered_state_str(s, mdp, ",", lambda st: _h.state(st)),
+            t,
+            ", ".join(map(lambda p: _h.fail(p.name), P)),
+        )
+
+
+def __log_append(Pj: MDP, t1: Transition):
+    if log_info_enabled():
+        logger.info(
+            "  P += %s [%s]",
+            _h.fail(Pj.name),
+            _h.error(
+                f"in active({t1})" if Pj in t1.active else "in active(t')",
+            ),
+        )
+
+
+def __log_end(T: list[Transition]):
+    if log_info_enabled():
+        logger.info(
+            "\n  %s {<%s>}\n%s",
+            _h.variable("return"),
+            ">,\n          <".join(map(str, T)),
+            _h.comment("end"),
+        )

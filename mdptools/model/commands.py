@@ -68,7 +68,7 @@ class Command:
         return f"{type(self).__name__}({self.text})"
 
     def __str__(self) -> str:
-        return _h(_h.variable, self.text) if self.text else ""
+        return _h.variable(self.text) if self.text else ""
 
     def __add__(self, other: "Command") -> "Command":
         return self.__class__(self.expr.union(other.expr))

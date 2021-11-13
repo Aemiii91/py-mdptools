@@ -42,7 +42,7 @@ def validate(
         nonlocal total_errors
         total_errors += [(err_code, err)]
         return [
-            f"[{_h(_h.fail, 'Failed')}] {_h(_h.note, err_code[1])}\n{' '*9}>> {err}"
+            f"[{_h.fail('Failed')}] {_h.note(err_code[1])}\n{' '*9}>> {err}"
         ]
 
     en_s_nonempty, errors = __validate_enabled_nonempty(mdp)
@@ -56,7 +56,7 @@ def validate(
             buffer += add_err(MDP_REQ_SUM_TO_ONE, err)
 
     if len(buffer) != 0:
-        message = _h(_h.error, f"Not a valid MDP [{mdp.name}]:\n") + "\n".join(
+        message = _h.error(f"Not a valid MDP [{mdp.name}]:\n") + "\n".join(
             buffer
         )
         if raise_exception:
@@ -71,7 +71,7 @@ def __validate_enabled_nonempty(
 ) -> tuple[bool, list[str]]:
     """Validate: 'forall s in S : en(s) != {}'"""
     errors = [
-        f"{_h(_h.function, 'en')}({format_str(s, _h.state)}) -> {_h(_h.error, '{}')}"
+        f"{_h.function('en')}({format_str(s, _h.state)}) -> {_h.error('{}')}"
         for s, _ in mdp.search()
         if len(mdp.enabled(s)) == 0
     ]
@@ -96,7 +96,7 @@ def __format_sum_to_one(
     dist: Distribution, s: State, a: Action, sum_a: float
 ) -> list[str]:
     return [
-        f"{_h(_h.function, 'Dist')}({format_str(s, _h.state)}, "
-        f"{_h(_h.action, a)}) -> {format_str(dist)} "
-        f"{_h(_h.comment, '// sum -> ') + _h(_h.error, str(sum_a))}"
+        f"{_h.function('Dist')}({format_str(s, _h.state)}, "
+        f"{_h.action(a)}) -> {format_str(dist)} "
+        f"{_h.comment('// sum -> ') + _h.error(str(sum_a))}"
     ]

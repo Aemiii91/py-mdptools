@@ -25,21 +25,15 @@ def stubborn_sets(
     # Let Ts = {t}.
     Ts = [t]
 
-    if log_info_enabled():
-        logger.info(
-            "[Stubborn sets]\n  s = {%s}:\n  Ts = {<%s>}",
-            ordered_state_str(s, mdp, ",", lambda st: _h(_h.state, st)),
-            t,
-        )
+    __log_begin(mdp, s, t)
 
     def add_t(condition: Callable[[Transition], bool]):
         for t in mdp.transitions:
             if t in Ts:
                 continue
             if condition(t):
-                if log_info_enabled():
-                    logger.info("     +  <%s> (%s)", t, condition.__name__)
                 Ts.append(t)
+                __log_append(t, condition)
 
     # 2. For all transitions t in Ts
     for t1 in Ts:
@@ -67,8 +61,7 @@ def stubborn_sets(
     # Return all transitions in Ts that are enabled in s
     T = list(filter(lambda t: t.is_enabled(s), Ts))
 
-    if log_info_enabled():
-        logger.info("  T = {<%s>}", ">,\n       <".join(map(str, T)))
+    __log_end(T)
 
     return T
 
@@ -92,7 +85,9 @@ def __choose_condition(s: State, t: Transition) -> frozenset[Op]:
 def __cond_enabled_in(t1: Transition, p: MDP) -> Callable[[Transition], bool]:
     """(pre(t) ∩ Pj) ∈ post(t')"""
     condition = lambda t2: t1.pre.intersection(p) in [s_ for s_, _ in t2.post]
-    condition.__name__ = f"enables <{_h(_h.action, t1.action)}> [rule a.i]"
+    condition.__name__ = (
+        f"enables <{_h.action(t1.action)}> [{_h.error('rule a.i')}]"
+    )
     return condition
 
 
@@ -103,7 +98,7 @@ def __cond_op_dependent(cj: frozenset[Op]) -> Callable[[Transition], bool]:
     condition = lambda t2: any(
         op1.can_be_dependent(op2) for op1 in cj for op2 in t2.used()
     )
-    condition.__name__ = "dependent on ({cj}) [rule a.ii]"
+    condition.__name__ = f"dependent on ({cj}) [{_h.error('rule a.ii')}]"
     return condition
 
 
@@ -114,6 +109,32 @@ def __cond_dependent(t1: Transition) -> Callable[[Transition], bool]:
         and t1.can_be_dependent(t2)  # TODO implement do-not-accord
     )
     condition.__name__ = (
-        f"dependent with <{_h(_h.action, t1.action)}> [rule b]"
+        f"dependent with <{_h.action(t1.action)}> [{_h.error('rule b')}]"
     )
     return condition
+
+
+def __log_begin(mdp: MDP, s: State, t: Transition):
+    if log_info_enabled():
+        logger.info(
+            "%s %s\n  s := {%s}:\n  Ts := {<%s>}",
+            _h.comment("begin"),
+            _h.function("stubborn_sets"),
+            ordered_state_str(s, mdp, ",", lambda st: _h.state(st)),
+            t,
+        )
+
+
+def __log_append(t: Transition, condition: Callable[[Transition], bool]):
+    if log_info_enabled():
+        logger.info("     +  <%s> (%s)", t, condition.__name__)
+
+
+def __log_end(T: list[Transition]):
+    if log_info_enabled():
+        logger.info(
+            "\n  %s {<%s>}\n%s",
+            _h.variable("return"),
+            ">,\n          <".join(map(str, T)),
+            _h.comment("end"),
+        )

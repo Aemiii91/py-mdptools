@@ -29,7 +29,11 @@ _re_str = re.compile(r"\"([^\"\n]*?)\"|'([^'\n]*?)'")
 
 def __format_strings(s: str, color: str, use_colors: bool) -> str:
     if use_colors:
-        return re.sub(_re_str, color + r"\1\2" + _h.reset, s)
+        return re.sub(
+            _re_str,
+            lambda m: getattr(_h, color)(f"{m.group(1)}{m.group(2)}"),
+            s,
+        )
     return re.sub(_re_str, r"\1\2", s)
 
 
@@ -43,7 +47,11 @@ _re_float = re.compile(
 def __format_floats(s: str, colors: bool = True) -> str:
     if colors:
         return re.sub(
-            _re_float, r"\1" + _h.numeral + r"\2\3\4" + _h.reset + r"\5", s
+            _re_float,
+            lambda m: m.group(1)
+            + _h.numeral(f"{''.join(filter(None,m.groups()[2:4]))}")
+            + m.group(5),
+            s,
         )
     return re.sub(_re_float, r"\1\2\3\4\5", s)
 
