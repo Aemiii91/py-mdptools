@@ -4,11 +4,11 @@ import operator
 import logging
 from os import get_terminal_size
 from functools import reduce
-from typing import Generator
 import numpy as np
 from collections import Counter
 
 from ..types import (
+    Action,
     RenameFunction,
     Callable,
     Iterable,
@@ -18,11 +18,13 @@ from ..types import (
     State,
     imdict,
     defaultdict,
+    Generator,
 )
 
 
 logger = logging.getLogger()
-logger.addHandler(logging.StreamHandler())
+_log_handler = logging.StreamHandler()
+logger.addHandler(_log_handler)
 
 
 def set_logging_level(level):
@@ -35,12 +37,23 @@ def log_info_enabled() -> bool:
     return logger.isEnabledFor(logging.INFO)
 
 
+def log_silence(silent: bool):
+    if silent:
+        logger.removeHandler(_log_handler)
+    else:
+        logger.addHandler(_log_handler)
+
+
 def get_terminal_width():
     try:
         width, _ = get_terminal_size()
     except OSError:
         width = 80
     return width
+
+
+def remove_direction(action: Action) -> Action:
+    return re.sub(r"[?!]$", "", action)
 
 
 def float_is(n: float, target: float) -> bool:

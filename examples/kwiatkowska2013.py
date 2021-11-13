@@ -4,54 +4,68 @@ from helpers import display_graph
 
 
 def make_sensor(i: int) -> MDP:
-    s = [f"active_{i}", f"detected_{i}", f"alert_{i}", f"inactive_{i}"]
+    s = [f"active_{i}", f"prepare_{i}", f"detected_{i}", f"inactive_{i}"]
     return MDP(
         [
             (f"detect_{i}", s[0], {s[1]: 0.8, s[2]: 0.2}),
-            (f"warn_{i}", s[1], s[2]),
-            (f"shutdown_{i}", s[2], s[3]),
-            (f"off_{i}", s[3]),
+            ("warn!", s[1], s[2]),
+            ("shutdown!", s[2], s[3]),
+            ("tau", s[3]),
         ],
         init=s[0],
         name=f"S{i}",
     )
 
 
-def make_device(n: int) -> MDP:
-    s = ["running", "stopping", "off", "failing"]
-    trs = [
-        ("fail", s[3]),
-    ]
-    for i in range(n):
-        trs += [
-            (f"warn_{i}", s[0], s[1]),
-            (f"shutdown_{i}", s[0], {s[2]: 0.9, s[3]: 0.1}),
-            (f"shutdown_{i}", s[1], s[2]),
-            (f"off_{i}", s[2]),
-        ]
-    return MDP(trs, init=s[0], name="D")
+def make_device() -> MDP:
+    s = ["running", "stopping", "off", "failed"]
+    return MDP(
+        [
+            ("warn?", s[0], s[1]),
+            ("shutdown?", s[0], {s[2]: 0.9, s[3]: 0.1}),
+            ("shutdown?", s[1], s[2]),
+            ("tau", s[2]),
+            ("tau", s[3]),
+        ],
+        init=s[0],
+        name="D",
+    )
 
 
-def make_system(n: int):
+def make_system(n: int) -> MDP:
     processes = [make_sensor(i + 1) for i in range(n)]
-    processes += [make_device(n)]
-    processes += [MDP(*processes).rename((r"^([a-z])[a-z]+", r"\1"))]
-    return processes
+    processes += [make_device()]
+    return MDP(*processes)
 
 
 # %%
-processes = make_system(2)
+system = make_system(2)
 
-for p in processes:
+for p in system.processes:
     print(p)
 
 # %%
-display_graph(*processes[:-1], file_path="out/graphs/graph_kwiatkowska.gv")
+display_graph(*system.processes, file_path="out/graphs/graph_kwiatkowska.gv")
+
+# %%
+print(system)
 
 # %%
 display_graph(
-    processes[-1],
+    system.rename(
+        (r"^([a-z]{1,2}[aeiouy][^aeiouy]?|[a-z]{1,2}[^aeiouy])[a-z]*", r"\1")
+    ),
     file_path="out/graphs/graph_kwiatkowska_composed.gv",
     set_method=stubborn_sets,
     highlight=True,
 )
+
+# %%
+for n in range(1, 6):
+    system = make_system(n)
+    state_space = list(system.search(silent=True))
+    state_space_ps = list(system.search(set_method=stubborn_sets, silent=True))
+    t = len(state_space)
+    r = len(state_space_ps)
+    p = round(abs(t - r) / t * 100)
+    print(f"{n} sensors: {t} ({r} reduced, {p}% reduction)")

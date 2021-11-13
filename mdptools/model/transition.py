@@ -9,6 +9,7 @@ from ..types import (
     MarkovDecisionProcess as MDP,
     imdict,
     defaultdict,
+    Iterable,
 )
 from ..utils import (
     itertools,
@@ -21,6 +22,7 @@ from ..utils import (
     format_str,
     format_tup,
     highlight as _h,
+    remove_direction,
 )
 from .commands import Op, guard, Guard, is_guard
 from .state import state, State, state_update
@@ -121,7 +123,7 @@ class Transition:
         return (self.action, self.pre, self.guard, self.post)[index]
 
     def __add__(self, other: "Transition") -> "Transition":
-        action = self.action
+        action = remove_direction(self.action)
         pre = self.pre + other.pre
         guard = self.guard + other.guard
         post = dist_product(self.post, other.post)
@@ -187,7 +189,8 @@ def compose_transitions(processes: list[MDP]) -> list[Transition]:
     # Count the number of processes for each action
     global_actions = Counter(
         itertools.chain.from_iterable(
-            (tr.action for tr in p.transitions) for p in processes
+            (remove_direction(tr.action) for tr in p.transitions)
+            for p in processes
         )
     )
     # Create a dict of actions that appear in more than one process
@@ -198,17 +201,27 @@ def compose_transitions(processes: list[MDP]) -> list[Transition]:
     }
 
     for pid, tr in process_transitions:
-        if tr.action in synched_actions:
+        action = remove_direction(tr.action)
+        if action in synched_actions:
             # Collect all transitions belonging to a synched action
-            synched_actions[tr.action][pid].append(tr)
+            synched_actions[action][pid].append(tr)
         else:
             transitions.append(tr)
 
     # Generate all permutations of synched transitions
-    transitions += [
-        reduce(operator.add, trs)
-        for queue in synched_actions.values()
-        for trs in itertools.product(*queue.values())
-    ]
+    for queue in synched_actions.values():
+        for trs in itertools.product(*queue.values()):
+            transitions += _merge_transitions(trs)
 
+    return transitions
+
+
+def _merge_transitions(trs: Iterable[Transition]) -> Transition:
+    ingoing, outgoing = partition(lambda tr: tr.action.endswith("!"), trs)
+    if not outgoing:
+        return [reduce(operator.add, trs)]
+    transitions = []
+    ingoing = list(ingoing)
+    for tr in outgoing:
+        transitions += [reduce(operator.add, [tr] + ingoing)]
     return transitions

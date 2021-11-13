@@ -17,6 +17,7 @@ from .utils import (
     highlight as _h,
     rename_map,
     to_prism,
+    remove_direction,
 )
 from .model import (
     Transition,
@@ -230,7 +231,7 @@ class MarkovDecisionProcess:
             states = states.union(tr.pre)
             for (s_prime, _), _ in tr.post.items():
                 states = states.union(s_prime)
-            actions = actions.union({tr.action})
+            actions = actions.union({remove_direction(tr.action)})
         self._states = frozenset(states)
         self._actions = frozenset(actions)
 
