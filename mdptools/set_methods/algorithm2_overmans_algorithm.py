@@ -19,18 +19,18 @@ def overmans_algorithm(
     # Let P = active(t)
     P = list(t.active)
 
-    __log_begin(mdp, s, t, P)
+    _log_begin(mdp, s, t, P)
 
     # 2. For all processes Pi ∈ P
     for Pi in P:
         # for all transitions t such that s(i) ∈ pre(t)
-        for t1 in __trs_local_state_in_pre(s, Pi, mdp):
+        for t1 in _trs_local_state_in_pre(s, Pi, mdp):
             for Pj in mdp.processes:
                 if Pj in P:
                     continue
-                if Pj in t1.active or __active_in_dependent_tr(Pj, t1, mdp):
+                if Pj in t1.active or _active_in_dependent_tr(Pj, t1, mdp):
                     P.append(Pj)
-                    __log_append(Pj, t1)
+                    _log_append(Pj, t1)
 
     _P = set(P)
     # Return all transitions t such that active(t) ⊆ P and t is enabled in s
@@ -38,12 +38,12 @@ def overmans_algorithm(
         filter(lambda t: t.active <= _P and t.is_enabled(s), mdp.transitions)
     )
 
-    __log_end(T)
+    _log_end(T)
 
     return T
 
 
-def __trs_local_state_in_pre(
+def _trs_local_state_in_pre(
     s: State, p: MDP, mdp: MDP
 ) -> Iterable[Transition]:
     """Return transitions that can be accessed by process p from its current local state s(i)"""
@@ -51,7 +51,7 @@ def __trs_local_state_in_pre(
     return filter(lambda t: s_i in t.pre, mdp.transitions)
 
 
-def __active_in_dependent_tr(p: MDP, t1: Transition, mdp: MDP) -> bool:
+def _active_in_dependent_tr(p: MDP, t1: Transition, mdp: MDP) -> bool:
     """p ∈ active(t') for some t' such that t and t' are parallel and can-be-dependent"""
     return any(
         p in t2.active
@@ -60,7 +60,7 @@ def __active_in_dependent_tr(p: MDP, t1: Transition, mdp: MDP) -> bool:
     )
 
 
-def __log_begin(mdp: MDP, s: State, t: Transition, P: list[MDP]):
+def _log_begin(mdp: MDP, s: State, t: Transition, P: list[MDP]):
     if log_info_enabled():
         logger.info(
             "%s %s\n  s := {%s}\n  t := <%s>\n  P := {%s}",
@@ -72,7 +72,7 @@ def __log_begin(mdp: MDP, s: State, t: Transition, P: list[MDP]):
         )
 
 
-def __log_append(Pj: MDP, t1: Transition):
+def _log_append(Pj: MDP, t1: Transition):
     if log_info_enabled():
         logger.info(
             "  P += %s [%s]",
@@ -83,7 +83,7 @@ def __log_append(Pj: MDP, t1: Transition):
         )
 
 
-def __log_end(T: list[Transition]):
+def _log_end(T: list[Transition]):
     if log_info_enabled():
         logger.info(
             "\n  %s {<%s>}\n%s",

@@ -25,48 +25,49 @@ def stubborn_sets(
     # Let Ts = {t}.
     Ts = [t]
 
-    __log_begin(mdp, s, t)
+    _log_begin(mdp, s, t)
 
     def add_t(condition: Callable[[Transition], bool]):
+        """Add t' to Ts if condition holds"""
         for t in mdp.transitions:
             if t in Ts:
                 continue
             if condition(t):
                 Ts.append(t)
-                __log_append(t, condition)
+                _log_append(t, condition)
 
     # 2. For all transitions t in Ts
     for t1 in Ts:
         # (a) if t is disabled in s, either
         if not t1.is_enabled(s):
             # i. choose a process Pj ∈ active(t) such that s(j) != (pre(t) ∩ Pj)
-            Pj = __choose_process(s, t1)
+            Pj = _choose_process(s, t1)
             if Pj is not None:
                 # then, add to Ts all transitions t' such that (pre(t) ∩ Pj) ∈ post(t')
-                add_t(__cond_enabled_in(t1, Pj))
+                add_t(_cond_enabled_in(t1, Pj))
                 continue
             # ii. choose a condition cj in the guard G of t that evaluates to false in s
-            cj = __choose_condition(s, t1)
+            cj = _choose_condition(s, t1)
             if cj is not None:
                 # then, for all operations op used by t to evaluate cj, add to Ts
                 # all transitions t' such that there exists op' ∈ used(t') : op and op'
                 # can-be-dependent
-                add_t(__cond_op_dependent(cj))
+                add_t(_cond_op_dependent(cj))
         # (b) if t is enabled in s
         else:
             # add to Ts all transitions t' such that t and t' are in conflict or
             # parallel and their operations do-not-accord
-            add_t(__cond_dependent(t1))
+            add_t(_cond_dependent(t1))
 
     # Return all transitions in Ts that are enabled in s
     T = list(filter(lambda t: t.is_enabled(s), Ts))
 
-    __log_end(T)
+    _log_end(T)
 
     return T
 
 
-def __choose_process(s: State, t: Transition) -> MDP:
+def _choose_process(s: State, t: Transition) -> MDP:
     """Choose a process Pj ∈ active(t) such that s(j) != (pre(t) ∩ Pj)"""
     return next(
         filter(lambda p: {s(p)} != t.pre.intersection(p), t.active),
@@ -74,7 +75,7 @@ def __choose_process(s: State, t: Transition) -> MDP:
     )
 
 
-def __choose_condition(s: State, t: Transition) -> frozenset[Op]:
+def _choose_condition(s: State, t: Transition) -> frozenset[Op]:
     """Choose a condition cj in the guard G of t that evaluates to false in s"""
     return next(
         filter(lambda cj: not any(pred(s.ctx) for pred in cj), t.guard.expr),
@@ -82,7 +83,7 @@ def __choose_condition(s: State, t: Transition) -> frozenset[Op]:
     )
 
 
-def __cond_enabled_in(t1: Transition, p: MDP) -> Callable[[Transition], bool]:
+def _cond_enabled_in(t1: Transition, p: MDP) -> Callable[[Transition], bool]:
     """(pre(t) ∩ Pj) ∈ post(t')"""
     condition = lambda t2: t1.pre.intersection(p) in [s_ for s_, _ in t2.post]
     condition.__name__ = (
@@ -91,7 +92,7 @@ def __cond_enabled_in(t1: Transition, p: MDP) -> Callable[[Transition], bool]:
     return condition
 
 
-def __cond_op_dependent(cj: frozenset[Op]) -> Callable[[Transition], bool]:
+def _cond_op_dependent(cj: frozenset[Op]) -> Callable[[Transition], bool]:
     """For all operations op used to evaluate cj, add all transitions t'
     such that there exists op' ∈ used(t') : op and op' can-be-dependent
     """
@@ -102,7 +103,7 @@ def __cond_op_dependent(cj: frozenset[Op]) -> Callable[[Transition], bool]:
     return condition
 
 
-def __cond_dependent(t1: Transition) -> Callable[[Transition], bool]:
+def _cond_dependent(t1: Transition) -> Callable[[Transition], bool]:
     """t and t' are in conflict or parallel and their operations do-not-accord"""
     condition = lambda t2: t1.in_conflict(t2) or (
         t1.is_parallel(t2)
@@ -114,7 +115,7 @@ def __cond_dependent(t1: Transition) -> Callable[[Transition], bool]:
     return condition
 
 
-def __log_begin(mdp: MDP, s: State, t: Transition):
+def _log_begin(mdp: MDP, s: State, t: Transition):
     if log_info_enabled():
         logger.info(
             "%s %s\n  s := {%s}:\n  Ts := {<%s>}",
@@ -125,12 +126,12 @@ def __log_begin(mdp: MDP, s: State, t: Transition):
         )
 
 
-def __log_append(t: Transition, condition: Callable[[Transition], bool]):
+def _log_append(t: Transition, condition: Callable[[Transition], bool]):
     if log_info_enabled():
         logger.info("     +  <%s> (%s)", t, condition.__name__)
 
 
-def __log_end(T: list[Transition]):
+def _log_end(T: list[Transition]):
     if log_info_enabled():
         logger.info(
             "\n  %s {<%s>}\n%s",

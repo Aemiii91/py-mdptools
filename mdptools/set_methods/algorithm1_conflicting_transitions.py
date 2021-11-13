@@ -19,7 +19,7 @@ def conflicting_transitions(
     # Let T = {t}.
     T = [t]
 
-    __log_begin(mdp, s, t)
+    _log_begin(mdp, s, t)
 
     # 2. For all transitions t in T
     for t1 in T:
@@ -33,7 +33,7 @@ def conflicting_transitions(
                 t1.is_parallel(t2)
                 and t1.can_be_dependent(t2)
             ):
-                __log_append(t1, t2, s)
+                _log_append(t1, t2, s)
                 # If a disabled transition is introduced,
                 if not t2.is_enabled(s):
                     # return all enabled transitions
@@ -41,12 +41,12 @@ def conflicting_transitions(
                     break
                 T.append(t2)
 
-    __log_end(T)
+    _log_end(T)
 
     return T
 
 
-def __log_begin(mdp: MDP, s: State, t: Transition):
+def _log_begin(mdp: MDP, s: State, t: Transition):
     if log_info_enabled():
         logger.info(
             "%s %s\n  s := {%s}\n  T := {<%s>}",
@@ -57,7 +57,7 @@ def __log_begin(mdp: MDP, s: State, t: Transition):
         )
 
 
-def __log_append(t1: Transition, t2: Transition, s: State):
+def _log_append(t1: Transition, t2: Transition, s: State):
     if log_info_enabled():
         logger.info(
             "    + <%s> [%s%s]",
@@ -71,7 +71,7 @@ def __log_append(t1: Transition, t2: Transition, s: State):
         )
 
 
-def __log_end(T: list[Transition]):
+def _log_end(T: list[Transition]):
     if log_info_enabled():
         logger.info(
             "\n  %s {<%s>}\n%s",

@@ -35,7 +35,7 @@ def graph(
 
     for pid, process in enumerate(processes):
         with dot.subgraph() as subgraph:
-            __render_mdp(subgraph, process, pid, set_method, highlight)
+            _render_mdp(subgraph, process, pid, set_method, highlight)
 
     if file_path is not None:
         dot.render()
@@ -48,7 +48,7 @@ graph.p_color = None
 graph.label_padding = 2
 
 
-def __render_mdp(
+def _render_mdp(
     dot: Digraph,
     m: MDP,
     pid: int,
@@ -70,22 +70,22 @@ def __render_mdp(
         shape="none",
         fontsize=f"{round(graph.point_size * 1.2, 2)}",
     )
-    dot.edge(init_name, __pf_s(init, pid, m))
+    dot.edge(init_name, _pf_s(init, pid, m))
 
     if m.is_process:
-        __render_process(dot, m, pid)
+        _render_process(dot, m, pid)
     else:
-        __render_system(dot, m, pid, set_method, highlight)
+        _render_system(dot, m, pid, set_method, highlight)
 
 
-def __render_process(dot: Digraph, m: MDP, pid: int):
+def _render_process(dot: Digraph, m: MDP, pid: int):
     for a, s, guard, dist in m.transitions:
         # Add a state node to the graph
-        s_name = __add_node(dot, s, pid, m)
-        __add_edges(dot, s_name, a, dist, pid, m, second_line=guard.text)
+        s_name = _add_node(dot, s, pid, m)
+        _add_edges(dot, s_name, a, dist, pid, m, second_line=guard.text)
 
 
-def __render_system(
+def _render_system(
     dot: Digraph, m: MDP, pid: int, set_method: SetMethod, highlight: bool
 ):
     from graphviz import Digraph
@@ -94,7 +94,7 @@ def __render_system(
     curr_level = 0
 
     if highlight:
-        search = m.bfs(set_method=False, logging_enabled=False)
+        search = m.bfs(set_method=False, silent=True)
     else:
         search = m.bfs(set_method=set_method)
 
@@ -103,11 +103,11 @@ def __render_system(
             same_rank.append([])
             curr_level = level
         # Add a state node to the graph
-        s_name = __add_node(dot, s, pid, m)
+        s_name = _add_node(dot, s, pid, m)
         same_rank[-1].append(s_name)
 
         for a, dist in act.items():
-            __add_edges(dot, s_name, a, dist, pid, m)
+            _add_edges(dot, s_name, a, dist, pid, m)
 
     if highlight:
         for s, act, level in m.bfs(set_method=set_method):
@@ -124,19 +124,19 @@ def __render_system(
 _node_map: dict[State, str] = {}
 
 
-def __add_node(dot: Digraph, s: State, pid: int, m: MDP) -> str:
+def _add_node(dot: Digraph, s: State, pid: int, m: MDP) -> str:
     if s in _node_map:
         return _node_map[s]
     s_label = ordered_state_str(s, m)
-    s_name = __pf_s(s, pid, m)
+    s_name = _pf_s(s, pid, m)
     s_ctx_label = ",&nbsp;".join(f"{k}={v}" for k, v in s.ctx.items())
-    label = __label_html(s_label, second_line=s_ctx_label or None)
+    label = _label_html(s_label, second_line=s_ctx_label or None)
     dot.node(s_name, label)
     _node_map[s] = s_name
     return s_name
 
 
-def __add_edges(
+def _add_edges(
     dot: Digraph,
     s_name: str,
     a: str,
@@ -152,36 +152,36 @@ def __add_edges(
         if not isinstance(s_prime, State):
             s_prime, upd = s_prime
             cmd_text = upd.text or None
-        s_prime_name = __add_node(dot, s_prime, pid, m)
+        s_prime_name = _add_node(dot, s_prime, pid, m)
 
         if p == 1:
             second_line = (
                 ",&nbsp;".join(filter(None, [second_line, cmd_text])) or None
             )
-            label = __label_html(a, second_line=second_line)
+            label = _label_html(a, second_line=second_line)
             # Add a transition arrow between two states (non-deterministic)
             dot.edge(s_name, s_prime_name, label, minlen="2")
         else:
             if p_point is None:
-                p_label = __label_html(f"{a}", second_line=second_line)
+                p_label = _label_html(f"{a}", second_line=second_line)
                 # Create a shared point for the probabilistic outcome of action `a`
-                p_point = __create_p_point(dot, s_name, a, p_label, pid)
-            label = __label_html(p, color=graph.p_color, second_line=cmd_text)
+                p_point = _create_p_point(dot, s_name, a, p_label, pid)
+            label = _label_html(p, color=graph.p_color, second_line=cmd_text)
             # Add a transition arrow between the shared point and the next state
             dot.edge(p_point, s_prime_name, label)
 
 
-def __pf_s(s: State, pid: int, m: MDP) -> str:
+def _pf_s(s: State, pid: int, m: MDP) -> str:
     s_label = ordered_state_str(s, m)
-    return f"mdp_{pid}_state_{s_label}{__str_context(s.ctx)}"
+    return f"mdp_{pid}_state_{s_label}{_str_context(s.ctx)}"
 
 
-def __str_context(ctx: dict[str, int]) -> str:
+def _str_context(ctx: dict[str, int]) -> str:
     text = "_".join(f"{k}_{v}" for k, v in ctx.items())
     return f"_ctx_{text}" if text else ""
 
 
-def __create_p_point(
+def _create_p_point(
     dot: Digraph,
     s_name: str,
     a: Action,
@@ -194,25 +194,23 @@ def __create_p_point(
     return p_point
 
 
-def __label_html(
-    label: str, color: str = None, second_line: str = None
-) -> str:
+def _label_html(label: str, color: str = None, second_line: str = None) -> str:
     if isinstance(label, float):
         label = format_str(label, use_colors=False)
     label = tuple_str(label)
-    label = __greek_letters(label)
-    label = __italicize_words(label)
-    label = __subscript_numerals(label, graph.point_size * 0.5)
+    label = _greek_letters(label)
+    label = _italicize_words(label)
+    label = _subscript_numerals(label, graph.point_size * 0.5)
     label = label.replace("_", "&nbsp;")
     if color is not None:
         label = f'<font color="{color}">{label}</font>'
     if second_line:
-        label = f"{label}<br/>{__format_command(second_line)}"
-    label = __html_padding(label, graph.label_padding)
+        label = f"{label}<br/>{_format_command(second_line)}"
+    label = _html_padding(label, graph.label_padding)
     return f"<{label}>"
 
 
-def __html_padding(label: str, padding: int):
+def _html_padding(label: str, padding: int):
     if padding == 0:
         return label
     return (
@@ -253,14 +251,14 @@ _re_greek = re.compile(
 )
 
 
-def __greek_letters(label: str) -> str:
+def _greek_letters(label: str) -> str:
     return re.sub(_re_greek, r"\1&\2;\3", label)
 
 
 _re_words = re.compile(r"(&.*?;)|([a-z]+)", re.IGNORECASE)
 
 
-def __italicize_words(label: str) -> str:
+def _italicize_words(label: str) -> str:
     def repl(m: re.Match) -> str:
         g1, g2 = m.groups()
         return g1 if g1 is not None else f"<i>{g2}</i>"
@@ -268,7 +266,7 @@ def __italicize_words(label: str) -> str:
     return re.sub(_re_words, repl, label)
 
 
-def __subscript_numerals(label: str, size: int) -> str:
+def _subscript_numerals(label: str, size: int) -> str:
     return re.sub(
         r"((?!^|[.0-9])|[a-z]|<\/i>)_?([0-9]+)(?![0-9])",
         r"\1"
@@ -284,9 +282,9 @@ _re_operator = re.compile(
 )
 
 
-def __format_command(text: str) -> str:
+def _format_command(text: str) -> str:
     text = text.replace(":=", "≔")
     text = re.sub(_re_operator, r"&#8202;\1&#8202;", text)
-    text = __italicize_words(text)
-    text = __subscript_numerals(text, graph.point_size * 0.5)
+    text = _italicize_words(text)
+    text = _subscript_numerals(text, graph.point_size * 0.5)
     return text

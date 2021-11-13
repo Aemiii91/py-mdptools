@@ -20,7 +20,7 @@ def search(
     set_method: SetMethod = None,
     include_level: bool = False,
     queue: Queue = LifoQueue,
-    logging_enabled: bool = True,
+    silent: bool = False,
 ) -> Generator[tuple[State, ActionMap], None, None]:
     """Performs a classic search on an MDP, or optionally a selective search if
     `set_method` is supplied
@@ -34,7 +34,7 @@ def search(
     if s is None:
         s = mdp.init
 
-    __log_begin(mdp, s, set_method, logging_enabled)
+    _log_begin(mdp, s, set_method, silent)
 
     # Add the initial state
     queue.put((s, 0))
@@ -46,7 +46,7 @@ def search(
             transition_map[s] = {}
             # Check if s has enabled transitions
             trs = mdp.enabled(s)
-            __log_visit(mdp, s, trs, set_method, level, logging_enabled)
+            _log_visit(mdp, s, trs, set_method, level, silent)
             # Apply set_method if available and more than one transition is enabled in s
             if isinstance(set_method, Callable) and len(trs) > 1:
                 trs = set_method(mdp, s)
@@ -58,7 +58,7 @@ def search(
                 # Add the discovered states to the queue
                 for succ in successors.keys():
                     queue.put((succ, level + 1))
-                __log_enqueue(mdp, successors, logging_enabled)
+                _log_enqueue(mdp, successors, silent)
 
             ret = (s, transition_map[s])
             if include_level:
@@ -74,10 +74,8 @@ def bfs(
     return search(mdp, s, **kw)
 
 
-def __log_begin(
-    mdp: MDP, s: State, set_method: SetMethod, logging_enabled: bool
-):
-    if log_info_enabled() and logging_enabled:
+def _log_begin(mdp: MDP, s: State, set_method: SetMethod, silent: bool):
+    if not silent and log_info_enabled():
         line_width = get_terminal_size()[0]
         set_method_name = (
             set_method.__name__
@@ -100,15 +98,15 @@ def __log_begin(
         )
 
 
-def __log_visit(
+def _log_visit(
     mdp: MDP,
     s: State,
     T: list[Transition],
     set_method: SetMethod,
     level: int,
-    logging_enabled: bool,
+    silent: bool,
 ):
-    if log_info_enabled() and logging_enabled:
+    if not silent and log_info_enabled():
         logger.info(
             "\n%s:%d {%s}%s",
             _h.function("VISIT"),
@@ -124,10 +122,8 @@ def __log_visit(
         )
 
 
-def __log_enqueue(
-    mdp: MDP, successors: dict[State, float], logging_enabled: bool
-):
-    if log_info_enabled() and logging_enabled:
+def _log_enqueue(mdp: MDP, successors: dict[State, float], silent: bool):
+    if not silent and log_info_enabled():
         logger.info(
             "Q <- {%s}",
             "}, {".join(

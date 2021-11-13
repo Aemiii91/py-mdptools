@@ -79,7 +79,7 @@ class Command:
 
 def command(text: Union[str, Iterable[str]]) -> Command:
     text = " & ".join(list(text))
-    return Command(__compile_update(text))
+    return Command(_compile_update(text))
 
 
 class Guard(Command):
@@ -107,10 +107,10 @@ class Guard(Command):
 def guard(pred: Union[str, Iterable[str]]) -> Guard:
     if not isinstance(pred, str):
         pred = " & ".join(pred)
-    return Guard(__compile_guard(pred))
+    return Guard(_compile_guard(pred))
 
 
-def __compile_guard(text: str) -> frozenset[frozenset[Op]]:
+def _compile_guard(text: str) -> frozenset[frozenset[Op]]:
     if not text:
         return frozenset()
     text = re.sub(r"\s*[\(\)]\s*", " ", text)
@@ -118,7 +118,7 @@ def __compile_guard(text: str) -> frozenset[frozenset[Op]]:
         re.split(r"\s*\|\s*", disj) for disj in re.split(r"\s*\&\s*", text)
     )
     return frozenset(
-        frozenset(__simple_pred(expr) for expr in disj) for disj in conj
+        frozenset(_simple_pred(expr) for expr in disj) for disj in conj
     )
 
 
@@ -138,7 +138,7 @@ _re_comparison = re.compile(
 )
 
 
-def __simple_pred(text: str) -> Callable[[dict], bool]:
+def _simple_pred(text: str) -> Callable[[dict], bool]:
     match = re.match(_re_comparison, text)
     if match is None:
         raise ValueError
@@ -149,7 +149,7 @@ def __simple_pred(text: str) -> Callable[[dict], bool]:
     return Op(obj, op, value, frozenset("r"), _call)
 
 
-def __compile_update(text: str) -> set[Callable[[dict], dict]]:
+def _compile_update(text: str) -> set[Callable[[dict], dict]]:
     if not text:
         return frozenset()
     nodes = re.split(r"\s*,\s*", text)
@@ -159,7 +159,7 @@ def __compile_update(text: str) -> set[Callable[[dict], dict]]:
 _re_assign = re.compile(r"([a-z_]\w*)\s*(:=)\s*(\d+)", re.IGNORECASE)
 
 
-def __simple_assignment(text: str) -> Callable[[dict], bool]:
+def _simple_assignment(text: str) -> Callable[[dict], bool]:
     match = re.match(_re_assign, text)
     if match is None:
         raise ValueError

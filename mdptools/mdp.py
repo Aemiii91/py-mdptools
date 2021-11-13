@@ -59,23 +59,23 @@ class MarkovDecisionProcess:
             transitions = next(iter(args), [])
             # If no processes are supplied, must be a process
             if processes is None:
-                self.__init_process(transitions, init)
+                self._init_process(transitions, init)
             else:
                 # Create "hollow" MDP for each process
                 processes = [
                     _MDP(name, frozenset(states), state(states[0]))
                     for name, states in processes.items()
                 ]
-                self.__init_system(processes, init, transitions)
+                self._init_system(processes, init, transitions)
         else:
-            self.__init_system(args, init)
+            self._init_system(args, init)
 
         if name is not None:
             self.name = name
         if set_method is not None:
             self.set_method = set_method
 
-    def __init_process(
+    def _init_process(
         self, transitions: list[TransitionDescription], init: StateDescription
     ):
         if isinstance(transitions, MarkovDecisionProcess):
@@ -91,7 +91,7 @@ class MarkovDecisionProcess:
         if init is not None:
             self.init = state_apply(init)
 
-    def __init_system(
+    def _init_system(
         self,
         processes: Iterable[MDP],
         init: StateDescription,
@@ -113,11 +113,11 @@ class MarkovDecisionProcess:
 
     def enabled(self, s: State = None) -> list[Transition]:
         """Returns a list of transitions enabled in state `s`"""
-        return list(self.__enabled(s))
+        return list(self._enabled(s))
 
     def enabled_take_one(self, s: State = None) -> Transition:
         """Returns the first enabled transition in state `s`"""
-        return next(iter(self.__enabled(s)), None)
+        return next(iter(self._enabled(s)), None)
 
     def search(self, s: State = None, **kw) -> Generator:
         """Performs a depth-first-search of the state space"""
@@ -162,14 +162,14 @@ class MarkovDecisionProcess:
     def states(self) -> frozenset[str]:
         """The set of local states in the MDP"""
         if not self._states:
-            self.__set_states_and_actions()
+            self._set_states_and_actions()
         return self._states
 
     @property
     def actions(self) -> frozenset[str]:
         """The set of actions in the MDP"""
         if not self._actions:
-            self.__set_states_and_actions()
+            self._set_states_and_actions()
         return self._actions
 
     @property
@@ -208,12 +208,12 @@ class MarkovDecisionProcess:
     def __contains__(self, key: str) -> bool:
         return key in self.states
 
-    def __enabled(self, s: State = None) -> Iterable[Transition]:
+    def _enabled(self, s: State = None) -> Iterable[Transition]:
         if s is None:
             s = self.init
         return filter(lambda tr: tr.is_enabled(s), self.transitions)
 
-    def __bind_transition(self, tr: TransitionDescription):
+    def _bind_transition(self, tr: TransitionDescription):
         if not isinstance(tr, Transition):
             tr = transition(*tr)
 
@@ -224,7 +224,7 @@ class MarkovDecisionProcess:
 
         return tr.bind(process)
 
-    def __set_states_and_actions(self):
+    def _set_states_and_actions(self):
         states, actions = set(), set()
         for tr in self.transitions:
             states = states.union(tr.pre)

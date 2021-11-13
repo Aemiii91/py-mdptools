@@ -41,7 +41,7 @@ def make_system(n: int):
 # %%
 m = make_system(2)
 print("Transitions:", len(m.transitions))
-print("State space:", len(list(m.search(logging_enabled=False))))
+print("State space:", len(list(m.search(silent=True))))
 print()
 
 print(m)

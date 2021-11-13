@@ -69,18 +69,18 @@ def partition(pred, iterable):
 
 def rename_map(names: Iterable, rename: RenameFunction) -> dict[str, str]:
     """Apply and map the value of a rename function on a collection of names"""
-    rename = __ensure_rename_function(rename)
+    rename = _ensure_rename_function(rename)
     return {name: rename(name) for name in names}
 
 
-def __ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
+def _ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     # Supply a tuple[str, str] to do string replacement (regex can be used)
     if isinstance(rename, tuple):
         old, new = rename
         rename = lambda s: re.sub(old, new, s)
     # Supply a list of rename functions
     elif isinstance(rename, list):
-        rename_list = [__ensure_rename_function(el) for el in rename]
+        rename_list = [_ensure_rename_function(el) for el in rename]
         rename = lambda s: reduce(lambda sb, fn: fn(sb), rename_list, s)
     # Supply a rename map, mapping whole names to new ones
     elif isinstance(rename, dict):
