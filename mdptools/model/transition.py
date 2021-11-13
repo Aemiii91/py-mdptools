@@ -1,4 +1,5 @@
 from ..types import (
+    Command,
     dataclass,
     field,
     Action,
@@ -20,9 +21,8 @@ from ..utils import (
     format_str,
     format_tup,
     highlight as _h,
-    items_union,
 )
-from .commands import guard, Guard, is_guard
+from .commands import Op, guard, Guard, is_guard
 from .state import state, State, state_update
 
 
@@ -54,16 +54,9 @@ class Transition:
         there exists a pair op1, op2 that can-be-dependent
         """
         used, other_used = self.used(), other.used()
-        # Collect operations on same objects
-        rel = {
-            obj: (rw, other_used[obj])
-            for obj, rw in used.items()
-            if obj in other_used
-        }
         # Check if one operation has a write while the other is nonempty
         return any(
-            ("w" in op1 and op2) or ("w" in op2 and op1)
-            for op1, op2 in rel.values()
+            op1.can_be_dependent(op2) for op1 in used for op2 in other_used
         )
 
     def successors(self, s: State) -> dict[State, float]:
@@ -75,13 +68,15 @@ class Transition:
             for (s_, upd), p in self.post.items()
         }
 
-    def used(self) -> imdict[str, set[str]]:
+    def used(self) -> frozenset[Op]:
         """Returns a dict mapping used objects with r/w operations"""
-        commands = [self.guard] + [upd for _, upd in self.post.keys()]
+        commands: list[Command] = [self.guard] + [
+            upd for _, upd in self.post.keys()
+        ]
         operations = itertools.chain.from_iterable(
-            cmd.used.items() for cmd in commands
+            cmd.used() for cmd in commands
         )
-        return items_union(operations)
+        return frozenset(operations)
 
     def rename(
         self, states: dict[str, str], actions: dict[str, str]
@@ -107,7 +102,7 @@ class Transition:
 
     def __str__(self):
         pre = format_tup(self.pre, str(self.guard), sep=" & ")
-        return f"[{_h(_h.action, self.action)}] {pre} -> " + " + ".join(
+        return f"[{_h.action(self.action)}] {pre} -> " + " + ".join(
             f"{format_str(p)}:{format_tup(*s_, sep=', ', wrap=True)}"
             if p != 1.0
             else f"{format_tup(*s_, sep=', ')}"

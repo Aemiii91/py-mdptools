@@ -1,10 +1,12 @@
 from ..types import (
+    MarkovDecisionProcess as MDP,
     Command,
     dataclass,
     field,
     StateDescription,
     Iterator,
     imdict,
+    Iterable,
 )
 from ..utils import flatten, highlight as _h, partition, itertools
 from .commands import command, is_update, is_guard
@@ -16,6 +18,8 @@ class State:
     ctx: imdict[str, int] = field(compare=True)
 
     def rename(self, states: dict[str, str]) -> "State":
+        """Rename the state"""
+
         def rename(ss: str) -> str:
             if ss in states:
                 return states[ss]
@@ -24,15 +28,20 @@ class State:
         return State(frozenset(rename(ss) for ss in self.s), self.ctx)
 
     def apply(self, update: Command) -> "State":
+        """Apply a command on the state"""
         return State(self.s, imdict(update(self.ctx)))
+
+    def intersection(self, other: Iterable[str]) -> "State":
+        """Returns a new state with the intersection of this state and another set"""
+        return State(self.s.intersection(other), self.ctx)
 
     def __repr__(self) -> str:
         ctx = [f"{k}={v}" for k, v in self.ctx.items()]
         return "{" + ",".join(list(self.s) + ctx) + "}"
 
     def __str__(self) -> str:
-        values = [_h(_h.state, ss) for ss in self.s]
-        values += [_h(_h.variable, f"{k}={v}") for k, v in self.ctx.items()]
+        values = [_h.state(ss) for ss in self.s]
+        values += [_h.variable(f"{k}={v}") for k, v in self.ctx.items()]
         return (
             next(iter(values))
             if len(values) == 1
@@ -57,6 +66,9 @@ class State:
 
     def __sub__(self, other: "State") -> "State":
         return State(self.s.difference(other.s), self.ctx)
+
+    def __call__(self, p: MDP) -> str:
+        return next((ss for ss in self.s if ss in p), "")
 
 
 def state(*s: StateDescription, ctx: dict[str, int] = None) -> State:

@@ -17,15 +17,15 @@ def test_transitions(stmdp: MDP):
 
 
 def test_remake(stmdp: MDP):
-    m2 = stmdp.remake(("s", "t"), (r"([a-z]+)", r"\1_2"))
+    m2 = stmdp.rename(("s", "t"), (r"([a-z]+)", r"\1_2"))
     assert m2.states == {"t0", "t1"}
     assert m2.actions == {"a_2", "tau_2"}
 
 
 def test_remake_system(stmdp: MDP):
-    m2 = stmdp.remake(("s", "t"), (r"([a-z]+)", r"\1_2"))
+    m2 = stmdp.rename(("s", "t"), (r"([a-z]+)", r"\1_2"))
 
-    system = MDP(stmdp, m2).remake([("s", "x"), ("t", "y")])
+    system = MDP(stmdp, m2).rename([("s", "x"), ("t", "y")])
 
     expected = {"x0", "x1", "y0", "y1"}
     actual = system.states

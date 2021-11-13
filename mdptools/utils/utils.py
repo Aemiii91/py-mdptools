@@ -1,6 +1,8 @@
 import re
 import itertools
 import operator
+import logging
+from os import get_terminal_size
 from functools import reduce
 from typing import Generator
 import numpy as np
@@ -13,9 +15,32 @@ from ..types import (
     Union,
     Hashable,
     MarkovDecisionProcess as MDP,
+    State,
     imdict,
     defaultdict,
 )
+
+
+logger = logging.getLogger()
+logger.addHandler(logging.StreamHandler())
+
+
+def set_logging_level(level):
+    """Set the global logging level"""
+    logger.setLevel(level)
+
+
+def log_info_enabled() -> bool:
+    """Whether info logging is enabled"""
+    return logger.isEnabledFor(logging.INFO)
+
+
+def get_terminal_width():
+    try:
+        width, _ = get_terminal_size()
+    except OSError:
+        width = 80
+    return width
 
 
 def float_is(n: float, target: float) -> bool:
@@ -53,18 +78,18 @@ def partition(pred, iterable):
 
 def rename_map(names: Iterable, rename: RenameFunction) -> dict[str, str]:
     """Apply and map the value of a rename function on a collection of names"""
-    rename = __ensure_rename_function(rename)
+    rename = _ensure_rename_function(rename)
     return {name: rename(name) for name in names}
 
 
-def __ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
+def _ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     # Supply a tuple[str, str] to do string replacement (regex can be used)
     if isinstance(rename, tuple):
         old, new = rename
         rename = lambda s: re.sub(old, new, s)
     # Supply a list of rename functions
     elif isinstance(rename, list):
-        rename_list = [__ensure_rename_function(el) for el in rename]
+        rename_list = [_ensure_rename_function(el) for el in rename]
         rename = lambda s: reduce(lambda sb, fn: fn(sb), rename_list, s)
     # Supply a rename map, mapping whole names to new ones
     elif isinstance(rename, dict):
@@ -76,11 +101,15 @@ def __ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
     return rename
 
 
-def ordered_state_str(s: Iterable[str], m: MDP, sep: str = "_") -> str:
+def ordered_state_str(
+    s: State, m: MDP, sep: str = "_", formatter: Callable[[str], str] = None
+) -> str:
     """Stringify a collection of local state names, ordered by process"""
     if m.is_process:
         return tuple_str(s, sep)
-    return sep.join(ss for p in m.processes for ss in s if ss in p.states)
+    if formatter is None:
+        formatter = lambda s: s
+    return sep.join(formatter(s(p)) for p in m.processes)
 
 
 def tuple_str(tup: Union[tuple, str], sep: str = "_") -> str:

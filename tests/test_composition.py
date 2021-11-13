@@ -1,7 +1,13 @@
 """Parallel composition tests"""
 from mdptools import MarkovDecisionProcess as MDP
 from mdptools.types import State
-from mdptools.set_methods import persistent_set
+from mdptools.utils import logger, logging
+from mdptools.set_methods import (
+    conflicting_transitions,
+    overmans_algorithm,
+    stubborn_sets,
+    transition_bias,
+)
 
 
 def test_simple_composition():
@@ -11,14 +17,14 @@ def test_simple_composition():
         name="M1",
     )
 
-    m2 = m1.remake(
+    m2 = m1.rename(
         (r"[a-z]([0-9])", r"t\1"), {"a": "x", "b": "y", "c": "z"}, "M2"
     )
 
     m = MDP(m1, m2, name="M")
 
     assert m.name == "M"
-    assert m.states == {"s0", "s1", "s2", "t0", "t1", "t2"}
+    assert set(iter(m)) == {"s0", "s1", "s2", "t0", "t1", "t2"}
     assert m.actions == {"a", "b", "c", "x", "y", "z"}
 
     expected = [
@@ -69,13 +75,60 @@ def test_custom_transition_function(
         s for s, _ in m.search(set_method=custom_transition_function)
     ]
 
-    assert len(state_space) == 7
+    assert len(state_space) == 9
 
 
-def test_persistent_set(baier_p1: MDP, baier_p2: MDP, baier_rm: MDP):
-    """Persistent set algorithm"""
-    m = MDP(baier_p1, baier_p2, baier_rm)
+def test_classic_search(godefroid_4_11: MDP):
+    """Conflicting transitions algorithm"""
+    logger.setLevel(logging.INFO)
+    m = godefroid_4_11
     state_space = list(m.search())
-    state_space_ps = list(m.search(set_method=persistent_set))
-    assert len(state_space) == 16
-    assert len(state_space_ps) == 10
+    assert len(state_space) == 7
+    logger.setLevel(logging.NOTSET)
+
+
+def test_conflicting_transitions(godefroid_4_11: MDP):
+    """Conflicting transitions algorithm"""
+    logger.setLevel(logging.INFO)
+    m = godefroid_4_11
+    state_space = list(m.search(set_method=conflicting_transitions))
+    assert len(state_space) == 7
+    logger.setLevel(logging.NOTSET)
+
+
+def test_overmans_algorithm(godefroid_4_11: MDP):
+    """Overman's algorithm"""
+    logger.setLevel(logging.INFO)
+    m = godefroid_4_11
+    state_space = list(m.search(set_method=overmans_algorithm))
+    assert len(state_space) == 6
+    logger.setLevel(logging.NOTSET)
+
+
+def test_overmans_algorithm_with_bias(godefroid_4_11: MDP):
+    """Overman's algorithm"""
+    logger.setLevel(logging.INFO)
+    m = godefroid_4_11
+    state_space = list(
+        m.search(set_method=transition_bias(overmans_algorithm, "t4"))
+    )
+    assert len(state_space) == 7
+    logger.setLevel(logging.NOTSET)
+
+
+def test_stubborn_sets(godefroid_4_11: MDP):
+    """Stubborn sets algorithm"""
+    logger.setLevel(logging.INFO)
+    m = godefroid_4_11
+    state_space = list(m.search(set_method=stubborn_sets))
+    assert len(state_space) == 6
+    logger.setLevel(logging.NOTSET)
+
+
+def test_stubborn_sets_with_baier(baier_p1: MDP, baier_p2: MDP, baier_rm: MDP):
+    """Stubborn sets algorithm with probabilities"""
+    logger.setLevel(logging.INFO)
+    m = MDP(baier_p1, baier_p2, baier_rm)
+    state_space = list(m.search(set_method=stubborn_sets))
+    assert len(state_space) == 10
+    logger.setLevel(logging.NOTSET)

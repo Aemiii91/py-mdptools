@@ -124,3 +124,17 @@ def kwiatkowska_pc():
         init=("s0", "t0"),
         name="Ms||Md (Expected)",
     )
+
+
+@pytest.fixture
+def godefroid_4_11():
+    return MDP(
+        [
+            ("t1", "a0", ("a1", "x:=1")),
+            ("t2", ("a0", "x=1"), ("a3", "x:=0")),
+            ("t3", "a1", ("a2", "y:=0")),
+            ("t4", "b0", ("b1", "y:=1")),
+        ],
+        processes={"A": ("a0", "a1", "a2", "a4"), "B": ("b0", "b1")},
+        init=("a0", "b0", "x:=0, y:=0"),
+    )
