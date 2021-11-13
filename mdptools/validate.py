@@ -42,21 +42,21 @@ def validate(
         nonlocal total_errors
         total_errors += [(err_code, err)]
         return [
-            f"[{_h(_h.fail, 'Failed')}] {_h(_h.note, err_code[1])}\n{' '*9}>> {err}"
+            f"[{_h.fail('Failed')}] {_h.note(err_code[1])}\n{' '*9}>> {err}"
         ]
 
-    en_s_nonempty, errors = __validate_enabled_nonempty(mdp)
+    en_s_nonempty, errors = _validate_enabled_nonempty(mdp)
     if not en_s_nonempty:
         for err in errors:
             buffer += add_err(MDP_REQ_EN_S_NONEMPTY, err)
 
-    sum_to_one, errors = __validate_sum_to_one(mdp)
+    sum_to_one, errors = _validate_sum_to_one(mdp)
     if not sum_to_one:
         for err in errors:
             buffer += add_err(MDP_REQ_SUM_TO_ONE, err)
 
     if len(buffer) != 0:
-        message = _h(_h.error, f"Not a valid MDP [{mdp.name}]:\n") + "\n".join(
+        message = _h.error(f"Not a valid MDP [{mdp.name}]:\n") + "\n".join(
             buffer
         )
         if raise_exception:
@@ -66,19 +66,19 @@ def validate(
     return (len(buffer) == 0, total_errors)
 
 
-def __validate_enabled_nonempty(
+def _validate_enabled_nonempty(
     mdp: MarkovDecisionProcess,
 ) -> tuple[bool, list[str]]:
     """Validate: 'forall s in S : en(s) != {}'"""
     errors = [
-        f"{_h(_h.function, 'en')}({format_str(s, _h.state)}) -> {_h(_h.error, '{}')}"
+        f"{_h.function('en')}({format_str(s, _h.state)}) -> {_h.error('{}')}"
         for s, _ in mdp.search()
         if len(mdp.enabled(s)) == 0
     ]
     return (len(errors) == 0, errors)
 
 
-def __validate_sum_to_one(
+def _validate_sum_to_one(
     mdp: MarkovDecisionProcess,
 ) -> tuple[bool, list[str]]:
     """Validate: 'forall s in S, a in en(s) : sum_(s' in S) P(s, a, s') = 1'"""
@@ -87,16 +87,16 @@ def __validate_sum_to_one(
     for a, s, _, dist in mdp.transitions:
         sum_a = np.abs(sum(dist.values()))
         if not float_is(sum_a, 1.0):
-            errors += __format_sum_to_one(dist, s, a, sum_a)
+            errors += _format_sum_to_one(dist, s, a, sum_a)
 
     return (len(errors) == 0, errors)
 
 
-def __format_sum_to_one(
+def _format_sum_to_one(
     dist: Distribution, s: State, a: Action, sum_a: float
 ) -> list[str]:
     return [
-        f"{_h(_h.function, 'Dist')}({format_str(s, _h.state)}, "
-        f"{_h(_h.action, a)}) -> {format_str(dist)} "
-        f"{_h(_h.comment, '// sum -> ') + _h(_h.error, str(sum_a))}"
+        f"{_h.function('Dist')}({format_str(s, _h.state)}, "
+        f"{_h.action(a)}) -> {format_str(dist)} "
+        f"{_h.comment('// sum -> ') + _h.error(str(sum_a))}"
     ]

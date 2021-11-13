@@ -32,7 +32,7 @@ print(m)
 display_graph(ms, md, m, file_path="out/graphs/graph_kwiatkowska.gv")
 
 # %%
-mt = ms.remake((r"s([0-9])", r"t\1"), name="Mt")
+mt = ms.rename((r"s([0-9])", r"t\1"), name="Mt")
 print(mt, "\n")
 
 m = MDP(ms, mt)

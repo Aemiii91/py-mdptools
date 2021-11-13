@@ -10,6 +10,12 @@ else
 endif
 
 
+EXAMPLES := all
+
+
+run:
+	$(PYTHON) -m run -c -v $(EXAMPLES)
+
 install:
 	$(PYTHON) -m pip install .
 

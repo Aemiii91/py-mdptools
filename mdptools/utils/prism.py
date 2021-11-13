@@ -1,6 +1,7 @@
 from ..types import MarkovDecisionProcess as MDP, SetMethod
 from .format_str import to_identifier
 from .utils import id_register, minmax_register, write_file, ordered_state_str
+from ..model import state
 
 
 def to_prism(
@@ -8,16 +9,17 @@ def to_prism(
 ) -> str:
     """Compiles an MDP to the Prism Model Checler language"""
     uid = id_register()
+    uid_w = lambda s: uid(state(s.s))
     register = minmax_register()
     buffer = ""
     trs = []
-    init = uid(mdp.init.s)
+    init = uid_w(mdp.init)
 
     # Perform a breadth-first-search to collect all global transitions
     for s, act, _ in mdp.bfs(set_method=set_method):
         # Compile string for the left side of the arrow
         pre = " & ".join(
-            [f"s={uid(s.s)}"]
+            [f"s={uid_w(s)}"]
             + [f"{k}={register(k, v)}" for k, v in s.ctx.items()]
         )
         for a, dist in act.items():
@@ -26,7 +28,7 @@ def to_prism(
             for s_prime, p_value in dist.items():
                 # Compile the update string
                 update = " & ".join(
-                    [f"(s'={uid(s_prime.s)})"]
+                    [f"(s'={uid_w(s_prime)})"]
                     + [
                         f"({k}'={register(k, v)})"
                         for k, v in s_prime.ctx.items()

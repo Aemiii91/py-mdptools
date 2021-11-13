@@ -4,6 +4,6 @@ from .mdp import MarkovDecisionProcess
 from .graph import graph
 from .validate import validate
 
-from .utils import highlight as _c
+from .utils import highlight as _h, logger, set_logging_level
 
-use_colors = _c.use_colors
+use_colors = _h.use_colors
