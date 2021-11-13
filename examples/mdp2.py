@@ -1,6 +1,5 @@
 from mdptools import MarkovDecisionProcess as MDP
 from mdptools.set_methods import (
-    transition_bias,
     conflicting_transitions,
     overmans_algorithm,
     stubborn_sets,
@@ -47,7 +46,7 @@ print()
 print(m)
 
 # %%
-# Stubborn sets
+# Conflicting transitions
 display_dot(
     m.to_graph(
         at_root("out/graphs/baier2004_overmans_algorithm.gv"),
@@ -58,7 +57,7 @@ display_dot(
 print()
 
 # %%
-# Stubborn sets
+# Overman's algorithm
 display_dot(
     m.to_graph(
         at_root("out/graphs/baier2004_overmans_algorithm.gv"),
