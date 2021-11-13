@@ -86,7 +86,7 @@ class MarkovDecisionProcess:
             _, init, _ = next(iter(transitions))
 
         self.processes = [self]
-        self.transitions = list(map(self.__bind_transition, transitions))
+        self.transitions = list(map(self._bind_transition, transitions))
 
         if init is not None:
             self.init = state_apply(init)
@@ -102,7 +102,7 @@ class MarkovDecisionProcess:
         if transitions is None:
             self.transitions = compose_transitions(self.processes)
         else:
-            self.transitions = list(map(self.__bind_transition, transitions))
+            self.transitions = list(map(self._bind_transition, transitions))
 
         self.name = "||".join(p.name for p in self.processes)
 

@@ -153,7 +153,7 @@ def _compile_update(text: str) -> set[Callable[[dict], dict]]:
     if not text:
         return frozenset()
     nodes = re.split(r"\s*,\s*", text)
-    return frozenset(filter(None, map(__simple_assignment, nodes)))
+    return frozenset(filter(None, map(_simple_assignment, nodes)))
 
 
 _re_assign = re.compile(r"([a-z_]\w*)\s*(:=)\s*(\d+)", re.IGNORECASE)
