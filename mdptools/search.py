@@ -120,7 +120,7 @@ def _log_visit(
             f"\n-> <{next(iter(T))}>"
             if len(T) == 1
             else f" [{_h.error('DEADLOCK')}]"
-            if len(T) == 1
+            if len(T) == 0
             else "\n-> enabled(s)"
             if not isinstance(set_method, Callable)
             else "",
