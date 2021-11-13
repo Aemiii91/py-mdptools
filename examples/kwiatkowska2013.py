@@ -1,42 +1,57 @@
 from mdptools import MarkovDecisionProcess as MDP
+from mdptools.set_methods import stubborn_sets
 from helpers import display_graph
 
+
+def make_sensor(i: int) -> MDP:
+    s = [f"active_{i}", f"detected_{i}", f"alert_{i}", f"inactive_{i}"]
+    return MDP(
+        [
+            (f"detect_{i}", s[0], {s[1]: 0.8, s[2]: 0.2}),
+            (f"warn_{i}", s[1], s[2]),
+            (f"shutdown_{i}", s[2], s[3]),
+            (f"off_{i}", s[3]),
+        ],
+        init=s[0],
+        name=f"S{i}",
+    )
+
+
+def make_device(n: int) -> MDP:
+    s = ["running", "stopping", "off", "failing"]
+    trs = [
+        ("fail", s[3]),
+    ]
+    for i in range(n):
+        trs += [
+            (f"warn_{i}", s[0], s[1]),
+            (f"shutdown_{i}", s[0], {s[2]: 0.9, s[3]: 0.1}),
+            (f"shutdown_{i}", s[1], s[2]),
+            (f"off_{i}", s[2]),
+        ]
+    return MDP(trs, init=s[0], name="D")
+
+
+def make_system(n: int):
+    processes = [make_sensor(i + 1) for i in range(n)]
+    processes += [make_device(n)]
+    processes += [MDP(*processes).rename((r"^([a-z])[a-z]+", r"\1"))]
+    return processes
+
+
 # %%
-ms = MDP(
-    [
-        ("detect", "s0", {"s1": 0.8, "s2": 0.2}),
-        ("warn", "s1", "s2"),
-        ("shutdown", "s2", "s3"),
-        ("off", "s3"),
-    ],
-    name="Ms",
+processes = make_system(2)
+
+for p in processes:
+    print(p)
+
+# %%
+display_graph(*processes[:-1], file_path="out/graphs/graph_kwiatkowska.gv")
+
+# %%
+display_graph(
+    processes[-1],
+    file_path="out/graphs/graph_kwiatkowska_composed.gv",
+    set_method=stubborn_sets,
+    highlight=True,
 )
-print(ms, "\n")
-
-md = MDP(
-    [
-        ("warn", "t0", "t1"),
-        ("shutdown", "t0", {"t2": 0.9, "t3": 0.1}),
-        ("shutdown", "t1", "t2"),
-        ("off", "t2"),
-        ("fail", "t3"),
-    ],
-    name="Md",
-)
-print(md, "\n")
-
-m = MDP(ms, md)
-print(m)
-
-# %%
-display_graph(ms, md, m, file_path="out/graphs/graph_kwiatkowska.gv")
-
-# %%
-mt = ms.rename((r"s([0-9])", r"t\1"), name="Mt")
-print(mt, "\n")
-
-m = MDP(ms, mt)
-print(m)
-
-# %%
-display_graph(ms, mt, m, file_path="out/graphs/graph_kwiatkowska_2.gv")

@@ -83,7 +83,7 @@ class MarkovDecisionProcess:
 
         if init is None:
             # Set initial state to be the first transition's preset
-            _, init, _ = next(iter(transitions))
+            init = next(iter(transitions))[1]
 
         self.processes = [self]
         self.transitions = list(map(self._bind_transition, transitions))
