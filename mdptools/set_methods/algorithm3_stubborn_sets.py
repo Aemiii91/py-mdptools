@@ -69,10 +69,8 @@ def stubborn_sets(
 
 def _choose_process(s: State, t: Transition) -> MDP:
     """Choose a process Pj ∈ active(t) such that s(j) != (pre(t) ∩ Pj)"""
-    return next(
-        filter(lambda p: {s(p)} != t.pre.intersection(p), t.active),
-        None,
-    )
+    res = filter(lambda p: s(p) != t.pre(p), t.active)
+    return next(res, None)
 
 
 def _choose_condition(s: State, t: Transition) -> frozenset[Op]:

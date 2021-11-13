@@ -2,6 +2,7 @@ import re
 import itertools
 import operator
 import logging
+from os import get_terminal_size
 from functools import reduce
 from typing import Generator
 import numpy as np
@@ -32,6 +33,14 @@ def set_logging_level(level):
 def log_info_enabled() -> bool:
     """Whether info logging is enabled"""
     return logger.isEnabledFor(logging.INFO)
+
+
+def get_terminal_width():
+    try:
+        width, _ = get_terminal_size()
+    except OSError:
+        width = 80
+    return width
 
 
 def float_is(n: float, target: float) -> bool:

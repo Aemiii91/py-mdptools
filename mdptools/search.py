@@ -1,5 +1,4 @@
 import math
-from os import get_terminal_size
 
 from .types import (
     MarkovDecisionProcess as MDP,
@@ -10,7 +9,13 @@ from .types import (
     Callable,
     Transition,
 )
-from .utils import logger, log_info_enabled, highlight as _h, ordered_state_str
+from .utils import (
+    logger,
+    log_info_enabled,
+    highlight as _h,
+    ordered_state_str,
+    get_terminal_width,
+)
 from queue import Queue, LifoQueue, SimpleQueue
 
 
@@ -76,7 +81,7 @@ def bfs(
 
 def _log_begin(mdp: MDP, s: State, set_method: SetMethod, silent: bool):
     if not silent and log_info_enabled():
-        line_width = get_terminal_size()[0]
+        line_width = get_terminal_width()
         set_method_name = (
             set_method.__name__
             if isinstance(set_method, Callable)

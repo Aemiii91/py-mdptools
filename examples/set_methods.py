@@ -25,6 +25,9 @@ def make_example(set_method: SetMethod = None, name: str = None) -> MDP:
 
 
 # %%
+print(make_example())
+
+# %%
 display_graph(
     make_example(conflicting_transitions, "Conflicting transitions"),
     make_example(overmans_algorithm, "Overman's algorithm"),

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 import logging
 import sys
-from os import walk, get_terminal_size
+from os import walk
 from argparse import ArgumentParser, Namespace
 import importlib
 import math
 from mdptools import use_colors, set_logging_level
-from mdptools.utils import highlight as _h
+from mdptools.utils import highlight as _h, get_terminal_width
 
 
 EXAMPLE_DIR = "./examples"
-LINE_WIDTH = get_terminal_size()[0]
+LINE_WIDTH = get_terminal_width()
 
 
 def main(args: Namespace):
