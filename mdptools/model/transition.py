@@ -218,10 +218,8 @@ def compose_transitions(processes: list[MDP]) -> list[Transition]:
 
 def _merge_transitions(trs: Iterable[Transition]) -> Transition:
     ingoing, outgoing = partition(lambda tr: tr.action.endswith("!"), trs)
+    outgoing = list(outgoing)
     if not outgoing:
         return [reduce(operator.add, trs)]
-    transitions = []
-    ingoing = list(ingoing)
-    for tr in outgoing:
-        transitions += [reduce(operator.add, [tr] + ingoing)]
-    return transitions
+    ingoing = reduce(operator.add, ingoing)
+    return [tr + ingoing for tr in outgoing]
