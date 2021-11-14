@@ -1,3 +1,4 @@
+from operator import add
 from ..types import (
     Command,
     dataclass,
@@ -13,7 +14,6 @@ from ..types import (
 )
 from ..utils import (
     itertools,
-    operator,
     np,
     partition,
     flatten,
@@ -22,7 +22,7 @@ from ..utils import (
     format_str,
     format_tup,
     highlight as _h,
-    remove_direction,
+    re,
 )
 from .commands import Op, guard, Guard, is_guard
 from .state import state, State, state_update
@@ -148,7 +148,7 @@ def transition(
     Returns:
         [Transition]: an instance of Transition
     """
-    pre, guards = partition(is_guard, list(flatten(pre)))
+    pre, guards = partition(is_guard, it=list(flatten(pre)))
     pre = state(pre)
 
     if post is None:
@@ -170,7 +170,7 @@ def dist_product(dist1: Distribution, dist2: Distribution) -> Distribution:
     # Calculate the product of all permutations of the distributions
     return imdict(
         zip(
-            (tuple(map(operator.add, *s_)) for s_ in s_primes),
+            (tuple(map(add, *s_)) for s_ in s_primes),
             (np.prod(p) for p in p_values),
         )
     )
@@ -216,10 +216,27 @@ def compose_transitions(processes: list[MDP]) -> list[Transition]:
     return transitions
 
 
-def _merge_transitions(trs: Iterable[Transition]) -> Transition:
-    ingoing, outgoing = partition(lambda tr: tr.action.endswith("!"), trs)
-    outgoing = list(outgoing)
-    if not outgoing:
-        return [reduce(operator.add, trs)]
-    ingoing = reduce(operator.add, ingoing)
-    return [tr + ingoing for tr in outgoing]
+def remove_direction(action: Action) -> Action:
+    """Remove the direction indicator of an action"""
+    return re.sub(r"[?!]$", "", action)
+
+
+def _merge_transitions(trs: Iterable[Transition]) -> list[Transition]:
+    both, listeners, callers = partition(_is_listener, _is_caller, it=trs)
+    # Merge listener transitions
+    merged_listeners = reduce(add, listeners + both)
+    # Synchronize all callers with the listeners
+    transitions = [tr + merged_listeners for tr in callers]
+    # If bi-directional actions are present
+    if both:
+        # add a transition which can be triggered without an explicit caller
+        transitions += [merged_listeners]
+    return transitions
+
+
+def _is_listener(tr: Transition) -> bool:
+    return tr.action.endswith("?")
+
+
+def _is_caller(tr: Transition) -> bool:
+    return tr.action.endswith("!")

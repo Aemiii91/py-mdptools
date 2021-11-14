@@ -1,3 +1,4 @@
+from operator import add
 from .types import (
     SetMethod,
     dataclass,
@@ -12,12 +13,10 @@ from .types import (
     Iterator,
 )
 from .utils import (
-    operator,
     reduce,
     highlight as _h,
     rename_map,
     to_prism,
-    remove_direction,
 )
 from .model import (
     Transition,
@@ -26,6 +25,7 @@ from .model import (
     State,
     state,
     state_apply,
+    remove_direction,
 )
 from .search import search, bfs
 from .graph import graph
@@ -108,7 +108,7 @@ class MarkovDecisionProcess:
         self.name = "||".join(p.name for p in self.processes)
 
         if init is None:
-            self.init = reduce(operator.add, (p.init for p in self.processes))
+            self.init = reduce(add, (p.init for p in self.processes))
         else:
             self.init = state_apply(init)
 

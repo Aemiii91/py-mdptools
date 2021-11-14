@@ -1,6 +1,5 @@
 import re
 import itertools
-import operator
 import logging
 from os import get_terminal_size
 from functools import reduce
@@ -8,7 +7,6 @@ import numpy as np
 from collections import Counter
 
 from ..types import (
-    Action,
     RenameFunction,
     Callable,
     Iterable,
@@ -52,10 +50,6 @@ def get_terminal_width():
     return width
 
 
-def remove_direction(action: Action) -> Action:
-    return re.sub(r"[?!]$", "", action)
-
-
 def float_is(n: float, target: float) -> bool:
     """Check if distance to target is smaller than can be represented"""
     return np.abs(n - target) < 10 * np.spacing(np.float64(1))
@@ -80,13 +74,20 @@ def flatten(s: Union[str, Iterable]) -> Generator[str, None, None]:
         yield from flatten(ls)
 
 
-def partition(pred, iterable):
+def partition(
+    *predicates: Callable[[any], bool], it: Iterable, convert_to: type = list
+) -> tuple[list, ...]:
     """Use a predicate to partition entries into false entries and true entries
 
-    Usage: partition(is_odd, range(10)) -> 0 2 4 6 8   and  1 3 5 7 9
+    Usage: partition(is_odd, it=range(10)) -> 0 2 4 6 8   and  1 3 5 7 9
     """
-    t1, t2 = itertools.tee(iterable)
-    return itertools.filterfalse(pred, t1), filter(pred, t2)
+    # Create a predicate for the all false case
+    filter_false = lambda el: not any(pred(el) for pred in predicates)
+    # Create a list of pairs of predicates and iterables
+    iters = zip(
+        (filter_false, *predicates), itertools.tee(it, len(predicates) + 1)
+    )
+    return tuple(convert_to(filter(pred, _it)) for pred, _it in iters)
 
 
 def rename_map(names: Iterable, rename: RenameFunction) -> dict[str, str]:
