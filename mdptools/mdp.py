@@ -12,12 +12,7 @@ from .types import (
     Iterable,
     Iterator,
 )
-from .utils import (
-    reduce,
-    highlight as _h,
-    rename_map,
-    to_prism,
-)
+from .utils import reduce, highlight as _h, rename_map, to_prism, flatten
 from .model import (
     Transition,
     transition,
@@ -232,13 +227,15 @@ class MarkovDecisionProcess:
         return tr.bind(process)
 
     def _set_states_and_actions(self):
-        states, actions = set(), set()
+        states = [tr.pre for tr in self.transitions]
         for tr in self.transitions:
-            states = states.union(tr.pre)
-            for (s_prime, _), _ in tr.post.items():
-                states = states.union(s_prime)
-            actions = actions.union({remove_direction(tr.action)})
-        self._states = frozenset(states)
+            states += [s_ for (s_, _), _ in tr.post.items()]
+        actions = [
+            remove_direction(tr.action)
+            for tr in self.transitions
+            if not tr.action.startswith("tau")
+        ]
+        self._states = frozenset(flatten(states))
         self._actions = frozenset(actions)
 
 

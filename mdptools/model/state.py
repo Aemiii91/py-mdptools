@@ -30,7 +30,7 @@ class State:
     def apply(self, update: Command, ctx: imdict[str, int] = None) -> "State":
         """Apply a command on the state"""
         if update:
-            return State(self.s, imdict(update({**ctx, **self.ctx})))
+            return State(self.s, imdict(update({**(ctx or {}), **self.ctx})))
         return self
 
     def intersection(self, other: Iterable[str]) -> "State":
@@ -45,6 +45,7 @@ class State:
         wrap: bool = False,
         include_objects: bool = True,
     ) -> str:
+        """Stringify the state, possibly ordering by the process order of a parent system"""
         return ordered_state_str(
             self, parent, sep, colors, wrap, include_objects
         )
@@ -81,6 +82,7 @@ class State:
 
 
 def state(*s: StateDescription, ctx: dict[str, int] = None) -> State:
+    """Create an instance of the State class"""
     if ctx is None:
         ctx = {}
     ctx = imdict(ctx)
@@ -90,6 +92,7 @@ def state(*s: StateDescription, ctx: dict[str, int] = None) -> State:
 
 
 def state_update(s: StateDescription) -> tuple[State, Command]:
+    """Create a state and update pair"""
     if (
         isinstance(s, tuple)
         and len(s) == 2

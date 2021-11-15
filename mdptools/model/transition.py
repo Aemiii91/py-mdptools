@@ -196,16 +196,13 @@ def compose_transitions(processes: list[MDP]) -> list[Transition]:
     ]
     # Count the number of processes for each action
     global_actions = Counter(
-        itertools.chain.from_iterable(
-            (remove_direction(tr.action) for tr in p.transitions)
-            for p in processes
-        )
+        itertools.chain.from_iterable(p.actions for p in processes)
     )
     # Create a dict of actions that appear in more than one process
     synched_actions = {
-        a: defaultdict(list)
-        for a, count in global_actions.items()
-        if count > 1 and not a.startswith("tau")
+        action: defaultdict(list)
+        for action, count in global_actions.items()
+        if count > 1
     }
 
     for pid, tr in process_transitions:

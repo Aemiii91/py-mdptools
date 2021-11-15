@@ -8,7 +8,7 @@ from .helpers import error_code
 
 def test_valid_mdp(stmdp: MDP):
     assert stmdp.states == {"s0", "s1"}
-    assert stmdp.actions == {"a", "tau"}
+    assert stmdp.actions == {"a"}
 
 
 def test_invalid_raise_exception():

@@ -19,7 +19,7 @@ def test_transitions(stmdp: MDP):
 def test_remake(stmdp: MDP):
     m2 = stmdp.rename(("s", "t"), (r"([a-z]+)", r"\1_2"))
     assert m2.states == {"t0", "t1"}
-    assert m2.actions == {"a_2", "tau_2"}
+    assert m2.actions == {"a_2"}
 
 
 def test_remake_system(stmdp: MDP):
