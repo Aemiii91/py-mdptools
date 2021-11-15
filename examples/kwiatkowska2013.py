@@ -1,6 +1,6 @@
 from mdptools import MarkovDecisionProcess as MDP
 from mdptools.set_methods import stubborn_sets
-from helpers import display_graph
+from helpers import at_root, display_graph
 
 
 def make_sensor(i: int) -> MDP:
@@ -61,10 +61,20 @@ display_graph(
 )
 
 # %%
+print(
+    system.to_prism(
+        at_root("out/prism/kwiatkowska_composed.prism"),
+        set_method=stubborn_sets,
+    )
+)
+
+# %%
 for n in range(1, 6):
-    system = make_system(n)
-    state_space = list(system.search(silent=True))
-    state_space_ps = list(system.search(set_method=stubborn_sets, silent=True))
+    test_system = make_system(n)
+    state_space = list(test_system.search(silent=True))
+    state_space_ps = list(
+        test_system.search(set_method=stubborn_sets, silent=True)
+    )
     t = len(state_space)
     r = len(state_space_ps)
     p = round(abs(t - r) / t * 100)

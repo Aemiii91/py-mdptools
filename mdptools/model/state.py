@@ -48,9 +48,6 @@ class State:
             else "{" + ",".join(values) + "}"
         )
 
-    def __getitem__(self, index):
-        return (self.s, self.ctx)[index]
-
     def __iter__(self) -> Iterator[str]:
         return iter(self.s)
 
@@ -59,6 +56,11 @@ class State:
 
     def __len__(self) -> int:
         return len(self.s)
+
+    def __eq__(self, other: "State") -> bool:
+        if not isinstance(other, State):
+            other = state(*other)
+        return (self.s, self.ctx) == (other.s, other.ctx)
 
     def __add__(self, other: "State") -> "State":
         ctx = imdict({**self.ctx, **other.ctx})

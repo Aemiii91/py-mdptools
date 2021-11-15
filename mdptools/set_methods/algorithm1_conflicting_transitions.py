@@ -15,6 +15,8 @@ def conflicting_transitions(
     # 1. Take one transition t that is enabled in s.
     if t is None or not t.is_enabled(s):
         t = mdp.enabled_take_one(s)
+    if t is None:
+        return []
 
     # Let T = {t}.
     T = [t]

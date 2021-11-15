@@ -40,7 +40,7 @@ StateDescription = Union[str, tuple, set, "State"]
 Action = str
 
 Distribution = imdict[tuple[State, Command], float]
-ActionMap = dict[Action, Distribution]
+ActionMap = dict[Action, list[dict[State, float]]]
 # TransitionMap = dict[tuple[State, Guard], ActionMap]
 
 

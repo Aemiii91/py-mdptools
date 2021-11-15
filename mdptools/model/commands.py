@@ -1,4 +1,4 @@
-from mdptools.utils.utils import items_union
+import operator
 from ..types import (
     dataclass,
     field,
@@ -6,6 +6,7 @@ from ..types import (
     Callable,
     Iterable,
     imdict,
+    defaultdict,
 )
 from ..utils import re, highlight as _h, itertools
 
@@ -40,11 +41,12 @@ class Command:
 
     @property
     def text(self) -> str:
-        return " & ".join(map(str, self.expr))
+        return ", ".join(map(str, self.expr))
 
     def __call__(
         self, old_ctx: dict[str, int]
     ) -> Union[bool, imdict[str, int]]:
+        old_ctx = defaultdict(lambda: 0, old_ctx)
         new_ctx = {}
 
         def apply(expr: Op) -> dict:
@@ -96,6 +98,7 @@ class Guard(Command):
         return f"Guard({self.text or 'True'})"
 
     def __call__(self, ctx: dict[str, int]) -> bool:
+        ctx = defaultdict(lambda: 0, ctx)
         if not self.expr:
             return True
         return all(any(pred(ctx) for pred in disj) for disj in self.expr)
@@ -122,7 +125,7 @@ def _compile_guard(text: str) -> frozenset[frozenset[Op]]:
     )
 
 
-_operations = {
+_comparisons = {
     "!=": lambda a, b: a != b,
     ">=": lambda a, b: a >= b,
     "<=": lambda a, b: a <= b,
@@ -133,7 +136,7 @@ _operations = {
 
 
 _re_comparison = re.compile(
-    r"([a-zA-Z_]\w*)\s*(" + "|".join(_operations.keys()) + r")\s*(\d+)",
+    r"([a-zA-Z_]\w*)\s*(" + "|".join(_comparisons.keys()) + r")\s*(\d+)",
     re.IGNORECASE,
 )
 
@@ -143,9 +146,7 @@ def _simple_pred(text: str) -> Callable[[dict], bool]:
     if match is None:
         raise ValueError
     obj, op, value = match.groups()
-    _call = lambda ctx: _operations[op](
-        ctx[obj] if obj in ctx else 0, int(value)
-    )
+    _call = lambda ctx: _comparisons[op](ctx[obj], int(value))
     return Op(obj, op, value, frozenset("r"), _call)
 
 
@@ -156,15 +157,34 @@ def _compile_update(text: str) -> set[Callable[[dict], dict]]:
     return frozenset(filter(None, map(_simple_assignment, nodes)))
 
 
-_re_assign = re.compile(r"([a-z_]\w*)\s*(:=)\s*(\d+)", re.IGNORECASE)
+_operations = {
+    "+": operator.add,
+    "-": operator.sub,
+}
+
+_re_assign = re.compile(
+    r"\s*([a-z_]\w*)\s*(:=)\s*(?:([a-z_]\w*)\s*([+-])\s*)?(\d+)",
+    re.IGNORECASE,
+)
 
 
 def _simple_assignment(text: str) -> Callable[[dict], bool]:
     match = re.match(_re_assign, text)
     if match is None:
         raise ValueError
-    obj, op, value = match.groups()
+    obj, op, obj_read, expr_op, value = match.groups()
     if op == ":=":
+        if obj_read:
+            return Op(
+                obj,
+                op,
+                f"{obj_read}{expr_op}{value}",
+                frozenset("rw"),
+                lambda ctx: (
+                    True,
+                    {obj: _operations[expr_op](ctx[obj_read], int(value))},
+                ),
+            )
         return Op(
             obj, op, value, frozenset("w"), lambda _: (True, {obj: int(value)})
         )

@@ -60,14 +60,9 @@ def test_custom_transition_function(
     baier_p1: MDP, baier_p2: MDP, baier_rm: MDP
 ):
     """Custom set method for choosing transitions"""
-    count = 3
 
     def custom_transition_function(mdp: MDP, s: State):
-        nonlocal count
-        if count > 0:
-            count -= 1
-            return mdp.enabled(s)
-        return []
+        return [mdp.enabled_take_one(s, avoid_self_loops=False)]
 
     m = MDP(baier_p1, baier_p2, baier_rm)
 
@@ -75,7 +70,7 @@ def test_custom_transition_function(
         s for s, _ in m.search(set_method=custom_transition_function)
     ]
 
-    assert len(state_space) == 9
+    assert len(state_space) == 7
 
 
 def test_classic_search(godefroid_4_11: MDP):

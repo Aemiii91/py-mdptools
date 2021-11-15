@@ -70,6 +70,10 @@ class Transition:
             for (s_, upd), p in self.post.items()
         }
 
+    def only_successor(self, s: State) -> bool:
+        """Returns true if transition only goes to the same state"""
+        return all(s == s_ for s_, _ in self.successors(s).items())
+
     def used(self) -> frozenset[Op]:
         """Returns a dict mapping used objects with r/w operations"""
         commands: list[Command] = [self.guard] + [
@@ -97,6 +101,10 @@ class Transition:
     def bind(self, processes: set[MDP]) -> "Transition":
         """Binds the transition to another set of processes"""
         return Transition(*self, active=processes)
+
+    @property
+    def post_states(self) -> list[tuple[State, Command]]:
+        return list(self.post.keys())
 
     def __repr__(self) -> str:
         guard = f" & {self.guard.text}" if self.guard else ""

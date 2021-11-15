@@ -12,17 +12,18 @@ from .types import (
 from .utils import (
     logger,
     log_info_enabled,
-    log_silence,
+    set_log_silence,
     highlight as _h,
     ordered_state_str,
     get_terminal_width,
+    defaultdict,
 )
 from queue import Queue, LifoQueue, SimpleQueue
 
 
 def search(
     mdp: MDP,
-    s: State = None,
+    start_state: State = None,
     set_method: SetMethod = None,
     include_level: bool = False,
     queue: Queue = LifoQueue,
@@ -34,34 +35,35 @@ def search(
     if set_method is None:
         set_method = mdp.set_method
 
-    queue = queue()
+    queue: Queue[tuple[State, int]] = queue()
     transition_map = {}
 
-    if s is None:
-        s = mdp.init
+    if start_state is None:
+        start_state = mdp.init
 
-    log_silence(silent)
-    _log_begin(mdp, s, set_method)
+    set_log_silence(silent)
+    _log_begin(mdp, start_state, set_method)
 
     # Add the initial state
-    queue.put((s, 0))
+    queue.put((start_state, 0))
 
     while not queue.empty():
         s, level = queue.get()
         if s not in transition_map:
             # Register the global state
-            transition_map[s] = {}
+            transition_map[s] = defaultdict(list)
             # Check if s has enabled transitions
             trs = mdp.enabled(s)
             _log_visit(mdp, s, trs, set_method, level)
             # Apply set_method if available and more than one transition is enabled in s
             if isinstance(set_method, Callable) and len(trs) > 1:
-                trs = set_method(mdp, s)
+                trs = set_method(mdp, s) or trs
             # Expand the transitions
             for tr in trs:
                 # Get the successor states for the transition
                 successors = tr.successors(s)
-                transition_map[s][tr.action] = successors
+                if successors not in transition_map[s][tr.action]:
+                    transition_map[s][tr.action] += [successors]
                 # Add the discovered states to the queue
                 for succ in successors.keys():
                     queue.put((succ, level + 1))
@@ -72,7 +74,7 @@ def search(
                 ret = (*ret, level)
             yield ret
 
-    log_silence(False)
+    set_log_silence(False)
 
 
 def bfs(
@@ -124,7 +126,7 @@ def _log_visit(
             if len(T) == 1
             else f" [{_h.error('DEADLOCK')}]"
             if len(T) == 0
-            else "\n-> enabled(s)"
+            else "".join(f"\n-> <{t}>" for t in T)
             if not isinstance(set_method, Callable)
             else "",
         )

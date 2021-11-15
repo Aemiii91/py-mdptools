@@ -35,7 +35,7 @@ def log_info_enabled() -> bool:
     return logger.isEnabledFor(logging.INFO)
 
 
-def log_silence(silent: bool):
+def set_log_silence(silent: bool):
     if silent:
         logger.removeHandler(_log_handler)
     else:

@@ -116,9 +116,15 @@ class MarkovDecisionProcess:
         """Returns a list of transitions enabled in state `s`"""
         return list(self._enabled(s))
 
-    def enabled_take_one(self, s: State = None) -> Transition:
+    def enabled_take_one(
+        self, s: State = None, avoid_self_loops: bool = True
+    ) -> Transition:
         """Returns the first enabled transition in state `s`"""
-        return next(iter(self._enabled(s)), None)
+        it = iter(self._enabled(s))
+        tr = next(it, None)
+        while avoid_self_loops and tr is not None and tr.only_successor(s):
+            tr = next(it, None)
+        return tr
 
     def search(self, s: State = None, **kw) -> Generator:
         """Performs a depth-first-search of the state space"""

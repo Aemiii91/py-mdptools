@@ -22,24 +22,27 @@ def to_prism(
             [f"s={uid_w(s)}"]
             + [f"{k}={register(k, v)}" for k, v in s.ctx.items()]
         )
-        for a, dist in act.items():
-            # Compile string for the right side of the arrow
-            post = []
-            for s_prime, p_value in dist.items():
-                # Compile the update string
-                update = " & ".join(
-                    [f"(s'={uid_w(s_prime)})"]
-                    + [
-                        f"({k}'={register(k, v)})"
-                        for k, v in s_prime.ctx.items()
-                        if k not in s.ctx or s.ctx[k] != v
+        for a, distributions in act.items():
+            for dist in distributions:
+                # Compile string for the right side of the arrow
+                post = []
+                for s_prime, p_value in dist.items():
+                    # Compile the update string
+                    update = " & ".join(
+                        [f"(s'={uid_w(s_prime)})"]
+                        + [
+                            f"({k}'={register(k, v)})"
+                            for k, v in s_prime.ctx.items()
+                            if k not in s.ctx or s.ctx[k] != v
+                        ]
+                    )
+                    post += [
+                        f"{p_value} : {update}"
+                        if p_value != 1.0
+                        else f"{update}"
                     ]
-                )
-                post += [
-                    f"{p_value} : {update}" if p_value != 1.0 else f"{update}"
-                ]
-            # Add the global transition
-            trs += [f"  [{a}] {pre} -> " + " + ".join(post) + ";\n"]
+                # Add the global transition
+                trs += [f"  [{a}] {pre} -> " + " + ".join(post) + ";\n"]
 
     last_id, state_ids = uid()
 

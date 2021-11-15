@@ -33,9 +33,9 @@ def graph(
     )
     dot.attr(size=f"{size}", rankdir=rankdir, ranksep="0.25", margin="0.1")
 
-    for pid, process in enumerate(processes):
+    for process in processes:
         with dot.subgraph() as subgraph:
-            _render_mdp(subgraph, process, pid, set_method, highlight)
+            _render_mdp(subgraph, process, set_method, highlight)
 
     if file_path is not None:
         dot.render()
@@ -50,8 +50,7 @@ graph.label_padding = 2
 
 def _render_mdp(
     dot: Digraph,
-    m: MDP,
-    pid: int,
+    mdp: MDP,
     set_method: SetMethod,
     highlight: bool,
 ):
@@ -59,34 +58,34 @@ def _render_mdp(
     _node_map = {}
 
     # Add arrow pointing to the start state
-    init = m.init
-    if m.is_process:
+    init = mdp.init
+    if mdp.is_process:
         init = state(init, ctx={})
-    init_name = f"mdp_{pid}_start"
-    init_label = f"<<b>{m.name}</b>>"
+    init_name = f"mdp_{id(mdp)}_start"
+    init_label = f"<<b>{mdp.name}</b>>"
     dot.node(
         init_name,
         label=init_label,
         shape="none",
         fontsize=f"{round(graph.point_size * 1.2, 2)}",
     )
-    dot.edge(init_name, _pf_s(init, pid, m))
+    dot.edge(init_name, _serialize(mdp, init, prefix="node_"))
 
-    if m.is_process:
-        _render_process(dot, m, pid)
+    if mdp.is_process:
+        _render_process(dot, mdp)
     else:
-        _render_system(dot, m, pid, set_method, highlight)
+        _render_system(dot, mdp, set_method, highlight)
 
 
-def _render_process(dot: Digraph, m: MDP, pid: int):
-    for a, s, guard, dist in m.transitions:
+def _render_process(dot: Digraph, mdp: MDP):
+    for a, s, guard, dist in mdp.transitions:
         # Add a state node to the graph
-        s_name = _add_node(dot, s, pid, m)
-        _add_edges(dot, s_name, a, dist, pid, m, second_line=guard.text)
+        s_name = _add_node(dot, s, mdp)
+        _add_edge(dot, s_name, a, dist, mdp, second_line=guard.text)
 
 
 def _render_system(
-    dot: Digraph, m: MDP, pid: int, set_method: SetMethod, highlight: bool
+    dot: Digraph, mdp: MDP, set_method: SetMethod, highlight: bool
 ):
     from graphviz import Digraph
 
@@ -94,23 +93,24 @@ def _render_system(
     curr_level = 0
 
     if highlight:
-        search = m.bfs(set_method=False, silent=True)
+        search = mdp.bfs(set_method=False, silent=True)
     else:
-        search = m.bfs(set_method=set_method)
+        search = mdp.bfs(set_method=set_method)
 
     for s, act, level in search:
         if level > curr_level:
             same_rank.append([])
             curr_level = level
         # Add a state node to the graph
-        s_name = _add_node(dot, s, pid, m)
+        s_name = _add_node(dot, s, mdp)
         same_rank[-1].append(s_name)
 
-        for a, dist in act.items():
-            _add_edges(dot, s_name, a, dist, pid, m)
+        for a, distributions in act.items():
+            for dist in distributions:
+                _add_edge(dot, s_name, a, dist, mdp)
 
     if highlight:
-        for s, act, level in m.bfs(set_method=set_method):
+        for s, act, level in mdp.bfs(set_method=set_method):
             if s in _node_map:
                 dot.node(_node_map[s], style="filled")
 
@@ -124,25 +124,28 @@ def _render_system(
 _node_map: dict[State, str] = {}
 
 
-def _add_node(dot: Digraph, s: State, pid: int, m: MDP) -> str:
+def _add_node(dot: Digraph, s: State, mdp: MDP) -> str:
     if s in _node_map:
         return _node_map[s]
-    s_label = ordered_state_str(s, m)
-    s_name = _pf_s(s, pid, m)
-    s_ctx_label = ",&nbsp;".join(f"{k}={v}" for k, v in s.ctx.items())
+    s_label = ordered_state_str(s, mdp)
+    sid = _serialize(mdp, s, prefix="node_")
+    s_ctx_label = ", ".join(f"{k}={v}" for k, v in s.ctx.items())
     label = _label_html(s_label, second_line=s_ctx_label or None)
-    dot.node(s_name, label)
-    _node_map[s] = s_name
-    return s_name
+    dot.node(sid, label)
+    _node_map[s] = sid
+    return sid
 
 
-def _add_edges(
+def _serialize(*args, prefix: str = "") -> str:
+    return prefix + str(hash(tuple(args))).replace("-", "_")
+
+
+def _add_edge(
     dot: Digraph,
-    s_name: str,
-    a: str,
+    s_id: str,
+    action: str,
     dist: dict[State, float],
-    pid: int,
-    m: MDP,
+    mdp: MDP,
     second_line: str = None,
 ):
     # p_point is used to create a shared point for probabilistic actions
@@ -152,46 +155,36 @@ def _add_edges(
         if not isinstance(s_prime, State):
             s_prime, upd = s_prime
             cmd_text = upd.text or None
-        s_prime_name = _add_node(dot, s_prime, pid, m)
+        dest_id = _add_node(dot, s_prime, mdp)
 
         if p == 1:
             second_line = (
-                ",&nbsp;".join(filter(None, [second_line, cmd_text])) or None
+                "\n".join(filter(None, [second_line, cmd_text])) or None
             )
-            label = _label_html(a, second_line=second_line)
+            label = _label_html(action, second_line=second_line)
             # Add a transition arrow between two states (non-deterministic)
-            dot.edge(s_name, s_prime_name, label, minlen="2")
+            dot.edge(s_id, dest_id, label, minlen="2")
         else:
             if p_point is None:
-                p_label = _label_html(f"{a}", second_line=second_line)
+                p_label = _label_html(f"{action}", second_line=second_line)
                 # Create a shared point for the probabilistic outcome of action `a`
-                p_point = _create_p_point(dot, s_name, a, p_label, pid)
+                p_point = _create_p_point(dot, s_id, action, dest_id, p_label)
             label = _label_html(p, color=graph.p_color, second_line=cmd_text)
             # Add a transition arrow between the shared point and the next state
-            dot.edge(p_point, s_prime_name, label)
-
-
-def _pf_s(s: State, pid: int, m: MDP) -> str:
-    s_label = ordered_state_str(s, m)
-    return f"mdp_{pid}_state_{s_label}{_str_context(s.ctx)}"
-
-
-def _str_context(ctx: dict[str, int]) -> str:
-    text = "_".join(f"{k}_{v}" for k, v in ctx.items())
-    return f"_ctx_{text}" if text else ""
+            dot.edge(p_point, dest_id, label)
 
 
 def _create_p_point(
     dot: Digraph,
-    s_name: str,
-    a: Action,
+    s_id: str,
+    action: Action,
+    dest_id: str,
     label: str,
-    pid: int,
 ) -> str:
-    p_point = f"mdp_{pid}_p_point_{s_name}_{a}"
-    dot.node(p_point, "", shape="point")
-    dot.edge(s_name, p_point, label, arrowhead="none")
-    return p_point
+    point_id = _serialize(s_id, action, dest_id, prefix="point_")
+    dot.node(point_id, "", shape="point")
+    dot.edge(s_id, point_id, label, arrowhead="none")
+    return point_id
 
 
 def _label_html(label: str, color: str = None, second_line: str = None) -> str:
@@ -278,13 +271,20 @@ def _subscript_numerals(label: str, size: int) -> str:
 
 
 _re_operator = re.compile(
-    r"\s*(" + "|".join([">=", "<=", "!=", "=", ">", "<", "≔"]) + r")\s*"
+    r"\s*(" + "|".join(["!=", "=", ">", "<", "≔", "≤", "≥"]) + r")\s*"
 )
 
 
-def _format_command(text: str) -> str:
-    text = text.replace(":=", "≔")
-    text = re.sub(_re_operator, r"&#8202;\1&#8202;", text)
-    text = _italicize_words(text)
-    text = _subscript_numerals(text, graph.point_size * 0.5)
-    return text
+def _format_command(label: str) -> str:
+    label = label.replace("&", "&amp;")
+    label = label.replace(":=", "≔")
+    label = label.replace("<=", "≤")
+    label = label.replace(">=", "≥")
+    label = re.sub(_re_operator, r"&#8202;\1&#8202;", label)
+    label = label.replace("<", "&lt;")
+    label = label.replace(">", "&gt;")
+    label = label.replace(" ", "&nbsp;")
+    label = _italicize_words(label)
+    label = _subscript_numerals(label, graph.point_size * 0.5)
+    label = label.replace("\n", "<br/>")
+    return label
