@@ -1,10 +1,8 @@
-from mdptools.utils.utils import ordered_state_str
 from ..types import MarkovDecisionProcess as MDP, State, Transition, Iterable
 from ..utils import (
     highlight as _h,
     logger,
     log_info_enabled,
-    ordered_state_str,
 )
 
 
@@ -68,7 +66,7 @@ def _log_begin(mdp: MDP, s: State, t: Transition, P: list[MDP]):
             "%s %s\n  s := {%s}\n  t := <%s>\n  P := {%s}",
             _h.comment("begin"),
             _h.function("overmans_algorithm"),
-            ordered_state_str(s, mdp, ",", lambda st: _h.state(st)),
+            s.to_str(mdp, colors=True, wrap=True),
             t,
             ", ".join(map(lambda p: _h.fail(p.name), P)),
         )

@@ -66,7 +66,7 @@ class Transition:
         if not self.is_enabled(s):
             return {}
         return {
-            (s - self.pre) + s_.apply(upd): p
+            (s - self.pre) + s_.apply(upd, s.ctx): p
             for (s_, upd), p in self.post.items()
         }
 

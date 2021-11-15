@@ -1,6 +1,6 @@
 from ..types import MarkovDecisionProcess as MDP, SetMethod
 from .format_str import to_identifier
-from .utils import id_register, minmax_register, write_file, ordered_state_str
+from .utils import id_register, minmax_register, write_file
 from ..model import state
 
 
@@ -53,7 +53,7 @@ def to_prism(
     # List state names
     buffer += "".join(
         [
-            f"  // {_id} : {ordered_state_str(s, mdp, ', ')}\n"
+            f"  // {_id} : {s.to_str(mdp, sep=', ')}\n"
             for s, _id in state_ids.items()
         ]
     )

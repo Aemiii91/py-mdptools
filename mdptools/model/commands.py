@@ -43,10 +43,8 @@ class Command:
     def text(self) -> str:
         return ", ".join(map(str, self.expr))
 
-    def __call__(
-        self, old_ctx: dict[str, int]
-    ) -> Union[bool, imdict[str, int]]:
-        old_ctx = defaultdict(lambda: 0, old_ctx)
+    def __call__(self, ctx: dict[str, int]) -> Union[bool, imdict[str, int]]:
+        old_ctx = defaultdict(lambda: 0, ctx)
         new_ctx = {}
 
         def apply(expr: Op) -> dict:

@@ -105,7 +105,7 @@ def _log_begin(mdp: MDP, s: State, set_method: SetMethod):
         )
         logger.info(
             "Q <- %s",
-            ordered_state_str(s, mdp, ",", lambda st: _h.state(st)),
+            s.to_str(mdp, colors=True, wrap=True),
         )
 
 
@@ -118,10 +118,10 @@ def _log_visit(
 ):
     if log_info_enabled():
         logger.info(
-            "\n%s:%d {%s}%s",
+            "\n%s:%d %s%s",
             _h.function("VISIT"),
             level,
-            ordered_state_str(s, mdp, ",", lambda st: _h.state(st)),
+            s.to_str(mdp, colors=True, wrap=True),
             f"\n-> <{next(iter(T))}>"
             if len(T) == 1
             else f" [{_h.error('DEADLOCK')}]"
@@ -135,9 +135,9 @@ def _log_visit(
 def _log_enqueue(mdp: MDP, successors: dict[State, float]):
     if log_info_enabled():
         logger.info(
-            "Q <- {%s}",
-            "}, {".join(
-                ordered_state_str(s, mdp, ",", lambda st: _h.state(st))
+            "Q <- %s",
+            ", ".join(
+                s.to_str(mdp, colors=True, wrap=True)
                 for s in successors.keys()
             ),
         )

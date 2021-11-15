@@ -8,7 +8,7 @@ from ..types import (
     imdict,
     Iterable,
 )
-from ..utils import flatten, highlight as _h, partition, itertools
+from ..utils import flatten, partition, ordered_state_str
 from .commands import command, is_update, is_guard
 
 
@@ -27,26 +27,33 @@ class State:
 
         return State(frozenset(rename(ss) for ss in self.s), self.ctx)
 
-    def apply(self, update: Command) -> "State":
+    def apply(self, update: Command, ctx: imdict[str, int] = None) -> "State":
         """Apply a command on the state"""
-        return State(self.s, imdict(update(self.ctx)))
+        if update:
+            return State(self.s, imdict(update({**ctx, **self.ctx})))
+        return self
 
     def intersection(self, other: Iterable[str]) -> "State":
         """Returns a new state with the intersection of this state and another set"""
         return State(self.s.intersection(other), self.ctx)
 
+    def to_str(
+        self,
+        parent: MDP = None,
+        sep: str = ",",
+        colors: bool = False,
+        wrap: bool = False,
+        include_objects: bool = True,
+    ) -> str:
+        return ordered_state_str(
+            self, parent, sep, colors, wrap, include_objects
+        )
+
     def __repr__(self) -> str:
-        ctx = [f"{k}={v}" for k, v in self.ctx.items()]
-        return "{" + ",".join(list(self.s) + ctx) + "}"
+        return self.to_str(None, wrap=True)
 
     def __str__(self) -> str:
-        values = [_h.state(ss) for ss in self.s]
-        values += [_h.variable(f"{k}={v}") for k, v in self.ctx.items()]
-        return (
-            next(iter(values))
-            if len(values) == 1
-            else "{" + ",".join(values) + "}"
-        )
+        return self.to_str(None, colors=True, wrap=True)
 
     def __iter__(self) -> Iterator[str]:
         return iter(self.s)

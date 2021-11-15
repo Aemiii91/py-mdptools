@@ -1,10 +1,8 @@
-from mdptools.mdp import MarkovDecisionProcess
 from ..types import MarkovDecisionProcess as MDP, State, Transition
 from ..utils import (
     highlight as _h,
     logger,
     log_info_enabled,
-    ordered_state_str,
 )
 
 
@@ -54,7 +52,7 @@ def _log_begin(mdp: MDP, s: State, t: Transition):
             "%s %s\n  s := {%s}\n  T := {<%s>}",
             _h.comment("begin"),
             _h.function("conflicting_transitions"),
-            ordered_state_str(s, mdp, ",", lambda st: _h.state(st)),
+            s.to_str(mdp, colors=True, wrap=True),
             t,
         )
 

@@ -1,4 +1,3 @@
-from mdptools.utils.utils import ordered_state_str
 from ..model.commands import Op
 from ..types import (
     MarkovDecisionProcess as MDP,
@@ -10,7 +9,6 @@ from ..utils import (
     highlight as _h,
     logger,
     log_info_enabled,
-    ordered_state_str,
 )
 
 
@@ -121,7 +119,7 @@ def _log_begin(mdp: MDP, s: State, t: Transition):
             "%s %s\n  s := {%s}:\n  Ts := {<%s>}",
             _h.comment("begin"),
             _h.function("stubborn_sets"),
-            ordered_state_str(s, mdp, ",", lambda st: _h.state(st)),
+            s.to_str(mdp, colors=True, wrap=True),
             t,
         )
 

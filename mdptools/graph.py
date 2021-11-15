@@ -1,12 +1,10 @@
-from mdptools.utils.utils import ordered_state_str
 from .types import (
     Action,
     MarkovDecisionProcess as MDP,
     SetMethod,
-    Union,
     Digraph,
 )
-from .utils import re, format_str, ordered_state_str, tuple_str
+from .utils import re, format_str, tuple_str
 from .model import State, state
 
 
@@ -127,9 +125,9 @@ _node_map: dict[State, str] = {}
 def _add_node(dot: Digraph, s: State, mdp: MDP) -> str:
     if s in _node_map:
         return _node_map[s]
-    s_label = ordered_state_str(s, mdp)
+    s_label = s.to_str(mdp, sep="&nbsp;", include_objects=False)
     sid = _serialize(mdp, s, prefix="node_")
-    s_ctx_label = ", ".join(f"{k}={v}" for k, v in s.ctx.items())
+    s_ctx_label = ", ".join(f"{k}={v}" for k, v in sorted(s.ctx.items()))
     label = _label_html(s_label, second_line=s_ctx_label or None)
     dot.node(sid, label)
     _node_map[s] = sid
@@ -190,11 +188,11 @@ def _create_p_point(
 def _label_html(label: str, color: str = None, second_line: str = None) -> str:
     if isinstance(label, float):
         label = format_str(label, use_colors=False)
-    label = tuple_str(label)
+    if not isinstance(label, str):
+        label = tuple_str(label, sep="&nbsp;")
     label = _greek_letters(label)
     label = _italicize_words(label)
     label = _subscript_numerals(label, graph.point_size * 0.5)
-    label = label.replace("_", "&nbsp;")
     if color is not None:
         label = f'<font color="{color}">{label}</font>'
     if second_line:

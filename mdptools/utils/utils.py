@@ -19,6 +19,8 @@ from ..types import (
     Generator,
 )
 
+from .highlight import highlight as _h
+
 
 logger = logging.getLogger()
 _log_handler = logging.StreamHandler()
@@ -116,21 +118,38 @@ def _ensure_rename_function(rename: RenameFunction) -> Callable[[str], str]:
 
 
 def ordered_state_str(
-    s: State, m: MDP, sep: str = "_", formatter: Callable[[str], str] = None
+    s: State,
+    parent: MDP,
+    sep: str,
+    colors: bool,
+    wrap: bool,
+    include_objects: bool,
 ) -> str:
-    """Stringify a collection of local state names, ordered by process"""
-    if m.is_process:
-        return tuple_str(s, sep)
-    if formatter is None:
-        formatter = lambda s: s
-    return sep.join(formatter(s(p)) for p in m.processes)
+    """Stringify a state, ordered by process"""
+    state_f = lambda st: _h.state(st) if colors else st
+    objects_f = lambda st: _h.variable(st) if colors else st
+
+    if parent is not None and parent.is_process:
+        return state_f(tuple_str(s, sep))
+
+    values = (
+        [state_f(s(p)) for p in parent.processes]
+        if parent is not None
+        else [state_f(ss) for ss in s.s]
+    )
+
+    if include_objects:
+        values += [objects_f(f"{k}={v}") for k, v in sorted(s.ctx.items())]
+
+    ret = sep.join(values)
+    return "{" + ret + "}" if wrap and len(values) != 1 else ret
 
 
-def tuple_str(tup: Union[tuple, str], sep: str = "_") -> str:
+def tuple_str(tup: Union[tuple, str], sep: str) -> str:
     """Join and flatten a tuple to a string"""
     if isinstance(tup, str):
         return tup
-    return sep.join(tuple_str(s) for s in tup)
+    return sep.join(tuple_str(s, sep) for s in tup)
 
 
 def id_register() -> Callable[[Hashable], int]:
