@@ -2,7 +2,7 @@ from mdptools import MarkovDecisionProcess as MDP
 from mdptools.set_methods import conflicting_transitions
 
 from helpers import at_root, display_graph, display_dot
-from mdptools.utils import highlight
+from mdptools.set_methods.algorithm3_stubborn_sets import stubborn_sets
 
 # %%
 m1 = MDP(
@@ -29,13 +29,13 @@ print(m3, "\n")
 m4 = MDP([("z", "v0", "v1"), ("y", "v0"), ("z", "v1")], name="M4")
 print(m4, "\n")
 
-m = MDP(m1, m2, m3, m4)
-print(m, "\n")
+system = MDP(m1, m2, m3, m4)
+print(system, "\n")
 
 # %%
 display_graph(m1, m2, m3, m4, file_path="out/graphs/hansen2011_mdps.gv")
 display_dot(
-    m.to_graph(
+    system.to_graph(
         at_root("out/graphs/hansen2011_combined.gv"),
         set_method=conflicting_transitions,
         highlight=True,
@@ -44,6 +44,11 @@ display_dot(
 
 # %%
 print(m1.to_prism(at_root("out/prism/generated.prism")), "\n")
-print(m.to_prism(at_root("out/prism/testing.prism")), "\n")
+print(
+    system.to_prism(
+        at_root("out/prism/testing.prism"), set_method=stubborn_sets
+    ),
+    "\n",
+)
 
 # %%
