@@ -161,7 +161,7 @@ _operations = {
 }
 
 _re_assign = re.compile(
-    r"\s*([a-z_]\w*)\s*(:=)\s*(?:([a-z_]\w*)\s*([+-])\s*)?(\d+)",
+    r"\s*([a-z_]\w*)\s*(:=)\s*([a-z_]\w*)?\s*([+-])?\s*(\d+)?",
     re.IGNORECASE,
 )
 
@@ -173,14 +173,25 @@ def _simple_assignment(text: str) -> Callable[[dict], bool]:
     obj, op, obj_read, expr_op, value = match.groups()
     if op == ":=":
         if obj_read:
+            if expr_op and value is not None:
+                return Op(
+                    obj,
+                    op,
+                    f"{obj_read}{expr_op}{value}",
+                    frozenset("rw"),
+                    lambda ctx: (
+                        True,
+                        {obj: _operations[expr_op](ctx[obj_read], int(value))},
+                    ),
+                )
             return Op(
                 obj,
                 op,
-                f"{obj_read}{expr_op}{value}",
+                f"{obj_read}",
                 frozenset("rw"),
                 lambda ctx: (
                     True,
-                    {obj: _operations[expr_op](ctx[obj_read], int(value))},
+                    {obj: ctx[obj_read]},
                 ),
             )
         return Op(

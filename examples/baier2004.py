@@ -3,45 +3,51 @@ from helpers import at_root, display_graph
 
 
 def make_process(i: int):
+    s = [f"noncrit_{i}", f"wait_{i}", f"crit_{i}"]
     return MDP(
         [
-            # format: (action, pre, post)
-            (f"demand_{i}", f"noncrit_{i}", f"wait_{i}"),
-            (f"request_{i}", (f"wait_{i}", "x=0"), f"wait_{i}"),
-            (f"enter_{i}", (f"wait_{i}", f"x={i}"), f"crit_{i}"),
-            (f"exit_{i}", f"crit_{i}", (f"noncrit_{i}", "x:=0")),
+            (f"demand_{i}", s[0], s[1]),
+            ("request!", (s[1], "x=0"), (s[1], f"y:={i}")),
+            (f"enter_{i}", (s[1], f"x={i}"), s[2]),
+            (f"exit_{i}", s[2], (s[0], "x:=0")),
         ],
-        init=f"noncrit_{i}",
+        init=s[0],
         name=f"P{i}",
     )
 
 
-def make_resource_manager(n: int):
-    trs = []
-    for i in range(1, n + 1):
-        trs += [
-            (f"request_{i}", "idle", {f"prepare_{i}": 0.9, "idle": 0.1}),
-            (f"grant_{i}", f"prepare_{i}", ("idle", f"x:={i}")),
-        ]
-    return MDP(trs, init=("idle", "x:=0"), name="RM")
+def make_resource_manager():
+    s = ["idle", "prepare", "reset"]
+    return MDP(
+        [
+            ("request?", s[0], {s[2]: 0.1, s[1]: 0.9}),
+            ("grant", s[1], (s[2], "x:=y")),
+            ("reset", s[2], (s[0], "y:=0")),
+        ],
+        init=(s[0], "x:=0"),
+        name="RM",
+    )
 
 
 # %%
-n = 2
-processes = [make_process(i + 1) for i in range(n)]
-processes += [make_resource_manager(n)]
+N = 3
+processes = [make_process(i) for i in range(1, N + 1)] + [
+    make_resource_manager()
+]
 
 # %%
 display_graph(*processes, file_path="out/graphs/graph_baier2004.gv")
 
 # %%
-m = MDP(*processes)
+system = MDP(*processes)
+state_space = len(list(system.search()))
 
-m.to_prism(at_root("out/prism/baier2004.prism"))
+system.to_prism(at_root("out/prism/baier2004.prism"))
 
-print(m, "\n")
+print("State space:", state_space)
+print(system, "\n")
 
 # %%
-display_graph(m, file_path="out/graphs/graph_baier2004_parallel.gv")
+display_graph(system, file_path="out/graphs/graph_baier2004_parallel.gv")
 
 # %%
