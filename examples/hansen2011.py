@@ -1,15 +1,12 @@
-from mdptools import MarkovDecisionProcess as MDP
-from mdptools.set_methods import conflicting_transitions
-
-from helpers import at_root, display_graph, display_dot
-from mdptools.set_methods.algorithm3_stubborn_sets import stubborn_sets
+from mdptools import MarkovDecisionProcess as MDP, graph, pr_max
+from mdptools.set_methods import stubborn_sets
 
 # %%
 m1 = MDP(
     [
         ("a", "s0", {"s1": 0.2, "s2": 0.8}),
         ("b", "s0", {"s2": 0.7, "s3": 0.3}),
-        ("tau", "s1"),
+        ("tau_1", "s1"),
         ("x", "s2"),
         ("y", "s2"),
         ("z", "s2"),
@@ -18,37 +15,20 @@ m1 = MDP(
     ],
     name="M1",
 )
-print(m1, "\n")
-
 m2 = MDP([("x", "r0", "r1"), ("y", "r1", "r0"), ("z", "r1")], name="M2")
-print(m2, "\n")
-
-m3 = MDP([("c", "w0", "w1"), ("y", "w0"), ("tau", "w1")], name="M3")
-print(m3, "\n")
-
+m3 = MDP([("c", "w0", "w1"), ("y", "w0"), ("tau_2", "w1")], name="M3")
 m4 = MDP([("z", "v0", "v1"), ("y", "v0"), ("z", "v1")], name="M4")
-print(m4, "\n")
-
-system = MDP(m1, m2, m3, m4)
-print(system, "\n")
+m = MDP(m1, m2, m3, m4)
+m_red = MDP(*m.processes, set_method=stubborn_sets)
 
 # %%
-display_graph(m1, m2, m3, m4, file_path="out/graphs/hansen2011_mdps.gv")
-display_dot(
-    system.to_graph(
-        at_root("out/graphs/hansen2011_combined.gv"),
-        set_method=conflicting_transitions,
-        highlight=True,
-    )
-)
+graph(*m.processes, m, m_red)
 
 # %%
-print(m1.to_prism(at_root("out/prism/generated.prism")), "\n")
-print(
-    system.to_prism(
-        at_root("out/prism/testing.prism"), set_method=stubborn_sets
-    ),
-    "\n",
-)
+graph(m_red, highlight=True)
 
 # %%
+goal_states = {("s2", "r0", "w1", "v0")}
+p = pr_max(m, goal_states)
+p_red = pr_max(m_red, goal_states)
+print(p, p_red)
