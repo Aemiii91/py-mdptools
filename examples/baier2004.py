@@ -30,7 +30,7 @@ def make_resource_manager():
 
 
 # %%
-N = 3
+N = 2
 processes = [make_process(i) for i in range(1, N + 1)] + [
     make_resource_manager()
 ]
