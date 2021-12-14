@@ -4,7 +4,7 @@ from .types import (
     SetMethod,
     Digraph,
 )
-from .utils import re, format_str, tuple_str
+from .utils import re, format_str, tuple_str, id_register
 from .model import State, state
 
 
@@ -44,6 +44,11 @@ def graph(
 graph.point_size = 18
 graph.p_color = None
 graph.label_padding = 2
+graph.shorten_state_labels = False
+
+
+_node_map: dict[State, str] = {}
+_node_ids = id_register()
 
 
 def _render_mdp(
@@ -52,8 +57,9 @@ def _render_mdp(
     set_method: SetMethod,
     highlight: bool,
 ):
-    global _node_map
+    global _node_map, _node_ids
     _node_map = {}
+    _node_ids = id_register()
 
     # Add arrow pointing to the start state
     init = mdp.init
@@ -119,16 +125,17 @@ def _render_system(
         dot.subgraph(sg)
 
 
-_node_map: dict[State, str] = {}
-
-
 def _add_node(dot: Digraph, s: State, mdp: MDP) -> str:
     if s in _node_map:
         return _node_map[s]
     s_label = s.to_str(mdp, sep="&nbsp;", include_objects=False)
     sid = _serialize(mdp, s, prefix="node_")
     s_ctx_label = ", ".join(f"{k}={v}" for k, v in sorted(s.ctx.items()))
-    label = _label_html(s_label, second_line=s_ctx_label or None)
+    label = _label_html(
+        s_label,
+        second_line=s_ctx_label or None,
+        sid=None if mdp.is_process else sid,
+    )
     dot.node(sid, label)
     _node_map[s] = sid
     return sid
@@ -185,7 +192,9 @@ def _create_p_point(
     return point_id
 
 
-def _label_html(label: str, color: str = None, second_line: str = None) -> str:
+def _label_html(
+    label: str, color: str = None, second_line: str = None, sid: str = None
+) -> str:
     if isinstance(label, float):
         label = format_str(label, use_colors=False)
     if not isinstance(label, str):
@@ -197,6 +206,8 @@ def _label_html(label: str, color: str = None, second_line: str = None) -> str:
         label = f'<font color="{color}">{label}</font>'
     if second_line:
         label = f"{label}<br/>{_format_command(second_line)}"
+    if sid is not None and graph.shorten_state_labels:
+        label = f's<sub><font point-size="{round(graph.point_size * 0.5, 2)}">{_node_ids(sid)}</font></sub>'
     label = _html_padding(label, graph.label_padding)
     return f"<{label}>"
 

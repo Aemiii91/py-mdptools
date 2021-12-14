@@ -1,5 +1,6 @@
 from operator import add
 from .types import (
+    Action,
     SetMethod,
     dataclass,
     Digraph,
@@ -106,6 +107,10 @@ class MarkovDecisionProcess:
             self.init = reduce(add, (p.init for p in self.processes))
         else:
             self.init = state_apply(init)
+
+    def P(self, s: State, a: Action, t: State) -> float:
+        tr = next(filter(lambda tr: tr.action == a, self._enabled(s)), None)
+        return next((p for (s_, _), p in tr.post.items() if t == s_), 0.0)
 
     def enabled(self, s: State = None) -> list[Transition]:
         """Returns a list of transitions enabled in state `s`"""
