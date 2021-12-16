@@ -4,22 +4,22 @@ from ..utils import (
     logger,
     log_info_enabled,
 )
+from .set_utils import init_transition_set
 
 
 def conflicting_transitions(
-    mdp: MDP, s: State, t: Transition = None
+    mdp: MDP, s: State, bias: list[Transition] = None
 ) -> list[Transition]:
     """Algorithm 1 from [godefroid1996]"""
-    # 1. Take one transition t that is enabled in s.
-    if t is None or not t.is_enabled(s):
-        t = mdp.enabled_take_one(s)
-    if t is None:
-        return []
-
     # Let T = {t}.
-    T = [t]
+    T: list[Transition] = list(
+        filter(
+            lambda t: t.is_enabled(s),
+            init_transition_set(mdp, s, bias),
+        )
+    )
 
-    _log_begin(mdp, s, t)
+    _log_begin(mdp, s, T)
 
     # 2. For all transitions t in T
     for t1 in T:
@@ -46,14 +46,14 @@ def conflicting_transitions(
     return T
 
 
-def _log_begin(mdp: MDP, s: State, t: Transition):
+def _log_begin(mdp: MDP, s: State, T: list[Transition]):
     if log_info_enabled():
         logger.info(
             "%s %s\n  s := {%s}\n  T := {<%s>}",
             _h.comment("begin"),
             _h.function("conflicting_transitions"),
             s.to_str(mdp, colors=True, wrap=True),
-            t,
+            ">,\n          <".join(map(str, T)),
         )
 
 

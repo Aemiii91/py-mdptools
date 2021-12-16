@@ -1,26 +1,33 @@
-from ..types import MarkovDecisionProcess as MDP, SetMethod
+from ..types import MarkovDecisionProcess as MDP, SetMethod, State, Callable
+from ..model import state
+
 from .format_str import to_identifier
 from .utils import id_register, minmax_register, write_file
-from ..model import state
 
 
 def to_prism(
     mdp: MDP, file_path: str = None, set_method: SetMethod = None
 ) -> str:
     """Compiles an MDP to the Prism Model Checler language"""
-    uid = id_register()
-    uid_w = lambda s: uid(state(s.s))
+    pid = (
+        {p: i for i, p in enumerate(mdp.processes)}
+        if not mdp.is_process
+        else {mdp: 0}
+    )
+
+    uid = [id_register() for _ in pid]
+    uid_w = state_register(mdp, uid, pid)
+
     register = minmax_register()
     buffer = ""
     trs = []
-    init = uid_w(mdp.init)
+    _ = uid_w(mdp.init)
 
     # Perform a breadth-first-search to collect all global transitions
     for s, act, _ in mdp.bfs(set_method=set_method):
         # Compile string for the left side of the arrow
         pre = " & ".join(
-            [f"s={uid_w(s)}"]
-            + [f"{k}={register(k, v)}" for k, v in s.ctx.items()]
+            [uid_w(s)] + [f"{k}={register(k, v)}" for k, v in s.ctx.items()]
         )
         for a, distributions in act.items():
             for dist in distributions:
@@ -29,7 +36,7 @@ def to_prism(
                 for s_prime, p_value in dist.items():
                     # Compile the update string
                     update = " & ".join(
-                        [f"(s'={uid_w(s_prime)})"]
+                        [uid_w(s_prime, update=True)]
                         + [
                             f"({k}'={register(k, v)})"
                             for k, v in s_prime.ctx.items()
@@ -44,19 +51,20 @@ def to_prism(
                 # Add the global transition
                 trs += [f"  [{a}] {pre} -> " + " + ".join(post) + ";\n"]
 
-    last_id, state_ids = uid()
-
     buffer += "mdp\n"
     buffer += "\n"
     buffer += f"module {to_identifier(mdp.name)}\n"
-    buffer += f"  s : [0..{last_id}] init {init};\n"
-    # List state names
-    buffer += "".join(
-        [
-            f"  // {_id} : {s.to_str(mdp, sep=', ')}\n"
-            for s, _id in state_ids.items()
-        ]
-    )
+    for name, last_id, state_ids in [
+        (f"p{i}", *c()) for i, c in enumerate(uid)
+    ]:
+        buffer += f"  {name} : [0..{last_id}] init 0;\n"
+        # List state names
+        buffer += "".join(
+            [
+                f"  // {_id} : {state_name}\n"
+                for state_name, _id in state_ids.items()
+            ]
+        )
     # List other variables (the objects of the system)
     buffer += "".join(
         [
@@ -71,3 +79,21 @@ def to_prism(
 
     write_file(file_path, buffer)
     return buffer
+
+
+def state_register(mdp: MDP, uid: list, pid: dict[MDP, int]) -> Callable:
+    def on_process(s: State, update: bool = False) -> str:
+        return f"(s'={uid(state(s.s))})" if update else f"s={uid(state(s.s))}"
+
+    if mdp.is_process:
+        return on_process
+
+    def on_system(global_state: State, update: bool = False) -> str:
+        local_states = [(p, global_state(p)) for p in mdp.processes]
+        values = [(f"p{pid[p]}", uid[pid[p]](s)) for p, s in local_states]
+        string = " & ".join(
+            [f"({k}'={v})" if update else f"{k}={v}" for k, v in values]
+        )
+        return string
+
+    return on_system

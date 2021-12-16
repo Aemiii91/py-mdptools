@@ -10,22 +10,17 @@ from ..utils import (
     logger,
     log_info_enabled,
 )
+from .set_utils import init_transition_set
 
 
 def stubborn_sets(
-    mdp: MDP, s: State, t: Transition = None
+    mdp: MDP, s: State, bias: list[Transition] = None
 ) -> list[Transition]:
     """Algorithm 3 from [godefroid1996]"""
-    # 1. Take one transition t that is enabled in s.
-    if t is None or not t.is_enabled(s):
-        t = mdp.enabled_take_one(s)
-    if t is None:
-        return []
-
     # Let Ts = {t}.
-    Ts = [t]
+    Ts = init_transition_set(mdp, s, bias)
 
-    _log_begin(mdp, s, t)
+    _log_begin(mdp, s, Ts)
 
     def add_t(condition: Callable[[Transition], bool]):
         """Add t' to Ts if condition holds"""
@@ -61,6 +56,11 @@ def stubborn_sets(
 
     # Return all transitions in Ts that are enabled in s
     T = list(filter(lambda t: t.is_enabled(s), Ts))
+
+    if not T:
+        first_enabled = mdp.enabled_take_one(s)
+        if first_enabled:
+            T = stubborn_sets(mdp, s, [first_enabled])
 
     _log_end(T)
 
@@ -113,14 +113,14 @@ def _cond_dependent(t1: Transition) -> Callable[[Transition], bool]:
     return condition
 
 
-def _log_begin(mdp: MDP, s: State, t: Transition):
+def _log_begin(mdp: MDP, s: State, Ts: list[Transition]):
     if log_info_enabled():
         logger.info(
             "%s %s\n  s := {%s}:\n  Ts := {<%s>}",
             _h.comment("begin"),
             _h.function("stubborn_sets"),
             s.to_str(mdp, colors=True, wrap=True),
-            t,
+            ">,\n          <".join(map(str, Ts)),
         )
 
 

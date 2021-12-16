@@ -1,6 +1,7 @@
 """Tools for representing and manipulating Markov Decision Processes (MDP)
 """
 from .mdp import MarkovDecisionProcess
+from .model import state
 from .graph import graph
 from .validate import validate
 

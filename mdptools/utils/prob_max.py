@@ -1,26 +1,14 @@
-from collections import defaultdict
 import numpy as np
 from scipy.optimize import fsolve
 
 from ..types import (
     MarkovDecisionProcess as MDP,
     State,
-    StateDescription,
     Callable,
 )
-from ..model import state
 
 
-memo = {}
-
-
-def can_reach(mdp: MDP, s: State, goal_states: set[State]):
-    return any(t in goal_states for t, _ in mdp.search(s))
-
-
-def equation_system(
-    mdp: MDP, goal_states: frozenset[State]
-) -> Callable[[list], list]:
+def equation_system(mdp: MDP) -> Callable[[list], list]:
     act = {
         s: [dist for act_ in act.values() for dist in act_]
         for s, act in mdp.search()
@@ -35,9 +23,9 @@ def equation_system(
 
     value_functions = [
         (lambda _: 1.0)
-        if s in goal_states
+        if s in mdp.goal_states
         else (lambda _: 0.0)
-        if not can_reach(mdp, s, goal_states)
+        if not mdp.can_reach_goal(s)
         else prob_max(act[s])
         for s in states
     ]
@@ -62,11 +50,13 @@ def validate(value_iterator, solution: dict[State, float]) -> bool:
     )
 
 
-def pr_max(mdp: MDP, goal_states: set[StateDescription], s: State = None):
-    goal_states = frozenset(state(s) for s in goal_states)
-    if (mdp, goal_states) not in memo:
-        _, solve = equation_system(mdp, goal_states)
-        memo[(mdp, goal_states)] = solve()
+memo = {}
+
+
+def pr_max(mdp: MDP, s: State = None):
+    if mdp not in memo:
+        _, solve = equation_system(mdp)
+        memo[mdp] = solve()
     if s is None:
         s = mdp.init
-    return memo[(mdp, goal_states)][s]
+    return memo[mdp][s]

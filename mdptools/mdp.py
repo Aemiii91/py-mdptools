@@ -39,6 +39,8 @@ class MarkovDecisionProcess:
     processes: list[MDP] = []
     transitions: list[Transition] = []
     set_method: SetMethod = None
+    _goal_states: frozenset[State] = frozenset()
+    _goal_actions: frozenset[Transition] = frozenset()
 
     def __init__(
         self,
@@ -47,6 +49,7 @@ class MarkovDecisionProcess:
         processes: dict[str, tuple[str]] = None,
         name: str = None,
         set_method: SetMethod = None,
+        goal_states: set[StateDescription] = None,
     ):
         self._states = None
         self._actions = None
@@ -71,6 +74,8 @@ class MarkovDecisionProcess:
             self.name = name
         if set_method is not None:
             self.set_method = set_method
+        if goal_states is not None:
+            self.goal_states = goal_states
 
     def _init_process(
         self, transitions: list[TransitionDescription], init: StateDescription
@@ -109,8 +114,13 @@ class MarkovDecisionProcess:
             self.init = state_apply(init)
 
     def P(self, s: State, a: Action, t: State) -> float:
+        """Get the probability value of a transition."""
         tr = next(filter(lambda tr: tr.action == a, self._enabled(s)), None)
         return next((p for (s_, _), p in tr.post.items() if t == s_), 0.0)
+
+    def can_reach_goal(self, s: State) -> bool:
+        """Check if a set of goal states can be reached from a state `s`."""
+        return any(g <= t for t, _ in self.search(s) for g in self.goal_states)
 
     def enabled(self, s: State = None) -> list[Transition]:
         """Returns a list of transitions enabled in state `s`"""
@@ -164,6 +174,24 @@ class MarkovDecisionProcess:
     def to_prism(self, file_path: str = None, **kw) -> str:
         """Compiles the MDP to the Prism Model Checler language"""
         return to_prism(self, file_path, **kw)
+
+    @property
+    def goal_states(self) -> frozenset[State]:
+        return self._goal_states
+
+    @goal_states.setter
+    def goal_states(self, value: Iterable[Union[State, StateDescription]]):
+        if self._goal_actions:
+            print("Mutation!")
+        self._goal_states = frozenset(map(state, value))
+        self._goal_actions = frozenset(
+            filter(self._goal_action_filter, self.transitions)
+        )
+
+    @property
+    def goal_actions(self) -> list[Transition]:
+        """Transitions required to reach the goal states."""
+        return [tr for tr in self.transitions if tr in self._goal_actions]
 
     @property
     def states(self) -> frozenset[str]:
@@ -242,6 +270,14 @@ class MarkovDecisionProcess:
         ]
         self._states = frozenset(flatten(states))
         self._actions = frozenset(actions)
+
+    def _goal_action_filter(self, tr: Transition) -> bool:
+        return any(
+            s <= g or g <= s
+            for s, _ in tr.post.keys()
+            for g in self.goal_states
+            if tr.pre != s
+        )
 
 
 @dataclass(eq=True, frozen=True)

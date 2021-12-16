@@ -1,7 +1,6 @@
 from itertools import chain
-from mdptools import MarkovDecisionProcess as MDP, graph
+from mdptools import MarkovDecisionProcess as MDP, graph, pr_max
 from mdptools.set_methods import stubborn_sets
-from helpers import at_root, display_graph
 
 
 def make_sensor(i: int) -> MDP:
@@ -50,7 +49,7 @@ def make_anon_sensor() -> MDP:
             ("tau", s[3]),
         ],
         init=s[0],
-        name=f"S",
+        name="S",
     )
 
 
@@ -73,8 +72,7 @@ def make_system(n: int) -> MDP:
     if n == 1:
         processes = [make_anon_sensor(), make_anon_device()]
     else:
-        processes = [make_sensor(i + 1) for i in range(n)]
-        processes += [make_device(n)]
+        processes = [make_sensor(i + 1) for i in range(n)] + [make_device(n)]
     return MDP(*processes)
 
 
@@ -95,20 +93,22 @@ graph(
 graph(system, file_path="out/graphs/example_system", file_format="pdf")
 
 # %%
-graph(
-    *system.processes,
-    system,
-    file_path="out/graphs/example_all",
-    file_format="pdf",
-)
-
-# %%
 system = make_system(2).rename(
     (r"^([a-z])[a-z]*", r"\1")
     # (r"^([a-z]{1,2}[aeiouy][^aeiouy]?|[a-z]{1,2}[^aeiouy])[a-z]*", r"\1")
 )
+system.goal_states = {"s"}
+
+print(system)
+
+print(
+    "Goal states:",
+    ", ".join(map(lambda s: s.to_str(system, wrap=True), system.goal_states)),
+)
+print("Goal actions:", ", ".join(map(str, system.goal_actions)))
 
 # %%
+print("Goal actions:", ", ".join(map(str, system.goal_actions)))
 graph(
     system,
     file_path="out/graphs/example_2_composed",
@@ -118,26 +118,34 @@ graph(
 )
 
 # %%
+m_red = MDP(*system.processes, set_method=stubborn_sets, goal_states={"s"})
 graph(
-    system.rename((r"^([a-z])[a-z]*", r"\1")),
+    m_red,
     file_path="out/graphs/example_2_reduced",
     file_format="pdf",
     set_method=stubborn_sets,
 )
 
 # %%
-# print(system.to_prism(at_root("out/prism/kwiatkowska_composed.prism")))
+p = pr_max(m_red)
+print(p)
 
 # %%
 sensor_count = 5
 
 for n in range(1, sensor_count + 1):
     test_system = make_system(n)
+    test_system.goal_states = {"stopping"}
+    test_system.to_prism(
+        f"out/prism/kwiatkowska_{n}.prism", set_method=stubborn_sets
+    )
     state_space = list(test_system.search(silent=True))
     state_space_ps = list(
         test_system.search(set_method=stubborn_sets, silent=True)
     )
     t = len(state_space)
     r = len(state_space_ps)
-    p = round(abs(t - r) / t * 100)
+    p = round(abs(t - r) / t * 100, 2)
     print(f"{n} sensors: {t} ({r} reduced, {p}% reduction)")
+
+# %%

@@ -4,22 +4,17 @@ from ..utils import (
     logger,
     log_info_enabled,
 )
+from .set_utils import init_transition_set
 
 
 def overmans_algorithm(
-    mdp: MDP, s: State, t: Transition = None
+    mdp: MDP, s: State, bias: list[Transition] = None
 ) -> list[Transition]:
     """Algorithm 2 from [godefroid1996]"""
-    # 1. Take one transition t that is enabled in s
-    if t is None or not t.is_enabled(s):
-        t = mdp.enabled_take_one(s)
-    if t is None:
-        return []
-
     # Let P = active(t)
-    P = list(t.active)
+    P = [t.active for t in init_transition_set(mdp, s, bias)]
 
-    _log_begin(mdp, s, t, P)
+    _log_begin(mdp, s, P)
 
     # 2. For all processes Pi ∈ P
     for Pi in P:
@@ -60,14 +55,13 @@ def _active_in_dependent_tr(p: MDP, t1: Transition, mdp: MDP) -> bool:
     )
 
 
-def _log_begin(mdp: MDP, s: State, t: Transition, P: list[MDP]):
+def _log_begin(mdp: MDP, s: State, P: list[MDP]):
     if log_info_enabled():
         logger.info(
-            "%s %s\n  s := {%s}\n  t := <%s>\n  P := {%s}",
+            "%s %s\n  s := {%s}\n  P := {%s}",
             _h.comment("begin"),
             _h.function("overmans_algorithm"),
             s.to_str(mdp, colors=True, wrap=True),
-            t,
             ", ".join(map(lambda p: _h.fail(p.name), P)),
         )
 

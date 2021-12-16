@@ -1,4 +1,5 @@
 from mdptools import MarkovDecisionProcess as MDP, graph
+from mdptools.model import state
 from mdptools.utils.prob_max import pr_max
 
 # %%
@@ -11,8 +12,13 @@ m = MDP(
         ("alpha", "s3", "s3"),
     ]
 )
+goal_states = {state("s2")}
 graph(m)
 
 # %%
-p = pr_max(m, {"s2"})
+goal_actions = m.goal_actions(goal_states)
+print(goal_actions)
+
+# %%
+p = pr_max(m, goal_states)
 print(p)

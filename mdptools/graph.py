@@ -114,9 +114,16 @@ def _render_system(
                 _add_edge(dot, s_name, a, dist, mdp)
 
     if highlight:
-        for s, act, level in mdp.bfs(set_method=set_method):
-            if s in _node_map:
-                dot.node(_node_map[s], style="filled")
+        for s, act, _ in mdp.bfs(set_method=set_method):
+            for node in [s] + list(
+                t
+                for distributions in act.values()
+                for dist in distributions
+                for t in dist.keys()
+            ):
+                if node not in _node_map:
+                    _add_node(dot, node, mdp)
+                dot.node(_node_map[node], style="filled")
 
     for nodes in same_rank:
         sg = Digraph(graph_attr={"rank": "same"})

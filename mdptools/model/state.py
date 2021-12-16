@@ -77,6 +77,9 @@ class State:
     def __sub__(self, other: "State") -> "State":
         return State(self.s.difference(other.s), self.ctx)
 
+    def __le__(self, other: "State") -> bool:
+        return self.s <= other.s
+
     def __call__(self, p: MDP) -> str:
         return next((ss for ss in self.s if ss in p), "")
 
