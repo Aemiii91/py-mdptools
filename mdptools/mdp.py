@@ -118,9 +118,13 @@ class MarkovDecisionProcess:
         tr = next(filter(lambda tr: tr.action == a, self._enabled(s)), None)
         return next((p for (s_, _), p in tr.post.items() if t == s_), 0.0)
 
-    def can_reach_goal(self, s: State) -> bool:
+    def can_reach(
+        self, s: State, goal_states: frozenset[State] = None
+    ) -> bool:
         """Check if a set of goal states can be reached from a state `s`."""
-        return any(g <= t for t, _ in self.search(s) for g in self.goal_states)
+        if goal_states is None:
+            goal_states = self.goal_states
+        return any(t.is_goal(goal_states) for t, _, _ in self.bfs(s))
 
     def enabled(self, s: State = None) -> list[Transition]:
         """Returns a list of transitions enabled in state `s`"""
@@ -181,8 +185,6 @@ class MarkovDecisionProcess:
 
     @goal_states.setter
     def goal_states(self, value: Iterable[Union[State, StateDescription]]):
-        if self._goal_actions:
-            print("Mutation!")
         self._goal_states = frozenset(map(state, value))
         self._goal_actions = frozenset(
             filter(self._goal_action_filter, self.transitions)

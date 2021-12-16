@@ -37,6 +37,10 @@ class State:
         """Returns a new state with the intersection of this state and another set"""
         return State(self.s.intersection(other), self.ctx)
 
+    def is_goal(self, goal_states: frozenset["State"]) -> bool:
+        """Check if state is a goal state in mdp."""
+        return any(g <= self or self <= g for g in goal_states)
+
     def to_str(
         self,
         parent: MDP = None,

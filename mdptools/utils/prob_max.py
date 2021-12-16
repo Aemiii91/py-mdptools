@@ -5,28 +5,37 @@ from ..types import (
     MarkovDecisionProcess as MDP,
     State,
     Callable,
+    StateDescription,
 )
+from ..model import state
 
 
-def equation_system(mdp: MDP) -> Callable[[list], list]:
+def equation_system(
+    mdp: MDP, goal_states: frozenset[State]
+) -> Callable[[list], list]:
     act = {
-        s: [dist for act_ in act.values() for dist in act_]
+        s: [dist for distributions in act.values() for dist in distributions]
         for s, act in mdp.search()
     }
-    states = list(act.keys())
+    states: list[State] = list(act.keys())
     indices = {s: i for i, s in enumerate(states)}
 
-    def prob_max(act: list[dict[State, float]]):
+    def prob_max(s: State, act: list[dict[State, float]]):
         return lambda x: max(
-            sum(p * x[indices[t]] for t, p in dist.items()) for dist in act
+            sum(
+                p * x[indices[t]]
+                for t, p in dist.items()
+                if not (t == s and p == 1.0)
+            )
+            for dist in act
         )
 
     value_functions = [
         (lambda _: 1.0)
-        if s in mdp.goal_states
+        if s.is_goal(goal_states)
         else (lambda _: 0.0)
-        if not mdp.can_reach_goal(s)
-        else prob_max(act[s])
+        if len(act[s]) == 0 or not mdp.can_reach(s, goal_states)
+        else prob_max(s, act[s])
         for s in states
     ]
 
@@ -53,10 +62,17 @@ def validate(value_iterator, solution: dict[State, float]) -> bool:
 memo = {}
 
 
-def pr_max(mdp: MDP, s: State = None):
-    if mdp not in memo:
-        _, solve = equation_system(mdp)
-        memo[mdp] = solve()
+def pr_max(
+    mdp: MDP, s: State = None, goal_states: set[StateDescription] = None
+):
+    goal_states = (
+        frozenset(map(state, goal_states))
+        if goal_states is not None
+        else mdp.goal_states
+    )
+    if (mdp, goal_states) not in memo:
+        _, solve = equation_system(mdp, goal_states)
+        memo[(mdp, goal_states)] = solve()
     if s is None:
         s = mdp.init
-    return memo[mdp][s]
+    return memo[(mdp, goal_states)][s]

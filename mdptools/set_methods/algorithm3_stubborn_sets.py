@@ -17,6 +17,9 @@ def stubborn_sets(
     mdp: MDP, s: State, bias: list[Transition] = None
 ) -> list[Transition]:
     """Algorithm 3 from [godefroid1996]"""
+    if s.is_goal(mdp.goal_states):
+        return []
+
     # Let Ts = {t}.
     Ts = init_transition_set(mdp, s, bias)
 

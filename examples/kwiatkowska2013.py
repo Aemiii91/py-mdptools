@@ -77,40 +77,39 @@ def make_system(n: int) -> MDP:
 
 
 # %%
-system = make_system(1).rename(
+m = make_system(1).rename(
     (r"^([a-z])[a-z]*", r"\1")
     # (r"^([a-z]{1,2}[aeiouy][^aeiouy]?|[a-z]{1,2}[^aeiouy])[a-z]*", r"\1")
 )
 
 # %%
 graph(
-    *system.processes,
+    *m.processes,
     file_path="out/graphs/example_processes",
     file_format="pdf",
 )
 
 # %%
-graph(system, file_path="out/graphs/example_system", file_format="pdf")
+graph(m, file_path="out/graphs/example_system", file_format="pdf")
 
 # %%
-system = make_system(2).rename(
+m = make_system(2).rename(
     (r"^([a-z])[a-z]*", r"\1")
     # (r"^([a-z]{1,2}[aeiouy][^aeiouy]?|[a-z]{1,2}[^aeiouy])[a-z]*", r"\1")
 )
-system.goal_states = {"s"}
+# m.goal_states = {"s"}
 
-print(system)
+print(m)
 
 print(
     "Goal states:",
-    ", ".join(map(lambda s: s.to_str(system, wrap=True), system.goal_states)),
+    ", ".join(map(lambda s: s.to_str(m, wrap=True), m.goal_states)),
 )
-print("Goal actions:", ", ".join(map(str, system.goal_actions)))
+print("Goal actions:", ", ".join(map(str, m.goal_actions)))
 
 # %%
-print("Goal actions:", ", ".join(map(str, system.goal_actions)))
 graph(
-    system,
+    m,
     file_path="out/graphs/example_2_composed",
     file_format="pdf",
     set_method=stubborn_sets,
@@ -118,7 +117,11 @@ graph(
 )
 
 # %%
-m_red = MDP(*system.processes, set_method=stubborn_sets, goal_states={"s"})
+p = pr_max(m, goal_states={"s"})
+print(p)
+
+# %%
+m_red = MDP(*m.processes, set_method=stubborn_sets)
 graph(
     m_red,
     file_path="out/graphs/example_2_reduced",
@@ -127,15 +130,15 @@ graph(
 )
 
 # %%
-p = pr_max(m_red)
-print(p)
+p_red = pr_max(m_red, goal_states={"s"})
+print(p_red)
 
 # %%
 sensor_count = 5
 
 for n in range(1, sensor_count + 1):
     test_system = make_system(n)
-    test_system.goal_states = {"stopping"}
+    # test_system.goal_states = {"stopping"}
     test_system.to_prism(
         f"out/prism/kwiatkowska_{n}.prism", set_method=stubborn_sets
     )
