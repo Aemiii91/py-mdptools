@@ -49,7 +49,7 @@ def equation_system(
     ]
 
     solve = lambda: {
-        states[i]: round(p, 8)
+        states[i]: p
         for i, p in enumerate(fsolve(value_iterator, [1.0] * len(indices)))
     }
 
