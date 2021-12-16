@@ -43,8 +43,8 @@ def main():
             goal_states = generate_goal_states(n)
             for name, test_case in test_cases(mdp, goal_states):
                 result = {"test_system": name, "scale": n}
-                args = (test_case, goal_states, result, args.outfile)
-                executor.submit(run_experiment, *args)
+                t_args = (test_case, goal_states, result, args.outfile)
+                executor.submit(run_experiment, *t_args)
 
 
 def test_cases(mdp: MDP, goal_states: set[StateDescription]):
@@ -88,7 +88,7 @@ def time_execution(func: Callable) -> tuple[Any, int]:
     t_start = perf_counter()
     result = func()
     t_stop = perf_counter()
-    seconds = t_stop - t_start
+    seconds = round(t_stop - t_start, 3)
     return (result, seconds)
 
 
