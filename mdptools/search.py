@@ -14,7 +14,6 @@ from .utils import (
     log_info_enabled,
     set_log_silence,
     highlight as _h,
-    ordered_state_str,
     get_terminal_width,
     defaultdict,
 )

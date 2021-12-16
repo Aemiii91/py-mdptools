@@ -34,16 +34,21 @@ def main(args: Namespace):
         )
 
     for example in examples:
-        pad_left = int(math.floor((LINE_WIDTH - len(example)) / 2 - 2))
-        pad_right = int(math.ceil((LINE_WIDTH - len(example)) / 2 - 2))
-        print(_h.numeral("┌" + "─" * (LINE_WIDTH - 2) + "┐"))
-        print(
-            _h.numeral("│") + " " * pad_left,
-            example,
-            " " * pad_right + _h.numeral("│"),
-        )
-        print(_h.numeral("└" + "─" * (LINE_WIDTH - 2) + "┘"))
+        if len(examples) > 1:
+            print_header(example)
         importlib.import_module(example)
+
+
+def print_header(title: str):
+    pad_left = int(math.floor((LINE_WIDTH - len(title)) / 2 - 2))
+    pad_right = int(math.ceil((LINE_WIDTH - len(title)) / 2 - 2))
+    print(_h.numeral("┌" + "─" * (LINE_WIDTH - 2) + "┐"))
+    print(
+        _h.numeral("│") + " " * pad_left,
+        title,
+        " " * pad_right + _h.numeral("│"),
+    )
+    print(_h.numeral("└" + "─" * (LINE_WIDTH - 2) + "┘"))
 
 
 if __name__ == "__main__":
@@ -63,4 +68,6 @@ if __name__ == "__main__":
         action="store_true",
         help="enable verbose logging output",
     )
-    main(parser.parse_args())
+    args, unknown = parser.parse_known_args()
+    sys.argv = [__file__] + unknown
+    main(args)

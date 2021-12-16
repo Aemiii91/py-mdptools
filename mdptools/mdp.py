@@ -1,6 +1,7 @@
 from operator import add
 from .types import (
     Action,
+    ActionMap,
     SetMethod,
     dataclass,
     Digraph,
@@ -140,11 +141,15 @@ class MarkovDecisionProcess:
             tr = next(it, None)
         return tr
 
-    def search(self, s: State = None, **kw) -> Generator:
+    def search(
+        self, s: State = None, **kw
+    ) -> Generator[tuple[State, ActionMap], None, None]:
         """Performs a depth-first-search of the state space"""
         return search(self, s, **kw)
 
-    def bfs(self, s: State = None, **kw) -> Generator:
+    def bfs(
+        self, s: State = None, **kw
+    ) -> Generator[tuple[State, ActionMap, int], None, None]:
         """Performs a breadth-first-search of the state space"""
         return bfs(self, s, **kw)
 

@@ -4,6 +4,7 @@ from .mdp import MarkovDecisionProcess
 from .model import state
 from .graph import graph
 from .validate import validate
+from .set_methods import stubborn_sets
 
 from .utils import highlight as _h, logger, set_logging_level, pr_max
 

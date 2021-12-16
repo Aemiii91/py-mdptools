@@ -61,14 +61,16 @@ class Transition:
             op1.can_be_dependent(op2) for op1 in used for op2 in other_used
         )
 
-    def successors(self, s: State) -> dict[State, float]:
+    def successors(self, s: State) -> imdict[State, float]:
         """Return the possible successors after taking the transition in state `s`"""
         if not self.is_enabled(s):
-            return {}
-        return {
-            (s - self.pre) + s_.apply(upd, s.ctx): p
-            for (s_, upd), p in self.post.items()
-        }
+            return imdict()
+        return imdict(
+            {
+                (s - self.pre) + s_.apply(upd, s.ctx): p
+                for (s_, upd), p in self.post.items()
+            }
+        )
 
     def only_successor(self, s: State) -> bool:
         """Returns true if transition only goes to the same state"""
