@@ -78,12 +78,12 @@ def main(args):
         if first_write:
             print(df.to_string(index=False))
             if args.outfile:
-                df.to_csv(args.outfile)
+                df.to_csv(args.outfile, index=False)
             first_write = False
         else:
             print("\n".join(df.to_string(index=False).split("\n")[1:]))
             if args.outfile:
-                df.to_csv(args.outfile, mode="a", header=False)
+                df.to_csv(args.outfile, mode="a", index=False, header=False)
 
 
 parser = ArgumentParser()
