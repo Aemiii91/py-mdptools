@@ -1,5 +1,4 @@
 import os
-from posixpath import dirname
 import re
 import subprocess
 from typing import Pattern, Type
