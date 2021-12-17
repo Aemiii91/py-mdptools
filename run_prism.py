@@ -6,25 +6,9 @@ import pandas as pd
 from argparse import ArgumentParser
 
 
-def main():
-    parser = ArgumentParser()
-    parser.add_argument("prism_folder", type=str)
-    parser.add_argument("--property", "-pf", type=str, default="")
-    parser.add_argument("--outfile", "-o", type=str, default="")
-    args = parser.parse_args()
-
-    pd.set_option("display.max_rows", None)
-    pd.set_option("display.max_columns", None)
-    pd.set_option("display.width", None)
-    pd.set_option("display.max_colwidth", None)
-    pd.set_option("precision", 4)
-
-    prism_folder = args.prism_folder
-    prism_files = [
-        os.path.join(prism_folder, fn)
-        for fn in os.listdir(prism_folder)
-        if fn.endswith(".prism")
-    ]
+def main(prism_folder: str, prism_pf: str, outfile: str):
+    prism_files = list_files(prism_folder, [".prism"])
+    props_files = list_files(prism_folder, [".props"])
     prism_files = sorted(prism_files, key=lambda fn: os.stat(fn).st_size)
 
     dir_name = os.path.basename(prism_folder)
@@ -32,8 +16,11 @@ def main():
 
     def shell_args(file: str) -> list[str]:
         ret = ["prism", file]
-        if args.property:
-            ret += ["-pf", args.property]
+        if prism_pf:
+            ret += ["-pf", prism_pf]
+        else:
+            ret += find_matching_prop_file(file, props_files)
+        print(ret)
         return ret
 
     for file in prism_files:
@@ -48,7 +35,28 @@ def main():
             continue
 
         parsed = {"test_system_name": name, **parse_result(result)}
-        write_result(parsed, args.outfile)
+        write_result(parsed, outfile)
+
+
+def list_files(folder: str, extensions: list[str]) -> list[str]:
+    return [
+        os.path.join(folder, fn)
+        for fn in os.listdir(folder)
+        if any(fn.endswith(ext) for ext in extensions)
+    ]
+
+
+def find_matching_prop_file(
+    file_path: str, props_files: list[str]
+) -> list[str]:
+    base_name, _ = os.path.splitext(os.path.basename(file_path))
+
+    for prop_file in sorted(props_files, key=len, reverse=True):
+        file_name, _ = os.path.splitext(os.path.basename(prop_file))
+        if base_name.startswith(file_name):
+            return [prop_file]
+
+    return []
 
 
 parse_components: dict[str, tuple[Pattern[str], Type]] = {
@@ -106,4 +114,17 @@ def write_result(result: dict, outfile: str):
 
 
 if __name__ == "__main__":
-    main()
+    pd.set_option("display.max_rows", None)
+    pd.set_option("display.max_columns", None)
+    pd.set_option("display.width", None)
+    pd.set_option("display.max_colwidth", None)
+    pd.set_option("precision", 4)
+
+    parser = ArgumentParser()
+    parser.add_argument("prism_folder", type=str)
+    parser.add_argument("--property", "-pf", type=str, default="")
+    parser.add_argument("--outfile", "-o", type=str, default="")
+
+    args = parser.parse_args()
+
+    main(args.prism_folder, args.property, args.outfile)

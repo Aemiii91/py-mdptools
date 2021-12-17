@@ -1,11 +1,14 @@
 from itertools import chain
 from typing import Callable
 from mdptools import MarkovDecisionProcess as MDP
-from mdptools.types import StateDescription
 
 
-def export() -> tuple[Callable[[int], MDP], set[StateDescription]]:
-    return (make_system, lambda _: {"failed"})
+def export() -> tuple[Callable, ...]:
+    return (
+        make_system,
+        lambda _: {"failed"},
+        lambda _: "Pmax=? [F p0=3]",
+    )
 
 
 def make_system(n: int) -> MDP:
