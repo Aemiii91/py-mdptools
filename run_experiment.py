@@ -8,6 +8,7 @@ from threading import Lock
 from concurrent.futures import ThreadPoolExecutor
 
 from mdptools import MarkovDecisionProcess as MDP, stubborn_sets, pr_max
+from mdptools.utils import write_file
 from mdptools.types import StateDescription
 
 
@@ -21,6 +22,9 @@ def main():
     parser.add_argument("--step", "-s", type=int, default=1)
     parser.add_argument("--outfile", "-o", type=str, default="")
     parser.add_argument("--workers", "-w", type=int, default=8)
+    parser.add_argument("--only_goal", action="store_true")
+    parser.add_argument("--without_goal", action="store_true")
+    parser.add_argument("--check_pr", action="store_true")
     args = parser.parse_args()
 
     pd.set_option("display.max_rows", None)
@@ -29,7 +33,9 @@ def main():
     pd.set_option("display.max_colwidth", None)
     pd.set_option("precision", 4)
 
-    experiment = importlib.import_module(args.experiment)
+    exp_name = args.experiment
+
+    experiment = importlib.import_module(exp_name)
     generate_system, generate_goal_states = experiment.export()
 
     test_range = range(args.scale_from, args.scale_to + 1, args.step)
@@ -41,17 +47,31 @@ def main():
         for n in test_range:
             mdp = generate_system(n)
             goal_states = generate_goal_states(n)
-            for name, test_case in test_cases(mdp, goal_states):
+            test_goal = (
+                goal_states
+                if not args.without_goal or args.only_goal
+                else None
+            )
+            pr_goal = goal_states if args.check_pr else None
+
+            for name, test_case in test_cases(mdp, test_goal, args.only_goal):
                 result = {"test_system": name, "scale": n}
-                t_args = (test_case, goal_states, result, args.outfile)
+                prism_file = (
+                    f"out/prism/{exp_name}/{exp_name}_{name}_{n}.prism"
+                )
+                t_args = (test_case, pr_goal, result, args.outfile, prism_file)
                 executor.submit(run_experiment, *t_args)
 
 
-def test_cases(mdp: MDP, goal_states: set[StateDescription]):
-    ret: list[tuple[str, MDP]] = [
-        ("original", mdp),
-        ("reduced", MDP(*mdp.processes, set_method=stubborn_sets)),
-    ]
+def test_cases(mdp: MDP, goal_states: set[StateDescription], only_goal: bool):
+    ret: list[tuple[str, MDP]] = (
+        []
+        if only_goal
+        else [
+            ("original", mdp),
+            ("reduced", MDP(*mdp.processes, set_method=stubborn_sets)),
+        ]
+    )
 
     if goal_states:
         m = MDP(
@@ -65,10 +85,14 @@ def test_cases(mdp: MDP, goal_states: set[StateDescription]):
 
 
 def run_experiment(
-    mdp: MDP, goal_states: set[StateDescription], result: dict, outfile: str
+    mdp: MDP,
+    goal_states: set[StateDescription],
+    result: dict,
+    outfile: str,
+    prism_file: str,
 ):
-    state_space, gen_time = time_execution(
-        lambda: list(mdp.search(silent=True))
+    (prism_code, state_space), gen_time = time_execution(
+        lambda: list(mdp.to_prism())
     )
 
     result["states"] = len(state_space)
@@ -81,7 +105,7 @@ def run_experiment(
             )
         )
 
-    write_result(result, outfile)
+    write_result(result, outfile, prism_code, prism_file)
 
 
 def time_execution(func: Callable) -> tuple[Any, int]:
@@ -96,7 +120,7 @@ _first_write = True
 _write_lock = Lock()
 
 
-def write_result(result: dict, outfile: str):
+def write_result(result: dict, outfile: str, prism_code: str, prism_file: str):
     global _first_write
 
     df = pd.DataFrame([result])
@@ -114,6 +138,8 @@ def write_result(result: dict, outfile: str):
                 index=False,
                 header=_first_write,
             )
+
+        write_file(prism_file, prism_code)
 
     _first_write = False
 

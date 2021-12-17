@@ -9,7 +9,7 @@ def export() -> tuple[Callable[[int], MDP], set[StateDescription]]:
 
 
 def make_system(n: int) -> MDP:
-    return MDP(*([make_sensor(i) for i in range(1, n + 1)] + [make_device(n)]))
+    return MDP(*([make_device(n)] + [make_sensor(i) for i in range(1, n + 1)]))
 
 
 def make_sensor(i: int) -> MDP:

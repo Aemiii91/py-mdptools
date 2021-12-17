@@ -176,11 +176,11 @@ class MarkovDecisionProcess:
             init=self.init.rename(states),
         )
 
-    def to_graph(self, file_path: str = None, **kw) -> Digraph:
+    def to_graph(self, file_path: str = None, **kw):
         """Compiles the MDP to a Digraph using Graphviz"""
         return graph(self, file_path=file_path, **kw)
 
-    def to_prism(self, file_path: str = None, **kw) -> str:
+    def to_prism(self, file_path: str = None, **kw):
         """Compiles the MDP to the Prism Model Checler language"""
         return to_prism(self, file_path, **kw)
 
@@ -267,16 +267,20 @@ class MarkovDecisionProcess:
         return tr.bind(process)
 
     def _set_states_and_actions(self):
-        states = [tr.pre for tr in self.transitions]
-        for tr in self.transitions:
-            states += [s_ for (s_, _), _ in tr.post.items()]
+        states = self._get_states_from_transitions()
         actions = [
             remove_direction(tr.action)
             for tr in self.transitions
             if not tr.action.startswith("tau")
         ]
-        self._states = frozenset(flatten(states))
+        self._states = frozenset(states)
         self._actions = frozenset(actions)
+
+    def _get_states_from_transitions(self) -> list[State]:
+        states = [tr.pre for tr in self.transitions]
+        for tr in self.transitions:
+            states += [s_ for (s_, _), _ in tr.post.items()]
+        return flatten(states)
 
     def _goal_action_filter(self, tr: Transition) -> bool:
         return any(

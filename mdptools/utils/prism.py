@@ -1,4 +1,10 @@
-from ..types import MarkovDecisionProcess as MDP, SetMethod, State, Callable
+from ..types import (
+    MarkovDecisionProcess as MDP,
+    ActionMap,
+    SetMethod,
+    State,
+    Callable,
+)
 from ..model import state
 
 from .format_str import to_identifier
@@ -7,7 +13,7 @@ from .utils import id_register, minmax_register, write_file
 
 def to_prism(
     mdp: MDP, file_path: str = None, set_method: SetMethod = None
-) -> str:
+) -> tuple[str, dict[State, ActionMap]]:
     """Compiles an MDP to the Prism Model Checler language"""
     pid = (
         {p: i for i, p in enumerate(mdp.processes)}
@@ -18,13 +24,20 @@ def to_prism(
     uid = [id_register() for _ in pid]
     uid_w = state_register(mdp, uid, pid)
 
+    for p in mdp.processes:
+        for s in p._get_states_from_transitions():
+            uid[pid[p]](s)
+
     register = minmax_register()
     buffer = ""
     trs = []
     _ = uid_w(mdp.init)
 
+    state_space = {}
+
     # Perform a breadth-first-search to collect all global transitions
-    for s, act, _ in mdp.bfs(set_method=set_method):
+    for s, act, _ in mdp.bfs(set_method=set_method, silent=True):
+        state_space[s] = act
         # Compile string for the left side of the arrow
         pre = " & ".join(
             [uid_w(s)] + [f"{k}={register(k, v)}" for k, v in s.ctx.items()]
@@ -78,18 +91,22 @@ def to_prism(
     buffer += "endmodule"
 
     write_file(file_path, buffer)
-    return buffer
+    return (buffer, state_space)
 
 
 def state_register(mdp: MDP, uid: list, pid: dict[MDP, int]) -> Callable:
     def on_process(s: State, update: bool = False) -> str:
-        return f"(s'={uid(state(s.s))})" if update else f"s={uid(state(s.s))}"
+        return (
+            f"(s'={uid[0](state(s.s))})"
+            if update
+            else f"s={uid[0](state(s.s))}"
+        )
 
     if mdp.is_process:
         return on_process
 
     def on_system(global_state: State, update: bool = False) -> str:
-        local_states = [(p, global_state(p)) for p in mdp.processes]
+        local_states = [(p, global_state(p)) for p in pid.keys()]
         values = [(f"p{pid[p]}", uid[pid[p]](s)) for p, s in local_states]
         string = " & ".join(
             [f"({k}'={v})" if update else f"{k}={v}" for k, v in values]
