@@ -6,13 +6,15 @@ import pandas as pd
 from argparse import ArgumentParser
 
 
-def main(prism_folder: str, prism_pf: str, outfile: str):
+def main(experiment: str, prism_pf: str, outfile: str):
+    prism_folder = f"out/prism/{experiment}"
     prism_files = list_files(prism_folder, [".prism"])
     props_files = list_files(prism_folder, [".props"])
     prism_files = sorted(prism_files, key=lambda fn: os.stat(fn).st_size)
 
-    dir_name = os.path.basename(prism_folder)
-    print(f"Running prism on '{dir_name}' containing {len(prism_files)} files")
+    print(
+        f"Running prism on '{experiment}' containing {len(prism_files)} files"
+    )
 
     def shell_args(file: str) -> list[str]:
         ret = ["prism", file]
@@ -20,21 +22,18 @@ def main(prism_folder: str, prism_pf: str, outfile: str):
             ret += ["-pf", prism_pf]
         else:
             ret += find_matching_prop_file(file, props_files)
-        print(ret)
+        print(">", " ".join(ret))
         return ret
 
-    for file in prism_files:
-        name, _ = os.path.splitext(os.path.basename(file))
-        name = name.replace(f"{dir_name}_", "")
+    for file_path in prism_files:
+        name = get_name_fragment(file_path, experiment)
         try:
-            result = subprocess.run(
-                shell_args(file), check=True, capture_output=True, text=True
-            ).stdout
+            out = run_command(shell_args(file_path))
         except subprocess.CalledProcessError as e:
             print(e)
             continue
 
-        parsed = {"test_system_name": name, **parse_result(result)}
+        parsed = {"test_system_name": name, **parse_result(out)}
         write_result(parsed, outfile)
 
 
@@ -57,6 +56,18 @@ def find_matching_prop_file(
             return [prop_file]
 
     return []
+
+
+def get_name_fragment(file_path: str, exp_name: str) -> str:
+    return os.path.splitext(os.path.basename(file_path))[0].replace(
+        f"{exp_name}_", ""
+    )
+
+
+def run_command(args: list[str]) -> str:
+    return subprocess.run(
+        args, check=True, capture_output=True, text=True
+    ).stdout
 
 
 parse_components: dict[str, tuple[Pattern[str], Type]] = {
@@ -121,10 +132,10 @@ if __name__ == "__main__":
     pd.set_option("precision", 4)
 
     parser = ArgumentParser()
-    parser.add_argument("prism_folder", type=str)
+    parser.add_argument("experiment", type=str)
     parser.add_argument("--property", "-pf", type=str, default="")
     parser.add_argument("--outfile", "-o", type=str, default="")
 
     args = parser.parse_args()
 
-    main(args.prism_folder, args.property, args.outfile)
+    main(args.experiment, args.property, args.outfile)
