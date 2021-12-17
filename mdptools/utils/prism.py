@@ -25,17 +25,11 @@ def to_prism(
         else {mdp: process_id}
     )
 
-    uid = {i: id_register() for i in pid.values()}
-    uid_w = state_register(mdp, uid, pid)
-
-    for p, i in pid.items():
-        for s in p._get_states_from_transitions():
-            uid[i](s)
+    uid_w = state_register(mdp, pid)
 
     register = minmax_register()
     buffer = ""
     trs = []
-    _ = uid_w(mdp.init)
 
     state_space = {}
 
@@ -73,9 +67,10 @@ def to_prism(
         buffer += "\n"
 
     buffer += f"module {to_identifier(mdp.name)}\n"
-    for i, uid_i in uid.items():
+
+    for i, uid_i in uid_w():
         name, last_id, state_ids = (f"p{i}", *uid_i())
-        s_init = mdp.init(mdp.processes[i - process_id])
+        s_init = state(mdp.init(mdp.processes[i - process_id]))
         buffer += f"  {name} : [0..{last_id}] init {uid_i(s_init)};\n"
         # List state names
         buffer += "".join(
@@ -84,6 +79,7 @@ def to_prism(
                 for state_name, _id in state_ids.items()
             ]
         )
+
     # List other variables (the objects of the system)
     buffer += "".join(
         [
@@ -110,20 +106,28 @@ def to_prism_components(mdp: MDP, file_path: str = None) -> str:
     return buffer
 
 
-def state_register(mdp: MDP, uid: list, pid: dict[MDP, int]) -> Callable:
-    def on_process(s: State, update: bool = False) -> str:
-        return "".join(
-            f"(p{i}'={uid[i](state(s.s))})"
-            if update
-            else f"p{i}={uid[i](state(s.s))}"
-            for i in pid.values()
-        )
+def state_register(mdp: MDP, pid: dict[MDP, int]) -> Callable:
+    uid = {i: id_register() for i in pid.values()}
+
+    for p, i in pid.items():
+        local_states = p._get_states_from_transitions()
+        for s in local_states:
+            uid[i](state(s))
+
+    def on_process(s: State = None, update: bool = False) -> str:
+        if not s:
+            return uid.items()
+        i = list(pid.values())[0]
+        value = uid[i](state(s.s))
+        return f"(p{i}'={value})" if update else f"p{i}={value}"
 
     if mdp.is_process:
         return on_process
 
-    def on_system(global_state: State, update: bool = False) -> str:
-        local_states = [(i, global_state(p)) for p, i in pid.items()]
+    def on_system(global_state: State = None, update: bool = False) -> str:
+        if not global_state:
+            return uid.items()
+        local_states = [(i, state(global_state(p))) for p, i in pid.items()]
         values = [(f"p{i}", uid[i](s)) for i, s in local_states]
         string = " & ".join(
             [f"({k}'={v})" if update else f"{k}={v}" for k, v in values]

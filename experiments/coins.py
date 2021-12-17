@@ -32,8 +32,8 @@ def make_coin(i: int, p: float) -> MDP:
         [
             (
                 f"flip_{i}",
-                f"u_{i}",
-                {f"h_{i}": round(p, 2), f"t_{i}": round(1 - p, 2)},
+                f"unknown_{i}",
+                {f"heads_{i}": round(p, 2), f"tails_{i}": round(1 - p, 2)},
             )
         ],
         name=f"C{i}",

@@ -280,7 +280,7 @@ class MarkovDecisionProcess:
         states = [tr.pre for tr in self.transitions]
         for tr in self.transitions:
             states += [s_ for (s_, _), _ in tr.post.items()]
-        return flatten(states)
+        return list(dict.fromkeys(flatten(states)))
 
     def _goal_action_filter(self, tr: Transition) -> bool:
         return any(

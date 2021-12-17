@@ -162,7 +162,11 @@ def id_register() -> Callable[[Hashable], int]:
         return uid
 
     register = defaultdict(next_id)
-    return lambda key=None: (uid, register) if key is None else register[key]
+    return (
+        lambda key=None: (uid, dict(register))
+        if key is None
+        else register[key]
+    )
 
 
 def minmax_register() -> Callable[[str, int], dict]:
