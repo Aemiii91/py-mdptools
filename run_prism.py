@@ -22,7 +22,6 @@ def main(experiment: str, prism_pf: str, outfile: str):
             ret += ["-pf", prism_pf]
         else:
             ret += find_matching_prop_file(file, props_files)
-        print(">", " ".join(ret))
         return ret
 
     for file_path in prism_files:
