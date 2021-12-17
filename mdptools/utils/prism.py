@@ -12,21 +12,25 @@ from .utils import id_register, minmax_register, write_file
 
 
 def to_prism(
-    mdp: MDP, file_path: str = None, set_method: SetMethod = None
+    mdp: MDP,
+    file_path: str = None,
+    set_method: SetMethod = None,
+    process_id: int = 0,
+    no_header: bool = False,
 ) -> tuple[str, dict[State, ActionMap]]:
     """Compiles an MDP to the Prism Model Checler language"""
     pid = (
         {p: i for i, p in enumerate(mdp.processes)}
         if not mdp.is_process
-        else {mdp: 0}
+        else {mdp: process_id}
     )
 
-    uid = [id_register() for _ in pid]
+    uid = {i: id_register() for i in pid.values()}
     uid_w = state_register(mdp, uid, pid)
 
-    for p in mdp.processes:
+    for p, i in pid.items():
         for s in p._get_states_from_transitions():
-            uid[pid[p]](s)
+            uid[i](s)
 
     register = minmax_register()
     buffer = ""
@@ -64,13 +68,15 @@ def to_prism(
                 # Add the global transition
                 trs += [f"  [{a}] {pre} -> " + " + ".join(post) + ";\n"]
 
-    buffer += "mdp\n"
-    buffer += "\n"
+    if not no_header:
+        buffer += "mdp\n"
+        buffer += "\n"
+
     buffer += f"module {to_identifier(mdp.name)}\n"
-    for name, last_id, state_ids in [
-        (f"p{i}", *c()) for i, c in enumerate(uid)
-    ]:
-        buffer += f"  {name} : [0..{last_id}] init 0;\n"
+    for i, uid_i in uid.items():
+        name, last_id, state_ids = (f"p{i}", *uid_i())
+        s_init = mdp.init(mdp.processes[i - process_id])
+        buffer += f"  {name} : [0..{last_id}] init {uid_i(s_init)};\n"
         # List state names
         buffer += "".join(
             [
@@ -94,20 +100,31 @@ def to_prism(
     return (buffer, state_space)
 
 
+def to_prism_components(mdp: MDP, file_path: str = None) -> str:
+    buffer = "mdp\n\n"
+    buffer += "\n\n".join(
+        to_prism(process, process_id=pid, no_header=True)[0]
+        for pid, process in enumerate(mdp.processes)
+    )
+    write_file(file_path, buffer)
+    return buffer
+
+
 def state_register(mdp: MDP, uid: list, pid: dict[MDP, int]) -> Callable:
     def on_process(s: State, update: bool = False) -> str:
-        return (
-            f"(s'={uid[0](state(s.s))})"
+        return "".join(
+            f"(p{i}'={uid[i](state(s.s))})"
             if update
-            else f"s={uid[0](state(s.s))}"
+            else f"p{i}={uid[i](state(s.s))}"
+            for i in pid.values()
         )
 
     if mdp.is_process:
         return on_process
 
     def on_system(global_state: State, update: bool = False) -> str:
-        local_states = [(p, global_state(p)) for p in pid.keys()]
-        values = [(f"p{pid[p]}", uid[pid[p]](s)) for p, s in local_states]
+        local_states = [(i, global_state(p)) for p, i in pid.items()]
+        values = [(f"p{i}", uid[i](s)) for i, s in local_states]
         string = " & ".join(
             [f"({k}'={v})" if update else f"{k}={v}" for k, v in values]
         )

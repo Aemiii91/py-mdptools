@@ -8,7 +8,7 @@ from threading import Lock
 from concurrent.futures import ThreadPoolExecutor
 
 from mdptools import MarkovDecisionProcess as MDP, stubborn_sets
-from mdptools.utils import write_file
+from mdptools.utils import write_file, to_prism_components
 from mdptools.types import StateDescription
 
 
@@ -36,6 +36,7 @@ def main(
             mdp, goal_states, prism_pf = tuple(f(n) for f in experiment)
             test_goal = goal_states if not without_goal else None
             write_file(prism_path(f"{n}.props"), prism_pf)
+            to_prism_components(mdp, prism_path(f"{n}_components.prism"))
 
             for name, test_case in test_cases(mdp, test_goal):
                 result = {"test_system": name, "scale": n}
@@ -78,7 +79,8 @@ def run_experiment(
     result["gen_time"] = gen_time
 
     with write_lock:
-        write_result(result, outfile, prism_code, prism_file)
+        write_file(prism_file, prism_code)
+        write_result(result, outfile)
 
 
 def time_execution(func: Callable) -> tuple[Any, int]:
@@ -92,7 +94,7 @@ def time_execution(func: Callable) -> tuple[Any, int]:
 first_write = True
 
 
-def write_result(result: dict, outfile: str, prism_code: str, prism_file: str):
+def write_result(result: dict, outfile: str):
     global first_write
 
     df = pd.DataFrame([result])
@@ -110,7 +112,6 @@ def write_result(result: dict, outfile: str, prism_code: str, prism_file: str):
             header=first_write,
         )
 
-    write_file(prism_file, prism_code)
     first_write = False
 
 
