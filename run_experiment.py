@@ -51,7 +51,7 @@ def main(
 
 def test_cases(mdp: MDP, goal_states: set[StateDescription]):
     ret: list[tuple[str, MDP]] = [
-        ("original", mdp),
+        # ("original", mdp),
         ("reduced", MDP(*mdp.processes, set_method=stubborn_sets)),
     ]
 

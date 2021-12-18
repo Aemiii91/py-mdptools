@@ -65,7 +65,7 @@ def get_name_and_scale(file_path: str, exp_name: str) -> tuple[str, int]:
     fragment = os.path.splitext(os.path.basename(file_path))[0].replace(
         f"{exp_name}_", ""
     )
-    name, _, n = fragment.rpartition("_")
+    n, _, name = fragment.partition("_")
     return (name, int(n))
 
 
