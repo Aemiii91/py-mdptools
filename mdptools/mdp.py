@@ -164,12 +164,14 @@ class MarkovDecisionProcess:
             rename_map(self.states, state_fn),
             rename_map(self.actions, action_fn),
         )
-        if not self.is_process:
-            return MarkovDecisionProcess(
-                *(p.rename(state_fn, action_fn) for p in self.processes)
-            )
         if name is None:
             name = self.name
+        if not self.is_process:
+            return MarkovDecisionProcess(
+                *(p.rename(state_fn, action_fn) for p in self.processes),
+                name=name,
+                init=self.init.rename(states),
+            )
         return MarkovDecisionProcess(
             [tr.rename(states, actions) for tr in self.transitions],
             name=name,

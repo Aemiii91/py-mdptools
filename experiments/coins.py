@@ -9,7 +9,7 @@ def make_system(n: int) -> tuple[MDP, set[StateDescription], str]:
     coins = [make_coin(i, p_values(i - 1)) for i in rng]
     return (
         MDP(*coins) if n > 1 else coins[0],
-        {f"heads_{i}" for i in rng},
+        {f"h_{i}" for i in rng},
         f"Pmax=? [F {' & '.join(f'p{i-1}=1' for i in rng)}]",
     )
 
@@ -19,8 +19,8 @@ def make_coin(i: int, p: float) -> MDP:
         [
             (
                 f"flip_{i}",
-                f"unknown_{i}",
-                {f"heads_{i}": round(p, 2), f"tails_{i}": round(1 - p, 2)},
+                f"u_{i}",
+                {f"h_{i}": round(p, 2), f"t_{i}": round(1 - p, 2)},
             )
         ],
         name=f"C{i}",
@@ -43,7 +43,8 @@ def p_values(i: int) -> float:
 
 if __name__ == "__main__":
     # %%
-    mdp, goal_states, pf = make_system(3)
+    n = 3
+    mdp, goal_states, pf = make_system(n)
     print(mdp)
     print(goal_states)
     print(pf)
@@ -52,14 +53,28 @@ if __name__ == "__main__":
     graph(*mdp.processes)
 
     # %%
-    mdp.goal_states = goal_states
-    print(mdp.goal_actions)
-    graph(mdp, set_method=stubborn_sets, highlight=True)
+    mdp_g = mdp.rename(name="M_goal")
+    mdp_g.set_method = stubborn_sets
+    mdp_g.goal_states = goal_states
+    mdp_r = mdp.rename(name="M_red")
+    mdp_r.set_method = stubborn_sets
+    print(mdp_g.goal_actions)
 
     # %%
-    output, state_space = mdp.to_prism()
+    save_loc = f"out/graphs/coins_{n}_reduced"
+    graph(mdp_g, highlight=True, file_path=save_loc)
+
+    # %%
+    save_loc = f"out/graphs/coins_{n}_with_goal"
+    graph(mdp_r, highlight=True, file_path=save_loc)
+
+    # %%
+    output, state_space = mdp_g.to_prism()
     print(output)
-    print(len(state_space))
+
+    # %%
+    original_size = len(list(mdp.search(silent=True)))
+    print(len(state_space), "vs", original_size)
 
     # %%
     pr = pr_max(mdp, goal_states=goal_states, state_space=state_space)
