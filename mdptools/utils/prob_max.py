@@ -71,17 +71,24 @@ def can_reach(
     s: State,
     goal_states: frozenset[State],
     act: dict[State, list[dict[State, ActionMap]]],
+    visited: set[State] = None,
 ) -> bool:
     if (s, goal_states) in can_reach_memo:
         return can_reach_memo[(s, goal_states)]
 
     result = False
 
+    if not visited:
+        visited = set()
+
     if s.is_goal(goal_states):
         result = True
-    elif s in act:
+    elif s in act and s not in visited:
+        visited.add(s)
         next_states = [t for dist in act[s] for t in dist.keys() if t != s]
-        result = any(can_reach(t, goal_states, act) for t in next_states)
+        result = any(
+            can_reach(t, goal_states, act, visited) for t in next_states
+        )
 
     can_reach_memo[(s, goal_states)] = result
 

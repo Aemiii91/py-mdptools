@@ -1,18 +1,13 @@
 from itertools import chain
-from typing import Callable
+
 from mdptools import MarkovDecisionProcess as MDP
+from mdptools.types import StateDescription
 
 
-def export() -> tuple[Callable, ...]:
-    return (
-        make_system,
-        lambda _: {"failed"},
-        lambda _: "Pmax=? [F p0=3]",
-    )
-
-
-def make_system(n: int) -> MDP:
-    return MDP(*([make_device(n)] + [make_sensor(i) for i in range(1, n + 1)]))
+def make_system(n: int) -> tuple[MDP, set[StateDescription], str]:
+    sensors = [make_sensor(i) for i in range(1, n + 1)]
+    device = make_device(n)
+    return (MDP(device, *sensors), {"failed"}, "Pmax=? [F p0=3]")
 
 
 def make_sensor(i: int) -> MDP:
@@ -31,21 +26,14 @@ def make_sensor(i: int) -> MDP:
 
 def make_device(n: int) -> MDP:
     s = ["running", "stopping", "off", "failed"]
-    return MDP(
-        list(
-            chain.from_iterable(
-                (
-                    (f"warn_{i}", s[0], s[1]),
-                    (f"shutdown_{i}", s[0], {s[2]: 0.9, s[3]: 0.1}),
-                    (f"shutdown_{i}", s[1], s[2]),
-                )
-                for i in range(1, n + 1)
+    trs = list(
+        chain.from_iterable(
+            (
+                (f"warn_{i}", s[0], s[1]),
+                (f"shutdown_{i}", s[0], {s[2]: 0.9, s[3]: 0.1}),
+                (f"shutdown_{i}", s[1], s[2]),
             )
+            for i in range(1, n + 1)
         )
-        + [
-            ("tau", s[2]),
-            ("tau", s[3]),
-        ],
-        init=s[0],
-        name="D",
     )
+    return MDP(trs + [("tau", s[2]), ("tau", s[3])], init=s[0], name="D")

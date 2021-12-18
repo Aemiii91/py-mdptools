@@ -1,18 +1,10 @@
 from random import random
-from typing import Callable
+
 from mdptools import MarkovDecisionProcess as MDP
+from mdptools.types import StateDescription
 
 
-def export() -> tuple[Callable, ...]:
-    p_values = random_register()
-    return (
-        lambda n: make_system(n, p_values),
-        lambda _: {"count_0"},
-        lambda _: "Pmax=? [F p0=0]",
-    )
-
-
-def make_system(n: int, p_values: Callable[[int], float]) -> MDP:
+def make_system(n: int) -> tuple[MDP, set[StateDescription], str]:
     coins = [make_coin(i + 1, p_values(i)) for i in range(n)]
     hand = MDP(
         [("done", "count_0")]
@@ -24,7 +16,7 @@ def make_system(n: int, p_values: Callable[[int], float]) -> MDP:
         name="H",
         init=(f"count_{n}"),
     )
-    return MDP(hand, *coins)
+    return (MDP(hand, *coins), {"count_0"}, "Pmax=? [F p0=0]")
 
 
 def make_coin(i: int, p: float) -> MDP:
@@ -40,17 +32,15 @@ def make_coin(i: int, p: float) -> MDP:
     )
 
 
-def random_register() -> Callable:
-    p_values = []
+_p_values = []
 
-    def get_random(i: int) -> float:
-        nonlocal p_values
 
-        if i > len(p_values) - 1:
-            p_values += [
-                random() * 0.8 + 0.1 for _ in range(i - len(p_values) + 1)
-            ]
+def p_values(i: int) -> float:
+    global _p_values
 
-        return p_values[i]
+    if i > len(_p_values) - 1:
+        _p_values += [
+            random() * 0.8 + 0.1 for _ in range(i - len(_p_values) + 1)
+        ]
 
-    return get_random
+    return _p_values[i]

@@ -8,9 +8,8 @@ from argparse import ArgumentParser
 
 def main(experiment: str, prism_pf: str, outfile: str):
     prism_folder = f"out/prism/{experiment}"
-    prism_files = list_files(prism_folder, [".prism"])
     props_files = list_files(prism_folder, [".props"])
-    prism_files = sorted(prism_files, key=lambda fn: os.stat(fn).st_size)
+    prism_files = list_files(prism_folder, [".prism"], sort_by_size=True)
 
     print(
         f"Running prism on '{experiment}' containing {len(prism_files)} files"
@@ -25,23 +24,28 @@ def main(experiment: str, prism_pf: str, outfile: str):
         return ret
 
     for file_path in prism_files:
-        name = get_name_fragment(file_path, experiment)
+        name, scale = get_name_and_scale(file_path, experiment)
         try:
             out = run_command(shell_args(file_path))
         except subprocess.CalledProcessError as e:
             print(e)
             continue
 
-        parsed = {"test_system_name": name, **parse_result(out)}
+        parsed = {"test_system": name, "scale": scale, **parse_result(out)}
         write_result(parsed, outfile)
 
 
-def list_files(folder: str, extensions: list[str]) -> list[str]:
-    return [
+def list_files(
+    folder: str, extensions: list[str], sort_by_size: bool = False
+) -> list[str]:
+    files = [
         os.path.join(folder, fn)
         for fn in os.listdir(folder)
         if any(fn.endswith(ext) for ext in extensions)
     ]
+    if sort_by_size:
+        files = sorted(files, key=lambda fn: os.stat(fn).st_size)
+    return files
 
 
 def find_matching_prop_file(
@@ -57,10 +61,12 @@ def find_matching_prop_file(
     return []
 
 
-def get_name_fragment(file_path: str, exp_name: str) -> str:
-    return os.path.splitext(os.path.basename(file_path))[0].replace(
+def get_name_and_scale(file_path: str, exp_name: str) -> tuple[str, int]:
+    fragment = os.path.splitext(os.path.basename(file_path))[0].replace(
         f"{exp_name}_", ""
     )
+    name, _, n = fragment.rpartition("_")
+    return (name, int(n))
 
 
 def run_command(args: list[str]) -> str:

@@ -12,6 +12,9 @@ from mdptools.utils import write_file, to_prism_components
 from mdptools.types import StateDescription
 
 
+SystemMaker = Callable[[int], tuple[MDP, set[StateDescription], str]]
+
+
 def main(
     exp_name: str,
     n_from: int,
@@ -22,7 +25,8 @@ def main(
     without_goal: bool,
 ):
     sys.path.append("./experiments")
-    experiment = importlib.import_module(exp_name).export()
+    experiment = importlib.import_module(exp_name)
+    make_system: SystemMaker = experiment.make_system
 
     prism_path = (
         lambda file_name: f"out/prism/{exp_name}/{exp_name}_{file_name}"
@@ -33,7 +37,7 @@ def main(
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
         for n in range(n_from, n_to + 1, step):
-            mdp, goal_states, prism_pf = tuple(f(n) for f in experiment)
+            mdp, goal_states, prism_pf = make_system(n)
             test_goal = goal_states if not without_goal else None
             write_file(prism_path(f"{n}.props"), prism_pf)
             to_prism_components(mdp, prism_path(f"{n}_components.prism"))
