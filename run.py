@@ -36,7 +36,9 @@ def main(args: Namespace):
     for example in examples:
         if len(examples) > 1:
             print_header(example)
-        importlib.import_module(example)
+        ex_module = importlib.import_module(example)
+        if hasattr(ex_module, "main"):
+            ex_module.main()
 
 
 def print_header(title: str):

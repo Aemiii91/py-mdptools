@@ -24,8 +24,14 @@ def main(
     workers: int,
     without_goal: bool,
 ):
-    sys.path.append("./experiments")
+    sys.path.append("./examples")
     experiment = importlib.import_module(exp_name)
+
+    if not hasattr(experiment, "make_system"):
+        raise ModuleNotFoundError(
+            "No system generator found. An experiment needs to define a 'make_system(int) -> tuple[MDP, set[StateDescription], str]'."
+        )
+
     make_system: SystemMaker = experiment.make_system
 
     prism_path = (
@@ -38,6 +44,10 @@ def main(
     with ThreadPoolExecutor(max_workers=workers) as executor:
         for n in range(n_from, n_to + 1, step):
             mdp, goal_states, prism_pf = make_system(n)
+
+            if mdp is None:
+                continue
+
             test_goal = goal_states if not without_goal else None
             write_file(prism_path(f"{n}.props"), prism_pf)
             to_prism_components(mdp, prism_path(f"{n}_components.prism"))

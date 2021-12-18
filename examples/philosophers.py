@@ -55,7 +55,7 @@ def make_philosopher(i: int, l: int, r: int) -> MDP:
     )
 
 
-if __name__ == "__main__":
+def main():
     # %%
     mdp, goal_states, pf = make_system(2)
     print(mdp)
@@ -73,3 +73,7 @@ if __name__ == "__main__":
     # %%
     pr = pr_max(mdp, goal_states=goal_states, state_space=state_space)
     print(pr)
+
+
+if __name__ == "__main__":
+    main()

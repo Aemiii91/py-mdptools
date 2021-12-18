@@ -5,10 +5,12 @@ from mdptools.types import StateDescription
 
 
 def make_system(n: int) -> tuple[MDP, set[StateDescription], str]:
+    if n <= 1:
+        return (None, None, None)
     rng = range(1, n + 1)
     coins = [make_coin(i, p_values(i - 1)) for i in rng]
     return (
-        MDP(*coins) if n > 1 else coins[0],
+        MDP(*coins),
         {f"h_{i}" for i in rng},
         f"Pmax=? [F {' & '.join(f'p{i-1}=1' for i in rng)}]",
     )
@@ -41,7 +43,7 @@ def p_values(i: int) -> float:
     return _p_values[i]
 
 
-if __name__ == "__main__":
+def main():
     # %%
     n = 3
     mdp, goal_states, pf = make_system(n)
@@ -79,3 +81,8 @@ if __name__ == "__main__":
     # %%
     pr = pr_max(mdp, goal_states=goal_states, state_space=state_space)
     print(pr)
+
+
+# %%
+if __name__ == "__main__":
+    main()

@@ -1,13 +1,11 @@
 from mdptools import MarkovDecisionProcess as MDP, graph, pr_max
 from mdptools.set_methods import stubborn_sets
 
-from sensor_system import make_system, make_anon_device, make_anon_sensor
+from sensor_system import make_system, make_sensor, make_device
 
 
 # %%
-m = MDP(make_anon_sensor(), make_anon_device()).rename(
-    (r"^([a-z])[a-z]*", r"\1")
-)
+m = MDP(make_sensor(1), make_device(1)).rename((r"^([a-z])[a-z]*", r"\1"))
 
 # %%
 graph(
@@ -20,11 +18,10 @@ graph(
 graph(m, file_path="out/graphs/example_system", file_format="pdf")
 
 # %%
+m, _, _ = make_system(2)
+m = m.rename((r"^([a-z])[a-z]*", r"\1"))
+
 goal_states = {"f"}
-m = make_system(2).rename(
-    (r"^([a-z])[a-z]*", r"\1")
-    # (r"^([a-z]{1,2}[aeiouy][^aeiouy]?|[a-z]{1,2}[^aeiouy])[a-z]*", r"\1")
-)
 m.goal_states = goal_states
 
 print(m)
