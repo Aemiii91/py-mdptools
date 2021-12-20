@@ -77,11 +77,11 @@ def run_command(args: list[str]) -> str:
 
 parse_components: dict[str, tuple[Pattern[str], Type]] = {
     "states": (re.compile(r"States:\s*(\d+)"), int),
-    "gen_time": (
+    "con_time": (
         re.compile(r"Time for model construction: (\d+(?:\.\d+))"),
         float,
     ),
-    "result": (re.compile(r"Result: (\d+(?:\.\d+)?)"), float),
+    "result": (re.compile(r"Result: (\d+(?:\.\d+)?(?:E[+-]\d+)?)"), float),
     "check_time": (
         re.compile(r"Time for model checking: (\d+(?:\.\d+))"),
         float,

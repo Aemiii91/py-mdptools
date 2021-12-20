@@ -11,8 +11,8 @@ def make_system(n: int) -> tuple[MDP, set[StateDescription], str]:
     coins = [make_coin(i, p_values(i - 1)) for i in rng]
     return (
         MDP(*coins),
-        {"h_1"},
-        "Pmax=? [F p0=1]",
+        {(f"h_{i}" for i in rng)},
+        f"Pmax=? [F {' & '.join(f'p{i-1}=1' for i in rng)}]",
     )
 
 
