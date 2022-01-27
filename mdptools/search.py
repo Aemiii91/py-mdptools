@@ -55,7 +55,7 @@ def search(
             trs = mdp.enabled(s)
             _log_visit(mdp, s, trs, set_method, level)
             # Apply set_method if available and more than one transition is enabled in s
-            if isinstance(set_method, Callable) and len(trs) > 1:
+            if isinstance(set_method, Callable):
                 trs = set_method(mdp, s)
             # Expand the transitions
             for tr in trs:
