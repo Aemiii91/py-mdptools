@@ -285,12 +285,11 @@ class MarkovDecisionProcess:
         return list(dict.fromkeys(flatten(states)))
 
     def _goal_action_filter(self, tr: Transition) -> bool:
-        return any(
-            s <= g or g <= s
+        return [
+            any(s.intersection(g) for g in self.goal_states)
             for s, _ in tr.post.keys()
-            for g in self.goal_states
             if tr.pre != s
-        )
+        ]
 
 
 @dataclass(eq=True, frozen=True)

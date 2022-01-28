@@ -17,6 +17,7 @@ def to_prism(
     set_method: SetMethod = None,
     process_id: int = 0,
     no_header: bool = False,
+    convert_goal_states: bool = False,
 ) -> tuple[str, dict[State, ActionMap]]:
     """Compiles an MDP to the Prism Model Checler language"""
     pid = (
@@ -68,17 +69,28 @@ def to_prism(
 
     buffer += f"module {to_identifier(mdp.name)}\n"
 
+    converted_goal_states = [[] for _ in mdp.goal_states]
+
     for i, uid_i in uid_w():
         name, last_id, state_ids = (f"p{i}", *uid_i())
-        s_init = state(mdp.init(mdp.processes[i - process_id]))
+        process = mdp.processes[i - process_id]
+        s_init = state(mdp.init(process))
+        real_names = {
+            _id: state_name.to_str(parent=process)
+            for state_name, _id in state_ids.items()
+        }
         buffer += f"  {name} : [0..{last_id}] init {uid_i(s_init)};\n"
         # List state names
         buffer += "".join(
             [
-                f"  // {_id} : {state_name}\n"
-                for state_name, _id in state_ids.items()
+                f"  // {_id} : {real_name}\n"
+                for _id, real_name in real_names.items()
             ]
         )
+        for idx, goal_state in enumerate(mdp.goal_states):
+            for _id, real_name in real_names.items():
+                if real_name in goal_state:
+                    converted_goal_states[idx] += [f"{name}={_id}"]
 
     # List other variables (the objects of the system)
     buffer += "".join(
@@ -93,6 +105,10 @@ def to_prism(
     buffer += "endmodule"
 
     write_file(file_path, buffer)
+
+    if convert_goal_states:
+        return (buffer, state_space, converted_goal_states)
+
     return (buffer, state_space)
 
 

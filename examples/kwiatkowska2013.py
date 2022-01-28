@@ -21,8 +21,8 @@ graph(m, file_path="out/graphs/example_system", file_format="pdf")
 m, _, _ = make_system(2)
 m = m.rename((r"^([a-z])[a-z]*", r"\1"))
 
-goal_states = {"f"}
-m.goal_states = goal_states
+goal_states = {("o", "a_1", "i_2")}
+# m.goal_states = goal_states
 
 print(m)
 
@@ -57,5 +57,18 @@ graph(
 # %%
 p_red = pr_max(m_red, goal_states=goal_states)
 print(p_red)
+
+# %%
+m_wg = MDP(*m.processes, set_method=stubborn_sets, goal_states=goal_states)
+graph(
+    m_wg,
+    file_path="out/graphs/example_2_with_goal",
+    file_format="pdf",
+    set_method=stubborn_sets,
+)
+
+# %%
+p_wg = pr_max(m_wg, goal_states=goal_states)
+print(p_wg)
 
 # %%
