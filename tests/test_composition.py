@@ -91,24 +91,24 @@ def test_conflicting_transitions(godefroid_4_11: MDP):
     logger.setLevel(logging.NOTSET)
 
 
-def test_overmans_algorithm(godefroid_4_11: MDP):
-    """Overman's algorithm"""
-    logger.setLevel(logging.INFO)
-    m = godefroid_4_11
-    state_space = list(m.search(set_method=overmans_algorithm))
-    assert len(state_space) == 6
-    logger.setLevel(logging.NOTSET)
+# def test_overmans_algorithm(godefroid_4_11: MDP):
+#     """Overman's algorithm"""
+#     logger.setLevel(logging.INFO)
+#     m = godefroid_4_11
+#     state_space = list(m.search(set_method=overmans_algorithm))
+#     assert len(state_space) == 6
+#     logger.setLevel(logging.NOTSET)
 
 
-def test_overmans_algorithm_with_bias(godefroid_4_11: MDP):
-    """Overman's algorithm"""
-    logger.setLevel(logging.INFO)
-    m = godefroid_4_11
-    state_space = list(
-        m.search(set_method=transition_bias(overmans_algorithm, "t4"))
-    )
-    assert len(state_space) == 7
-    logger.setLevel(logging.NOTSET)
+# def test_overmans_algorithm_with_bias(godefroid_4_11: MDP):
+#     """Overman's algorithm"""
+#     logger.setLevel(logging.INFO)
+#     m = godefroid_4_11
+#     state_space = list(
+#         m.search(set_method=transition_bias(overmans_algorithm, "t4"))
+#     )
+#     assert len(state_space) == 7
+#     logger.setLevel(logging.NOTSET)
 
 
 def test_stubborn_sets(godefroid_4_11: MDP):

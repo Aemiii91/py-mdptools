@@ -62,7 +62,7 @@ def _log_begin(mdp: MDP, s: State, P: list[MDP]):
             _h.comment("begin"),
             _h.function("overmans_algorithm"),
             s.to_str(mdp, colors=True, wrap=True),
-            ", ".join(map(lambda p: _h.fail(p.name), P)),
+            ", ".join(map(lambda p: _h.fail(p.name), list(P))),
         )
 
 

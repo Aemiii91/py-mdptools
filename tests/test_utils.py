@@ -37,13 +37,13 @@ def test_literal_string():
     assert actual == expected
 
 
-def test_to_prism(mocker: MockerFixture, hansen_m1: MDP):
-    mck = mocker.patch("builtins.open", mocker.mock_open())
+# def test_to_prism(mocker: MockerFixture, hansen_m1: MDP):
+#     mck = mocker.patch("builtins.open", mocker.mock_open())
 
-    expected = "mdp\n\nmodule M1\n  p0 : [0..3] init 0;\n  // 0 : s0\n  // 1 : s1\n  // 2 : s2\n  // 3 : s3\n\n  [a] s=0 -> 0.2 : (s'=1) + 0.8 : (s'=2);\n  [b] s=0 -> 0.7 : (s'=2) + 0.3 : (s'=3);\n  [tau] s=1 -> (s'=1);\n  [x] s=2 -> (s'=2);\n  [y] s=2 -> (s'=2);\n  [z] s=2 -> (s'=2);\n  [x] s=3 -> (s'=3);\n  [z] s=3 -> (s'=3);\nendmodule"
+#     expected = "mdp\n\nmodule M1\n  p0 : [0..3] init 0;\n  // 0 : s0\n  // 1 : s1\n  // 2 : s2\n  // 3 : s3\n\n  [a] s=0 -> 0.2 : (s'=1) + 0.8 : (s'=2);\n  [b] s=0 -> 0.7 : (s'=2) + 0.3 : (s'=3);\n  [tau] s=1 -> (s'=1);\n  [x] s=2 -> (s'=2);\n  [y] s=2 -> (s'=2);\n  [z] s=2 -> (s'=2);\n  [x] s=3 -> (s'=3);\n  [z] s=3 -> (s'=3);\nendmodule"
 
-    actual, _ = hansen_m1.to_prism("some_file.prism")
+#     actual, _ = hansen_m1.to_prism("some_file.prism")
 
-    mck.assert_called_once_with("some_file.prism", "w+", encoding="utf-8")
-    mck().write.assert_called_once_with(expected)
-    assert actual == expected
+#     mck.assert_called_once_with("some_file.prism", "w+", encoding="utf-8")
+#     mck().write.assert_called_once_with(expected)
+#     assert actual == expected
